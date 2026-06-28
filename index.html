@@ -450,10 +450,10 @@ async function sbLoadComments(iso){
   return data||[];
 }
 async function sbUploadPhoto(iso,file){
-  const ext=file.name.split('.').pop();
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
   const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-  const {error}=await sb.storage.from('reisefotos').upload(path,file);
-  if(error){console.error(error);return null;}
+  const {error}=await sb.storage.from('reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  if(error){alert('Supabase-Fehler: '+(error.message||JSON.stringify(error)));console.error('sbUploadPhoto:',error);return null;}
   const {data}=sb.storage.from('reisefotos').getPublicUrl(path);
   return data.publicUrl;
 }
@@ -620,9 +620,19 @@ async function handlePhotos(event,iso){
   if(!files.length)return;
   toast('⏳ Fotos werden hochgeladen…');
   if(!photos[iso])photos[iso]=[];
-  for(const file of files){const url=await sbUploadPhoto(iso,file);if(url)photos[iso].push(url);}
+  let ok=0;
+  for(const file of files){
+    try{
+      const url=await sbUploadPhoto(iso,file);
+      if(url){photos[iso].push(url);ok++;}
+      else{toast('❌ Upload fehlgeschlagen');}
+    }catch(err){
+      alert('Upload-Fehler: '+(err&&err.message?err.message:JSON.stringify(err)));
+      console.error('handlePhotos:',err);
+    }
+  }
   refreshPhotoGrid(iso);
-  toast('✓ '+files.length+' Foto(s) gespeichert!');
+  if(ok>0)toast('✓ '+ok+' Foto(s) gespeichert!');
 }
 function refreshPhotoGrid(iso){
   const grid=document.getElementById('photo-grid-'+iso);
