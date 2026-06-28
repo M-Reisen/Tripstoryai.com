@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+// INIT
+initSupabase().then(()=>showTab("tage"));
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -210,6 +214,17 @@ textarea{resize:vertical;min-height:100px;}
   .modal-body{padding:18px;}
   .header-inner{padding:11px 16px;}
 }
+
+/* KOMMENTARE */
+.comments-section{padding:16px 22px;border-top:1px solid rgba(28,26,22,.07);}
+.comments-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);margin-bottom:10px;}
+.comment-item{background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.84rem;}
+.comment-name{font-weight:600;font-size:.78rem;color:var(--sunset);margin-bottom:3px;}
+.comment-text{line-height:1.6;color:#3a2d22;}
+.comment-date{font-size:.68rem;color:var(--fog);margin-top:4px;}
+.comment-form{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.comment-form input,.comment-form textarea{font-size:.84rem;padding:8px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;background:var(--paper);}
+.comment-form textarea{min-height:60px;resize:vertical;}
 </style>
 </head>
 <body>
