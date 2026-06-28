@@ -452,22 +452,22 @@ async function sbLoadComments(iso){
 async function sbUploadPhoto(iso,file){
   const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
   const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-  const {error}=await sb.storage.from('reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
   if(error){alert('Supabase-Fehler: '+(error.message||JSON.stringify(error)));console.error('sbUploadPhoto:',error);return null;}
-  const {data}=sb.storage.from('reisefotos').getPublicUrl(path);
+  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data.publicUrl;
 }
 async function sbLoadPhotos(iso){
-  const {data,error}=await sb.storage.from('reisefotos').list(iso,{limit:100});
+  const {data,error}=await sb.storage.from('Reisefotos').list(iso,{limit:100});
   if(error||!data)return[];
   return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
-    const {data:u}=sb.storage.from('reisefotos').getPublicUrl(iso+'/'+f.name);
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl(iso+'/'+f.name);
     return u.publicUrl;
   });
 }
 async function sbDeletePhoto(url){
-  const path=url.split('/reisefotos/')[1];
-  if(path)await sb.storage.from('reisefotos').remove([decodeURIComponent(path)]);
+  const path=url.split('/Reisefotos/')[1];
+  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────
