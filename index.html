@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -14,13 +15,10 @@
   --flight:#7c3aed;--bus:#16a34a;--car:#b45309;--tour:#be185d;--ferry:#0369a1;
 }
 body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
-
-/* HEADER */
 header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
 .header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
 .logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--sand);}
 .logo em{color:var(--sunset);font-style:italic;}
-.logo small{font-family:'Inter',sans-serif;font-size:.68rem;font-weight:400;color:var(--fog);letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:1px;}
 .header-actions{display:flex;gap:8px;}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
 .btn-primary{background:var(--sunset);color:var(--white);}.btn-primary:hover{background:#c96a30;}
@@ -28,9 +26,6 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .btn-reef{background:var(--reef);color:var(--white);}
 .btn-bush{background:var(--bush);color:var(--white);}
 .btn-sm{padding:6px 12px;font-size:.76rem;}
-.btn-full{width:100%;justify-content:center;margin-top:8px;}
-
-/* HERO */
 .hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#0a1a2e 0%,#0d2a1a 35%,#1a3a0a 60%,#2a1505 100%);padding:52px 24px 44px;text-align:center;color:var(--sand);}
 .hero-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1px 1px at 15% 20%,rgba(255,255,200,.7) 0%,transparent 100%),radial-gradient(1px 1px at 60% 10%,rgba(255,255,200,.5) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 80% 30%,rgba(255,255,200,.6) 0%,transparent 100%),radial-gradient(1px 1px at 30% 70%,rgba(255,255,200,.4) 0%,transparent 100%);}
 .hero-eyebrow{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--sunset);margin-bottom:10px;}
@@ -39,22 +34,15 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .hero-dates{font-family:'Caveat',cursive;font-size:1.3rem;color:rgba(240,230,204,.7);margin-bottom:6px;}
 .hero-sub{font-size:.88rem;color:rgba(240,230,204,.5);margin-bottom:28px;}
 .hero-stats{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:28px;}
-.hero-stat{text-align:center;}
 .hero-stat .num{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--sunset);display:block;}
 .hero-stat .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,230,204,.5);}
-
-/* TABS */
 .tabs{max-width:1140px;margin:28px auto 0;padding:0 24px;display:flex;gap:4px;border-bottom:2px solid rgba(28,26,22,.1);overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;color:var(--fog);background:none;border:none;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;border-radius:6px 6px 0 0;white-space:nowrap;}
 .tab-btn.active{color:var(--sunset);border-bottom-color:var(--sunset);}
 .tab-btn:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.04);}
-
 main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
-.section{display:none;}
-.section.active{display:block;}
-
-/* ── TAG FÜR TAG (SWIPE) ── */
+.section{display:none;}.section.active{display:block;}
 .days-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;}
 .days-nav-title{font-family:'Playfair Display',serif;font-size:1.2rem;text-align:center;flex:1;}
 .days-nav-title small{display:block;font-family:'Inter',sans-serif;font-size:.75rem;color:var(--fog);font-weight:400;margin-top:2px;}
@@ -64,31 +52,24 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .days-dots{display:flex;justify-content:center;gap:5px;margin-bottom:20px;flex-wrap:wrap;}
 .day-dot{width:8px;height:8px;border-radius:50%;background:rgba(28,26,22,.15);cursor:pointer;transition:all .18s;}
 .day-dot.active{background:var(--sunset);transform:scale(1.3);}
-
-/* Swipe container */
 .days-swipe-wrap{overflow:hidden;position:relative;touch-action:pan-y;}
 .days-swipe-track{display:flex;transition:transform .35s cubic-bezier(.4,0,.2,1);}
 .day-slide{min-width:100%;padding:0 2px;}
-
-/* Day card */
 .day-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
 .day-card-header{padding:20px 22px 16px;border-bottom:1px solid rgba(28,26,22,.07);}
 .day-card-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
 .day-card-loc{font-size:.8rem;color:var(--fog);margin-top:2px;}
 .day-card-loc::before{content:'📍 ';}
-
-/* Photo strip */
 .photo-strip{padding:14px 22px;border-bottom:1px solid rgba(28,26,22,.07);}
 .photo-strip-label{font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-.photo-grid{display:flex;gap:8px;flex-wrap:wrap;}
-.photo-thumb{width:80px;height:80px;border-radius:8px;object-fit:cover;cursor:pointer;transition:transform .15s;box-shadow:0 2px 8px rgba(0,0,0,.12);}
-.photo-thumb:hover{transform:scale(1.06);}
-.photo-add{width:80px;height:80px;border-radius:8px;border:2px dashed rgba(28,26,22,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:var(--fog);gap:4px;transition:all .18s;background:var(--paper);}
-.photo-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
-.photo-add-icon{font-size:1.4rem;}
-.photo-input{display:none;}
-
-/* Entry area */
+.photo-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
+.photo-cell{position:relative;width:100%;height:110px;overflow:hidden;background:#e8e0d4;cursor:pointer;}
+.photo-cell img{width:100%;height:110px;object-fit:cover;display:block;}
+.photo-cell-del{display:none;position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.7rem;cursor:pointer;align-items:center;justify-content:center;z-index:3;line-height:1;}
+.photo-cell-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.52);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;}
+.photo-cell-edit{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.6rem;cursor:pointer;z-index:3;}
+.photo-add-cell{height:110px;border:2px dashed rgba(28,26,22,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--paper);gap:4px;font-size:.65rem;color:var(--fog);}
+.photo-add-cell-icon{font-size:1.4rem;}
 .day-entry-area{padding:18px 22px;}
 .day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:14px;}
 .day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:14px;}
@@ -99,18 +80,19 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .badge-car-s{background:#fef3c7;color:#92400e;}
 .badge-ferry-s{background:#e0f2fe;color:#075985;}
 .badge-tour-s{background:#fce7f3;color:#9d174d;}
-
-/* Lightbox */
-.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:300;align-items:center;justify-content:center;}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;flex-direction:column;}
 .lightbox.open{display:flex;}
-.lightbox img{max-width:95vw;max-height:90vh;border-radius:8px;object-fit:contain;}
-.lightbox-close{position:absolute;top:16px;right:20px;color:#fff;font-size:1.8rem;cursor:pointer;background:none;border:none;opacity:.7;}
-.lightbox-close:hover{opacity:1;}
-
-/* TIMELINE */
-.route-header{margin-bottom:22px;}
-.route-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:3px;}
-.route-sub{font-size:.83rem;color:var(--fog);}
+.lightbox-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;flex-shrink:0;}
+.lightbox-counter{font-size:.82rem;color:rgba(255,255,255,.6);}
+.lightbox-close{color:#fff;font-size:1.6rem;cursor:pointer;background:none;border:none;opacity:.8;padding:0;}
+.lightbox-track{display:flex;flex:1;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.lightbox-track::-webkit-scrollbar{display:none;}
+.lightbox-slide{min-width:100vw;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;padding:10px;}
+.lightbox-slide img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:6px;}
+.lightbox-caption{text-align:center;color:rgba(255,255,255,.7);font-size:.8rem;padding:10px 20px;flex-shrink:0;min-height:36px;}
+.lightbox-nav{display:flex;justify-content:center;gap:6px;padding:8px;flex-shrink:0;}
+.lightbox-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;}
+.lightbox-dot.active{background:#fff;}
 .timeline{position:relative;}
 .timeline-line{position:absolute;left:24px;top:0;bottom:0;width:2px;background:linear-gradient(to bottom,var(--flight),var(--ocean),var(--bush),var(--tour),var(--reef),var(--sunset));border-radius:2px;}
 .tl-item{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;position:relative;}
@@ -125,7 +107,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .dot-car{color:var(--car);background:var(--car);}
 .dot-tour{color:var(--tour);background:var(--tour);}
 .dot-ferry{color:var(--ferry);background:var(--ferry);}
-.tl-transport{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;position:relative;}
+.tl-transport{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;}
 .tl-transport-card{background:rgba(255,255,255,.7);border-radius:10px;padding:9px 14px;margin-left:8px;border:1.5px dashed;display:flex;align-items:center;gap:10px;font-size:.81rem;}
 .tl-transport-card.flight{border-color:rgba(124,58,237,.35);color:#5b21b6;}
 .tl-transport-card.bus{border-color:rgba(22,163,74,.35);color:#15803d;}
@@ -135,23 +117,21 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .transport-detail{flex:1;}
 .transport-name{font-weight:600;}
 .transport-info{font-size:.75rem;opacity:.7;margin-top:1px;}
-.tl-tour{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;position:relative;}
+.tl-tour{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;}
 .tl-tour-card{background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-radius:10px;padding:11px 14px;margin-left:8px;border:1.5px solid rgba(190,24,93,.2);display:flex;align-items:center;gap:10px;font-size:.82rem;}
 .tour-icon{font-size:1.1rem;}
 .tour-detail{flex:1;}
 .tour-name{font-weight:600;color:#9d174d;}
 .tour-info{font-size:.75rem;color:#be185d;opacity:.8;margin-top:1px;}
 .tl-card{background:var(--white);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);margin-left:8px;cursor:pointer;transition:transform .18s,box-shadow .18s;border-left:4px solid transparent;}
-.tl-card:hover{transform:translateX(4px);box-shadow:0 6px 28px rgba(28,26,22,.14);}
+.tl-card:hover{transform:translateX(4px);}
 .tl-card.ocean-border{border-left-color:var(--ocean);}
 .tl-card.reef-border{border-left-color:var(--reef);}
 .tl-card.sunset-border{border-left-color:var(--sunset);}
 .tl-card.bush-border{border-left-color:var(--bush);}
 .tl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
 .tl-date{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
-.tl-badges{display:flex;gap:5px;flex-wrap:wrap;}
 .tl-badge{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;}
-.badge-hotel{background:#dbeafe;color:#1d4ed8;}
 .badge-nature{background:#dcfce7;color:#15803d;}
 .badge-city{background:#fef9c3;color:#854d0e;}
 .badge-island{background:#f0fdf4;color:#065f46;}
@@ -161,8 +141,6 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .tl-loc::before{content:'📍 ';}
 .tl-note{font-size:.78rem;color:var(--fog);margin-top:4px;font-style:italic;}
 .tl-write-btn{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(28,26,22,.12);display:flex;gap:8px;flex-wrap:wrap;}
-
-/* FORM */
 .form-card{background:var(--white);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);max-width:700px;margin:0 auto;}
 .form-title{font-family:'Playfair Display',serif;font-size:1.35rem;margin-bottom:3px;}
 .form-subtitle{font-size:.83rem;color:var(--fog);margin-bottom:22px;}
@@ -179,8 +157,6 @@ textarea{resize:vertical;min-height:100px;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .divider{height:1px;background:rgba(28,26,22,.1);margin:18px 0;}
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
-
-/* ACTIVITIES */
 .activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:18px;}
 .activity-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
 .activity-stripe{height:5px;background:var(--tour);}
@@ -191,125 +167,59 @@ textarea{resize:vertical;min-height:100px;}
 .activity-title{font-family:'Playfair Display',serif;font-size:1.04rem;font-weight:700;margin-bottom:6px;line-height:1.3;}
 .activity-detail{font-size:.82rem;line-height:1.6;color:#4a3d30;}
 .activity-footer{padding:10px 18px;border-top:1px solid rgba(28,26,22,.07);display:flex;gap:6px;justify-content:flex-end;}
-
-/* COSTS - PIN protected */
-.pin-overlay{background:var(--white);border-radius:var(--radius);padding:40px 28px;box-shadow:var(--shadow);max-width:340px;margin:0 auto;text-align:center;}
-.pin-overlay h3{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:8px;}
-.pin-overlay p{font-size:.84rem;color:var(--fog);margin-bottom:22px;}
-.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:20px;}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);background:transparent;transition:all .18s;}
-.pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
-.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
-.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .18s;font-family:'Inter',sans-serif;}
-.pin-key:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
-.pin-key.del{font-size:.85rem;color:var(--fog);}
-.pin-error{color:#dc2626;font-size:.8rem;margin-top:10px;min-height:18px;}
 .cost-card{background:var(--white);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);max-width:680px;margin:0 auto;}
-.cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;}
-.cost-lock-btn{font-size:.75rem;font-weight:400;color:var(--fog);cursor:pointer;background:none;border:none;padding:4px 8px;border-radius:6px;}
-.cost-lock-btn:hover{background:var(--paper);}
+.cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:16px;}
 .cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:12px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;}
 .cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,26,22,.06);font-size:.85rem;gap:12px;}
-.cost-row:last-of-type{border-bottom:none;}
-.cost-row .name{color:var(--ink);}
-.cost-row .dates{font-size:.73rem;color:var(--fog);margin-top:1px;}
-.cost-row .price{font-weight:500;white-space:nowrap;}
-.cost-total{display:flex;justify-content:space-between;font-weight:600;font-size:1rem;padding:13px 0 0;border-top:2px solid var(--ink);margin-top:6px;}
-
-/* PLANNER */
-.route-card{background:var(--white);border-radius:var(--radius);padding:26px 28px;box-shadow:var(--shadow);max-width:740px;margin:0 auto;}
-.route-result{background:linear-gradient(135deg,#faf7f2,#fdf5e8);border:1.5px solid rgba(224,123,63,.22);border-radius:10px;padding:18px;margin-top:14px;}
-.route-result h4{font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:8px;color:var(--sunset);}
-
-/* MODAL */
+.cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
+.price-blur{filter:blur(5px);user-select:none;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(28,26,22,.65);z-index:200;align-items:center;justify-content:center;padding:20px;}
 .modal-overlay.open{display:flex;}
 .modal{background:var(--white);border-radius:var(--radius);max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);}
 .modal-stripe{height:6px;border-radius:var(--radius) var(--radius) 0 0;}
 .modal-body{padding:24px 28px 28px;}
 .modal-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
-.modal-date-loc{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
 .modal-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
 .modal-loc{font-size:.77rem;color:var(--fog);}
 .modal-loc::before{content:'📍 ';}
 .modal-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:13px;line-height:1.25;}
 .modal-text{font-size:.9rem;line-height:1.82;color:#3a2d22;white-space:pre-wrap;}
 .modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--fog);padding:2px 6px;flex-shrink:0;}
-.modal-close:hover{color:var(--ink);}
-
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:20px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);background:transparent;transition:all .18s;}
+.pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
+.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .18s;font-family:'Inter',sans-serif;}
+.pin-key:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
+.sb-loading{text-align:center;padding:14px;color:var(--fog);font-size:.82rem;}
+.comments-section{padding:16px 22px;border-top:1px solid rgba(28,26,22,.07);}
+.comments-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);margin-bottom:10px;}
+.comment-item{background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.84rem;}
+.comment-name{font-weight:600;font-size:.78rem;color:var(--sunset);margin-bottom:3px;}
+.comment-text{line-height:1.6;color:#3a2d22;}
+.comment-date{font-size:.68rem;color:var(--fog);margin-top:4px;}
+.comment-form{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.comment-form input,.comment-form textarea{font-size:.84rem;padding:8px 12px;}
+.comment-form textarea{min-height:60px;}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:10px 22px;border-radius:8px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:400;white-space:nowrap;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-
 @media(max-width:600px){
   .form-grid{grid-template-columns:1fr;}
-  .form-card,.route-card,.cost-card,.pin-overlay{padding:18px;}
+  .form-card,.cost-card{padding:18px;}
   .hero{padding:36px 18px 32px;}
   .modal-body{padding:18px;}
   .header-inner{padding:11px 16px;}
-  .tl-card{padding:12px 14px;}
-  .day-card-header,.day-entry-area,.photo-strip{padding-left:16px;padding-right:16px;}
 }
-
-.photo-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
-.photo-cell{position:relative;width:100%;height:110px;overflow:hidden;background:#e8e0d4;cursor:pointer;}
-.photo-cell img{width:100%;height:110px;object-fit:cover;display:block;}
-.photo-cell-del{display:none;position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.7rem;cursor:pointer;align-items:center;justify-content:center;z-index:3;line-height:1;}
-.photo-cell-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.52);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;}
-.photo-cell-edit{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.6rem;cursor:pointer;z-index:3;}
-.photo-add-cell{height:110px;border:2px dashed rgba(28,26,22,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--paper);gap:4px;font-size:.65rem;color:var(--fog);}
-.photo-add-cell-icon{font-size:1.4rem;}
-.photo-count{font-size:.7rem;color:var(--fog);padding:4px 0 2px;text-align:right;}
-.photo-wrap{position:relative;display:inline-block;}
-.photo-del{display:none;position:absolute;top:-6px;right:-6px;background:#dc2626;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:.68rem;cursor:pointer;align-items:center;justify-content:center;z-index:3;line-height:1;padding:0;}
-.hotel-banner{width:100%;height:180px;overflow:hidden;border-bottom:1px solid rgba(28,26,22,.07);position:relative;flex-shrink:0;display:block;}
-.hotel-banner-inner{display:flex;height:180px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-.hotel-banner-inner::-webkit-scrollbar{display:none;}
-.hotel-banner-slide{min-width:100%;width:100%;height:180px;flex-shrink:0;scroll-snap-align:start;overflow:hidden;}
-.hotel-banner-slide img{width:100%;height:180px;object-fit:cover;object-position:center;display:block;}
-.hotel-banner-placeholder{width:100%;height:180px;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;overflow:hidden;}
-.hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.3;}
-.hotel-banner-loc{font-size:.72rem;color:rgba(255,255,255,.75);text-align:center;position:relative;z-index:1;}
-.hotel-banner-emoji-bg{font-size:3.5rem;opacity:.25;position:absolute;bottom:-8px;right:10px;z-index:0;line-height:1;}
-.hotel-banner-nights{font-size:.68rem;background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:10px;margin-top:2px;position:relative;z-index:1;}
-.hotel-btn{position:absolute;padding:4px 10px;font-size:.72rem;border:none;border-radius:8px;cursor:pointer;}
-.hotel-add-btn{bottom:8px;right:8px;background:rgba(0,0,0,.45);color:#fff;}
-.hotel-del-btn{top:8px;right:8px;background:rgba(220,38,38,.8);color:#fff;border-radius:50%;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;}
-.hotel-review{padding:12px 18px;border-bottom:1px solid rgba(28,26,22,.07);background:#faf7f2;}
-.hotel-review-stars{display:flex;gap:4px;margin-bottom:8px;}
-.star-btn{background:none;border:none;font-size:1.4rem;cursor:pointer;padding:0;line-height:1;opacity:.3;transition:opacity .15s;}
-.star-btn.active{opacity:1;}
-.hotel-review-text{font-size:.86rem;line-height:1.7;color:#3a2d22;white-space:pre-wrap;margin-bottom:8px;}
-.hotel-review-empty{font-size:.82rem;color:var(--fog);font-style:italic;}
-.hotel-review-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:6px;}
-.price-blur{filter:blur(5px);user-select:none;}
-.cost-banner{background:linear-gradient(135deg,var(--sand),#e8d9b8);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--fog);}
-.cost-banner button{background:var(--sunset);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.78rem;font-weight:600;cursor:pointer;}
-.cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
-.day-costs-section{margin-top:14px;border-top:1px solid rgba(28,26,22,.08);padding-top:12px;}
-.day-costs-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);margin-bottom:8px;}
-.day-cost-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(28,26,22,.05);font-size:.84rem;gap:8px;}
-.day-cost-add{background:none;border:1.5px dashed rgba(28,26,22,.2);border-radius:8px;padding:6px 12px;font-size:.78rem;color:var(--fog);cursor:pointer;width:100%;text-align:left;margin-top:6px;}
-.day-cost-total{font-weight:600;font-size:.88rem;display:flex;justify-content:space-between;padding-top:7px;margin-top:4px;border-top:1px solid rgba(28,26,22,.12);}
-.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;flex-direction:column;}
-.lightbox.open{display:flex;}
-.lightbox-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;flex-shrink:0;}
-.lightbox-counter{font-size:.82rem;color:rgba(255,255,255,.6);}
-.lightbox-close{color:#fff;font-size:1.6rem;cursor:pointer;background:none;border:none;opacity:.8;padding:0;}
-.lightbox-track{display:flex;flex:1;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
-.lightbox-track::-webkit-scrollbar{display:none;}
-.lightbox-slide{min-width:100vw;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;padding:10px;}
-.lightbox-slide img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:6px;}
-.lightbox-caption{text-align:center;color:rgba(255,255,255,.7);font-size:.8rem;padding:10px 20px;flex-shrink:0;min-height:36px;}
-.lightbox-nav{display:flex;justify-content:center;gap:6px;padding:8px;flex-shrink:0;}
-.lightbox-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);cursor:pointer;}
-.lightbox-dot.active{background:#fff;}
 </style>
 </head>
 <body>
 
 <header>
   <div class="header-inner">
-    <div class="logo" style="display:flex;align-items:center;gap:8px;"><span style="font-size:2.2rem;">🐨</span><span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand);"><em style="color:var(--sunset);">M</em>-Reisen</span></div>
+    <div class="logo" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:2.2rem;">🐨</span>
+      <span style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand);"><em style="color:var(--sunset);">M</em>-Reisen</span>
+    </div>
     <div class="header-actions">
       <button class="btn btn-ghost btn-sm" id="edit-toggle-btn" onclick="toggleEditMode()">🔑 Admin</button>
     </div>
@@ -336,13 +246,11 @@ textarea{resize:vertical;min-height:100px;}
   <button class="tab-btn" onclick="showTab('route')" id="tab-route">📍 Route</button>
   <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">🎟️ Ausflüge</button>
   <button class="tab-btn" onclick="showTab('neu')" id="tab-neu" style="display:none">✍️ Eintrag</button>
-  <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
+  <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten" style="display:none">💰 Kosten</button>
   <button class="tab-btn" onclick="showTab('planer')" id="tab-planer">✨ Tipps</button>
 </div>
 
 <main>
-
-<!-- TAG FÜR TAG -->
 <div class="section active" id="section-tage">
   <div class="days-nav">
     <button class="nav-arrow" id="btn-prev" onclick="slideDay(-1)">←</button>
@@ -355,11 +263,10 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
-<!-- ROUTE -->
 <div class="section" id="section-route">
-  <div class="route-header">
-    <div class="route-title">Vollständige Reiseroute</div>
-    <div class="route-sub">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
+  <div style="margin-bottom:22px">
+    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:3px">Vollständige Reiseroute</div>
+    <div style="font-size:.83rem;color:var(--fog)">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
   </div>
   <div class="timeline">
     <div class="timeline-line"></div>
@@ -367,7 +274,6 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
-<!-- AUSFLÜGE -->
 <div class="section" id="section-ausfluege">
   <div style="margin-bottom:20px">
     <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:4px">🎟️ Gebuchte Ausflüge & Touren</div>
@@ -375,7 +281,6 @@ textarea{resize:vertical;min-height:100px;}
   <div class="activities-grid" id="activities-grid"></div>
 </div>
 
-<!-- NEUER EINTRAG -->
 <div class="section" id="section-neu">
   <div class="form-card">
     <div class="form-title">Neuer Eintrag ✍️</div>
@@ -427,38 +332,27 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
-<!-- KOSTEN (PIN-geschützt) -->
 <div class="section" id="section-kosten">
-  <div id="cost-screen">
-    <div class="cost-card">
-      <div class="cost-title">
-        💰 Reisekosten
-        <button class="cost-lock-btn" onclick="lockCosts()">🔒 Sperren</button>
-      </div>
-      <div id="cost-list"></div>
-      <div class="cost-total" id="cost-total"></div>
-      <div id="grand-total-box"></div>
-
-    </div>
+  <div class="cost-card">
+    <div class="cost-title">💰 Reisekosten</div>
+    <div id="cost-list"></div>
+    <div id="grand-total-box"></div>
   </div>
 </div>
 
-<!-- KI-TIPPS -->
 <div class="section" id="section-planer">
   <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:6px">✨ Tipps & Empfehlungen</div>
   <div style="font-size:.83rem;color:var(--fog);margin-bottom:24px">Handverlesene Empfehlungen für jeden Stop eurer Reise.</div>
   <div style="display:flex;flex-direction:column;gap:16px" id="tips-list"></div>
 </div>
-
 </main>
 
-<!-- MODAL (entry detail) -->
 <div class="modal-overlay" id="modal" onclick="closeModal(event)">
   <div class="modal">
     <div class="modal-stripe" id="modal-stripe"></div>
     <div class="modal-body">
       <div class="modal-top">
-        <div class="modal-date-loc">
+        <div>
           <span class="modal-date" id="modal-date"></span>
           <span class="modal-loc" id="modal-loc"></span>
         </div>
@@ -470,1203 +364,6 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
-<!-- LIGHTBOX -->
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <button class="lightbox-close">✕</button>
-  <img id="lightbox-img" src="" alt="">
-</div>
-
-<div id="toast"></div>
-
-<script>
-// ── DATA ─────────────────────────────────────────────────────────────────
-const ACTIVITIES = [
-  { id:'a1', emoji:'🚤', name:'Low Isles Glass Bottom Boat & Snorkeling Tour', loc:'Port Douglas', datum:'2026-09-16', dateStr:'Mi. 16. Sept. · 13:15 Uhr', pax:'2 Erwachsene', info:'Glasbodenboot über dem Great Barrier Reef · Low Isles', price:null, note:'Tickets nach Bezahlung verfügbar' },
-  { id:'a2', emoji:'🌿', name:'Nachmittags Daintree Tour mit Wildlife Cruise', loc:'Port Douglas', datum:'2026-09-17', dateStr:'Do. 17. Sept. · 12:50 Uhr', pax:'2 Erwachsene', info:'Daintree Regenwald · Wildlife Bootsfahrt · Krokodile!', price:null, note:'Voucher vorhanden' },
-  { id:'a5', emoji:'🚂', name:'Kuranda Scenic Train (hin) + Bus (zurück)', loc:'Port Douglas / Kuranda', datum:'2026-09-18', dateStr:'Fr. 18. Sept. · 08:00–16:30 Uhr', pax:'2 Erwachsene', info:'Abholung 08:00 Uhr vom Port Douglas Retreat · Scenic Rail durch den Regenwald · Rückfahrt per Bus · Ref. #358349003', price:'€208,49', note:'Kuranda & Outback Tours · Mitbringen: bequeme Schuhe, Trinkflasche, Hut' },
-  { id:'a3', emoji:'🌋', name:'Archway Explorer Tour – Undara Lavahöhlen', loc:'Undara, Mount Surprise QLD', datum:'2026-09-21', dateStr:'Mo. 21. Sept. · 10:30 Uhr', pax:'2 Erwachsene', info:'Ca. 2 Std. · 3 Abschnitte der Lavahöhlen · Ref. RTJBH7Y', price:'€87,62', note:'Discovery Resorts – Undara · mit Guide' },
-  { id:'a4', emoji:'⛵', name:'Whitehaven Tagestour · Katamaran mit Klimaanlage', loc:'Airlie Beach', datum:'2026-09-28', dateStr:'Mo. 28. Sept. · ganztags', pax:'2 Erwachsene', info:'Whitehaven Beach & Hill Inlet · Schnorcheln inklusive', price:null, note:'Voucher vorhanden' },
-];
-
-const TIMELINE = [
-  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 327 · München → Singapur', info:'So. 13.09. · ab 12:30 MUC → an 06:40 SIN (+1) · Economy · 25 kg', dot:'flight', datum:'2026-09-13' },
-  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 203 · Singapur → Cairns', info:'Mo. 14.09. · ab 08:30 SIN → an 17:00 CNS · Economy · 25 kg', dot:'flight', datum:'2026-09-14' },
-  { type:'transport', cls:'bus', icon:'🚌', name:'SR Coaches · Cairns → Port Douglas', info:'Mo. 14.09. · ab 18:00 Uhr · Standard Minivan · Ref. BW5283642', dot:'bus', datum:'2026-09-14' },
-  { type:'stay', id:'b1', emoji:'🌴', name:'Port Douglas Retreat', loc:'Port Douglas, QLD', dateStr:'14.–19. Sept.', datum:'2026-09-14', nights:5, price:643.12, color:'bush', badge:'badge-nature', note:'Daintree Regenwald & Great Barrier Reef', dot:'bush' },
-  { type:'tour', ref:'a1', datum:'2026-09-16' },
-  { type:'tour', ref:'a2', datum:'2026-09-17' },
-  { type:'tour', ref:'a5', datum:'2026-09-18' },
-  { type:'transport', cls:'bus', icon:'🚌', name:'SR Coaches · Port Douglas → Cairns', info:'Sa. 19.09. · ab 09:00 Uhr · Standard Minivan · Ref. BW5283642', dot:'bus', datum:'2026-09-19' },
-  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 1 · Avis (Toyota Corolla)', info:'Ab Flughafen Cairns · 19.09. 11:00 Uhr · Rückgabe Townsville 22.09. 20:00 Uhr', dot:'car', datum:'2026-09-19' },
-  { type:'stay', id:'b2', emoji:'🐦', name:'Kookaburra Motel Yungaburra', loc:'Yungaburra, QLD', dateStr:'19.–20. Sept.', datum:'2026-09-19', nights:1, price:96.89, color:'bush', badge:'badge-nature', note:'Atherton Tablelands · Platypus beobachten', dot:'bush' },
-  { type:'stay', id:'b3', emoji:'🌋', name:'Discovery Resorts – Undara', loc:'Undara Volcanic NP, QLD', dateStr:'20.–22. Sept.', datum:'2026-09-20', nights:2, price:352.44, color:'sunset', badge:'badge-nature', note:'Lavahöhlen & Outback-Feeling', dot:'sunset' },
-  { type:'tour', ref:'a3', datum:'2026-09-21' },
-  { type:'stay', id:'b4', emoji:'🏙️', name:'Oaks Townsville Hotel', loc:'Townsville, QLD', dateStr:'22.–23. Sept.', datum:'2026-09-22', nights:1, price:122.14, color:'ocean', badge:'badge-city', note:'Fähre zur Magnetic Island', dot:'ocean' },
-  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Townsville → Magnetic Island', info:'Di. 23.09. · ab 10:30 Uhr · ~€40 · ⚠️ noch zu buchen!', dot:'ferry', datum:'2026-09-23' },
-  { type:'stay', id:'b5', emoji:'🏝️', name:'Project Tranquility', loc:'Magnetic Island, QLD', dateStr:'23.–27. Sept.', datum:'2026-09-23', nights:4, price:605.57, color:'reef', badge:'badge-island', note:'Koalas im Freiland & Schnorcheln', dot:'reef' },
-  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Magnetic Island → Townsville', info:'So. 27.09. · ab 11:00 Uhr · ~€40 · ⚠️ noch zu buchen!', dot:'ferry', datum:'2026-09-27' },
-  { type:'transport', cls:'bus', icon:'🚌', name:'FlixBus · Townsville → Airlie Beach', info:'So. 27.09. · ab 13:50 → an 17:50 Uhr', dot:'bus', datum:'2026-09-27' },
-  { type:'stay', id:'b6', emoji:'⛵', name:'Airlie Beach Hotel', loc:'Airlie Beach, QLD', dateStr:'27.–29. Sept.', datum:'2026-09-27', nights:2, price:239.37, color:'ocean', badge:'badge-beach', note:'Ausgangspunkt Whitsunday Islands', dot:'ocean' },
-  { type:'tour', ref:'a4', datum:'2026-09-28' },
-  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Airlie Beach → Whitsunday Islands', info:'Ende Sept. · Zeit & Kosten noch offen · ⚠️ noch zu buchen!', dot:'ferry', datum:'2026-09-29' },
-  { type:'stay', id:'b7', emoji:'🐠', name:'Whitsunday Apartments', loc:'Whitsunday Islands, QLD', dateStr:'29. Sept.–2. Okt.', datum:'2026-09-29', nights:3, price:973.76, color:'reef', badge:'badge-island', note:'Whitehaven Beach & Great Barrier Reef', dot:'reef' },
-  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Whitsunday Islands → Airlie Beach', info:'Fr. 2. Okt. · ca. 11:00 Uhr · ~€40 · ⚠️ noch zu buchen!', dot:'ferry', datum:'2026-10-02' },
-  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 2 · ab Cape Hillsborough', info:'Ab 2. Okt. · €153,00 · Cape Hillsborough → Eungella → Mackay', dot:'car', datum:'2026-10-02' },
-  { type:'stay', id:'b8', emoji:'🦘', name:'Cape Hillsborough Nature Tourist Park', loc:'Cape Hillsborough, QLD', dateStr:'2.–4. Okt.', datum:'2026-10-02', nights:2, price:264.88, color:'bush', badge:'badge-nature', note:'Kängurus beim Sonnenaufgang am Strand!', dot:'bush' },
-  { type:'stay', id:'b9', emoji:'🦆', name:'Broken River Mountain Resort', loc:'Eungella NP, QLD', dateStr:'4.–5. Okt.', datum:'2026-10-04', nights:1, price:87.00, color:'bush', badge:'badge-nature', note:'Schnabeltier-Beobachtung', dot:'bush' },
-  { type:'transport', cls:'flight', icon:'✈️', name:'QF 1825 · Mackay → Brisbane', info:'Mo. 05.10. · ab 13:05 → an 14:35 · Embraer 190', dot:'flight', datum:'2026-10-05' },
-  { type:'stay', id:'b10', emoji:'🌆', name:'Oaks Brisbane on Charlotte Suites', loc:'Brisbane, QLD', dateStr:'5.–6. Okt.', datum:'2026-10-05', nights:1, price:168.41, color:'sunset', badge:'badge-city', note:'City-Night Brisbane', dot:'sunset' },
-  { type:'transport', cls:'flight', icon:'✈️', name:'QF 541 · Brisbane → Sydney', info:'Di. 06.10. · ab 15:00 → an 17:40 · Boeing 737', dot:'flight', datum:'2026-10-06' },
-  { type:'stay', id:'b11', emoji:'🏙️', name:'Veriu Central', loc:'Brisbane, QLD', dateStr:'6.–9. Okt.', datum:'2026-10-06', nights:3, price:444.49, color:'sunset', badge:'badge-city', note:'Letzte Tage · Southbank & Farewell', dot:'sunset' },
-  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 222 · Sydney → Singapur', info:'Fr. 09.10. · ab 15:50 SYD → an 21:15 SIN · Economy · 25 kg', dot:'flight', datum:'2026-10-09' },
-  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 328 · Singapur → München', info:'Sa. 10.10. · ab 00:05 SIN → an 06:45 MUC · Economy · 25 kg', dot:'flight', datum:'2026-10-10' },
-];
-
-const BOOKINGS = TIMELINE.filter(t=>t.type==='stay');
-const CAT_EMOJI = {Strand:'🏖️',Natur:'🌿',Stadt:'🏙️',Reef:'🐠',Outback:'🏜️',Insel:'🏝️',Ausflug:'🎟️',Essen:'🦞',Reise:'✈️',Sonstiges:'✨'};
-const COLOR_BG  = {bush:'var(--bush)',ocean:'var(--ocean)',reef:'var(--reef)',sunset:'var(--sunset)'};
-const DOT_T = {flight:'var(--flight)',bus:'var(--bus)',car:'var(--car)',ferry:'var(--ferry)'};
-
-// Build days array: one entry per date Sep 13 – Oct 10
-function buildDays() {
-  const days = [];
-  const start = new Date('2026-09-13T12:00:00');
-  const end   = new Date('2026-10-10T12:00:00');
-  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)) {
-    const iso = d.toISOString().split('T')[0];
-    // find was happening this day
-    const dayItems = TIMELINE.filter(t => t.datum === iso);
-    const stay = BOOKINGS.find(b => {
-      const s = new Date(b.datum+'T12:00:00');
-      const e = new Date(s); e.setDate(e.getDate()+b.nights);
-      const cur = new Date(iso+'T12:00:00');
-      return cur >= s && cur < e;
-    });
-    days.push({ iso, dayItems, stay });
-  }
-  return days;
-}
-
-const DAYS = buildDays();
-let currentDay = 0;
-let entries = [];
-let photos = {};
-let hotelPhotos = {};
-let dayExpenses = {};
-let editMode = false;
-let editPinBuffer = '';
-let currentExpenseIso = '';
-let _hotelInput = null;
-let _hotelBid = '';
-let hotelReviews = {};
-let photoComments = {};
-let _captionKey = '';
-let _lbIso = '';
-let _lbIdx = 0;
-let _recognition = null;
-let _apiKey = '';
-let activeFilter = 'alle';
-let lastRouteText = '';
-let prefillBooking = null;
-
-// PIN
-const CORRECT_PIN = '2026';
-let pinBuffer = '';
-let pinUnlocked = false;
-
-// ── SWIPE ──────────────────────────────────────────────────────────────────
-let touchStartX = 0;
-let touchStartY = 0;
-
-function initSwipe() {
-  const wrap = document.getElementById('swipe-wrap');
-  wrap.addEventListener('touchstart', e => {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-  }, {passive:true});
-  wrap.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = e.changedTouches[0].clientY - touchStartY;
-    if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
-      slideDay(dx < 0 ? 1 : -1);
-    }
-  }, {passive:true});
-}
-
-function buildDaySlides() {
-  var track = document.getElementById('swipe-track');
-  var dots  = document.getElementById('days-dots');
-  track.innerHTML = '';
-  dots.innerHTML  = '';
-  DAYS.forEach(function(day, i) {
-    var slide = document.createElement('div');
-    slide.className = 'day-slide';
-    slide.innerHTML = buildDayHTML(day, i);
-    track.appendChild(slide);
-    var dot = document.createElement('div');
-    dot.className = 'day-dot' + (i===0?' active':'');
-    dot.onclick = (function(idx){ return function(){ goToDay(idx); }; })(i);
-    dots.appendChild(dot);
-  });
-  updateDayNav();
-  initSwipe();
-}
-
-function buildDayHTML(day, i) {
-  const d = new Date(day.iso+'T12:00:00');
-  const dateLabel = d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  const loc = day.stay ? day.stay.loc : (day.dayItems.length ? '✈️ Reisetag' : '–');
-
-  // Transport & tour badges
-  const badges = day.dayItems.map(t => {
-    if(t.type==='transport') {
-      const cls = {flight:'badge-flight-s',bus:'badge-bus-s',car:'badge-car-s',ferry:'badge-ferry-s'}[t.cls]||'badge-bus-s';
-      return `<span class="day-transport-badge ${cls}">${t.icon} ${t.name.split('·')[0].trim()}</span>`;
-    }
-    if(t.type==='tour') {
-      const a=ACTIVITIES.find(x=>x.id===t.ref);
-      return a?`<span class="day-transport-badge badge-tour-s">${a.emoji} ${a.name.split('·')[0].trim()}</span>`:'';
-    }
-    return '';
-  }).filter(Boolean).join('');
-
-  // Entry text
-  const entry = entries.find(e=>e.datum===day.iso);
-  const entryHTML = entry
-    ? `<div class="day-entry-text">${entry.text}</div>
-       <button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal(${entry.id})">📖 Volltext lesen</button>`
-    : `<div class="day-entry-empty">Noch kein Eintrag für diesen Tag.</div>
-       <button class="btn btn-primary btn-sm" onclick="startEntryForDate('${day.iso}')">✍️ Eintrag schreiben</button>`;
-
-  // Photos
-  var dayPhotos = photos[day.iso] || [];
-  var maxPhotos = 20;
-  var photoItemsHTML = dayPhotos.map(function(src,pi){
-    var key = day.iso+'_'+pi;
-    var caption = photoComments[key] || '';
-    return '<div class="photo-cell">'
-      +'<img src="'+src+'" data-iso="'+day.iso+'" data-idx="'+pi+'" onclick="openLB(this)" alt="Foto">'
-      +(editMode?'<button class="photo-cell-del" style="display:flex" data-iso="'+day.iso+'" data-idx="'+pi+'" onclick="delPhotoEl(this)">✕</button>':'')
-      +(caption?'<div class="photo-cell-caption">'+caption+'</div>':'')
-      +(editMode?'<button class="photo-cell-edit" data-iso="'+day.iso+'" data-idx="'+pi+'" onclick="openCaptionModal(this)">✏️</button>':'')
-      +'</div>';
-  }).join('');
-  var addPhotoBtn = (editMode && dayPhotos.length < maxPhotos)
-    ? '<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple class="photo-input" onchange="handlePhotos(event,\''+day.iso+'\')" style="display:none"></label>'
-    : '';
-  var countLabel = dayPhotos.length > 0 ? '<div class="photo-count">'+dayPhotos.length+'/'+maxPhotos+' Fotos</div>' : '';
-  var photoHTML = '<div class="photo-gallery">'+photoItemsHTML+addPhotoBtn+'</div>'+countLabel;;
-
-  return `
-  <div class="day-card">
-    <div class="day-card-header">
-      <div class="day-card-date">${dateLabel}</div>
-      <div class="day-card-loc">${loc}</div>
-    </div>
-    <div class="photo-strip">
-      <div class="photo-strip-label">📸 Fotos</div>
-      <div class="photo-grid" id="photo-grid-${day.iso}">${photoHTML}</div>
-    </div>
-    <div class="day-entry-area" id="entry-area-${day.iso}">${entryHTML}</div>
-    ${badges ? `<div class="day-transport">${badges}</div>` : ''}
-  </div>`;
-}
-
-function updateDayNav() {
-  const day = DAYS[currentDay];
-  const d = new Date(day.iso+'T12:00:00');
-  const dateLabel = d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'});
-  const loc = day.stay ? day.stay.name : (day.dayItems.length ? 'Reisetag' : '');
-  document.getElementById('day-nav-title').innerHTML =
-    `Tag ${currentDay+1} von ${DAYS.length}<small>${dateLabel}${loc?' · '+loc:''}</small>`;
-  document.getElementById('btn-prev').disabled = currentDay===0;
-  document.getElementById('btn-next').disabled = currentDay===DAYS.length-1;
-  // dots
-  document.querySelectorAll('.day-dot').forEach((d,i)=>d.classList.toggle('active',i===currentDay));
-}
-
-function slideDay(dir) {
-  const next = currentDay + dir;
-  if(next<0||next>=DAYS.length) return;
-  goToDay(next);
-}
-
-function goToDay(idx) {
-  currentDay = idx;
-  const track = document.getElementById('swipe-track');
-  track.style.transform = `translateX(-${idx*100}%)`;
-  updateDayNav();
-}
-
-// ── PHOTOS ─────────────────────────────────────────────────────────────────
-function handlePhotos(event, iso) {
-  const files = Array.from(event.target.files);
-  if(!files.length) return;
-  if(!photos[iso]) photos[iso]=[];
-  let loaded=0;
-  files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      photos[iso].push(e.target.result);
-      loaded++;
-      if(loaded===files.length) refreshPhotoGrid(iso);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function refreshPhotoGrid(iso) {
-  const grid = document.getElementById('photo-grid-'+iso);
-  if(!grid) return;
-  const dayPhotos = photos[iso]||[];
-  grid.innerHTML = dayPhotos.map((src,pi)=>
-    `<img class="photo-thumb" src="${src}" onclick="openLightbox('${iso}',${pi})" alt="Foto">`
-  ).join('') +
-  `<label class="photo-add">
-    <span class="photo-add-icon">📷</span><span>Foto</span>
-    <input type="file" accept="image/*" multiple class="photo-input" onchange="handlePhotos(event,'${iso}')">
-  </label>`;
-  toast('✓ Foto gespeichert!');
-}
-
-function openLightbox(iso, idx) {
-  const src = (photos[iso]||[])[idx];
-  if(!src) return;
-  document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox').classList.add('open');
-}
-function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); }
-
-// ── TABS ──────────────────────────────────────────────────────────────────
-function showTab(tab) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('section-'+tab).classList.add('active');
-  document.getElementById('tab-'+tab).classList.add('active');
-  if(tab==='neu') {
-    if(!document.getElementById('f-datum').value) document.getElementById('f-datum').value='2026-09-14';
-    if(prefillBooking){const b=prefillBooking;document.getElementById('f-datum').value=b.datum;document.getElementById('f-ort').value=b.loc.split(',')[0];document.getElementById('f-titel').value=b.emoji+' '+b.name;prefillBooking=null;}
-  }
-  if(tab==='route') renderTimeline();
-  if(tab==='kosten') renderCosts();
-  if(tab==='ausfluege') renderActivities();
-  if(tab==='planer') renderTips();
-  if(tab==='tage') { buildDaySlides(); }
-}
-
-// ── TIMELINE ─────────────────────────────────────────────────────────────
-function renderTimeline() {
-  const c=document.getElementById('timeline-items');
-  c.innerHTML=TIMELINE.map(item=>{
-    if(item.type==='transport'){
-      const dc=DOT_T[item.cls]||'var(--fog)';
-      return `<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:${dc};background:${dc}"></div></div><div class="tl-transport-card ${item.cls}"><span class="transport-icon">${item.icon}</span><div class="transport-detail"><div class="transport-name">${item.name}</div><div class="transport-info">${item.info}</div></div></div></div>`;
-    }
-    if(item.type==='tour'){
-      const a=ACTIVITIES.find(x=>x.id===item.ref);if(!a)return'';
-      return `<div class="tl-tour"><div class="tl-dot"><div class="dot dot-tour"></div></div><div class="tl-tour-card"><span class="tour-icon">${a.emoji}</span><div class="tour-detail"><div class="tour-name">🎟️ ${a.name}</div><div class="tour-info">${a.dateStr} · ${a.pax}${a.price?' · '+a.price:''}</div></div></div></div>`;
-    }
-    const b=item;
-    const entry=entries.find(e=>e.bookingId===b.id);
-    const eHtml=entry
-      ?`<div class="tl-entry-preview">${entry.text.substring(0,120)}…</div><div class="tl-write-btn"><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.15)" onclick="openEntryModal(${entry.id},event)">📖 Lesen</button></div>`
-      :`<div class="tl-write-btn"><button class="btn btn-reef btn-sm" onclick="startEntry('${b.id}',event)">✍️ Eintrag</button></div>`;
-    return `<div class="tl-item"><div class="tl-dot"><div class="dot dot-${b.dot}"></div></div><div class="tl-card ${b.color}-border"><div class="tl-top"><div class="tl-date">${b.dateStr}</div><span class="tl-badge ${b.badge}">${b.emoji} ${b.nights} Nacht${b.nights>1?'e':''}</span></div><div class="tl-name">${b.name}</div><div class="tl-loc">${b.loc}</div><div class="tl-note">${b.note}</div>${eHtml}</div></div>`;
-  }).join('');
-}
-
-function startEntry(bid,ev){ev&&ev.stopPropagation();prefillBooking=BOOKINGS.find(x=>x.id===bid);showTab('neu');}
-function openEntryModal(id,ev){ev&&ev.stopPropagation();openModal(id);}
-
-function startEntryForDate(iso){
-  document.getElementById('f-datum').value=iso;
-  const stay=BOOKINGS.find(b=>{
-    const s=new Date(b.datum+'T12:00:00');
-    const e=new Date(s);e.setDate(e.getDate()+b.nights);
-    const cur=new Date(iso+'T12:00:00');
-    return cur>=s&&cur<e;
-  });
-  if(stay){document.getElementById('f-ort').value=stay.loc.split(',')[0];}
-  showTab('neu');
-}
-
-// ── ENTRIES ───────────────────────────────────────────────────────────────
-function saveEntry(){
-  const datum=document.getElementById('f-datum').value;
-  const ort=document.getElementById('f-ort').value.trim();
-  const titel=document.getElementById('f-titel').value.trim();
-  const kat=document.getElementById('f-kategorie').value;
-  const text=document.getElementById('f-text').value.trim();
-  if(!datum||!titel||!text){toast('Bitte Datum, Titel und Text ausfüllen.');return;}
-  const b=BOOKINGS.find(x=>x.datum===datum||(ort&&x.loc.toLowerCase().includes(ort.toLowerCase())));
-  const existing=entries.findIndex(e=>e.datum===datum);
-  const entry={id:Date.now(),datum,ort,titel,kat,text,bookingId:b?.id||null};
-  if(existing>=0) entries[existing]=entry; else entries.unshift(entry);
-  resetForm();
-  buildDaySlides();
-  showTab('tage');
-  // jump to that day
-  const idx=DAYS.findIndex(d=>d.iso===datum);
-  if(idx>=0) setTimeout(()=>goToDay(idx),100);
-  toast('✓ Eintrag gespeichert!');
-}
-
-function resetForm(){
-  ['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('ai-formbox').style.display='none';
-  document.getElementById('f-kategorie').value='Strand';
-}
-
-// ── ACTIVITIES ────────────────────────────────────────────────────────────
-function renderActivities(){
-  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`
-    <div class="activity-card"><div class="activity-stripe"></div><div class="activity-body">
-      <div class="activity-date">${a.dateStr}</div>
-      <div class="activity-location">${a.loc}</div>
-      <div class="activity-title">${a.emoji} ${a.name}</div>
-      <div class="activity-detail">${a.info}${a.price?'<br><strong>'+a.price+'</strong>':''}<br><em style="opacity:.7;font-size:.78rem">${a.note}</em></div>
-    </div><div class="activity-footer">
-      <button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>
-    </div></div>`).join('');
-}
-
-// ── PIN ───────────────────────────────────────────────────────────────────
-function pinInput(d){
-  if(pinBuffer.length>=4)return;
-  pinBuffer+=d;
-  updatePinDots();
-  if(pinBuffer.length===4) setTimeout(checkPin,150);
-}
-function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
-function pinClear(){pinBuffer='';updatePinDots();}
-function updatePinDots(){
-  for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);
-}
-function checkPin(){
-  if(pinBuffer===CORRECT_PIN){
-    pinUnlocked=true;
-    document.getElementById('pin-screen').style.display='none';
-    document.getElementById('cost-screen').style.display='block';
-    renderCosts();
-  } else {
-    document.getElementById('pin-error').textContent='Falsche PIN. Bitte erneut versuchen.';
-    pinBuffer='';
-    updatePinDots();
-    setTimeout(()=>document.getElementById('pin-error').textContent='',2000);
-  }
-}
-function lockCosts(){
-  pinUnlocked=false;pinBuffer='';updatePinDots();
-  document.getElementById('pin-screen').style.display='block';
-  document.getElementById('cost-screen').style.display='none';
-}
-
-// ── COSTS ─────────────────────────────────────────────────────────────────
-function renderCosts(){
-  var pc = editMode ? "" : "price-blur";
-  var totalAcc = 0;
-  var html = "";
-  html += "<div class=\"cost-section-title\">Unterkuenfte</div>";
-  var unterkunftSum = 0;
-  BOOKINGS.forEach(function(b){
-    var p=b.price;unterkunftSum+=p;totalAcc+=p;
-    html += "<div class=\"cost-row\"><div><div class=\"name\">"+b.emoji+" "+b.name+"</div>"
-      +"<div class=\"dates\">"+b.dateStr+" - "+b.nights+" Nacht"+(b.nights>1?"e":"")+"</div></div>"
-      +"<div class=\"price "+pc+"\">EUR "+formatEUR(p)+"</div></div>";
-  });
-  html += "<div class=\"cost-group-total\"><span>Summe Unterkuenfte</span><span class=\""+pc+"\">EUR "+formatEUR(unterkunftSum)+"</span></div>";
-  html += "<div class=\"cost-section-title\">Fluege</div>";
-  var flightItems=[{n:"Singapore Airlines SQ 327/203/222/328",d:"MUC-SIN-CNS / SYD-SIN-MUC - Ref. FSARTK",p:2352},{n:"Qantas QF 1825 + QF 541",d:"Mackay-Brisbane-Sydney - Ref. EU3G36",p:505.94}];
-  var flightSum=0;
-  flightItems.forEach(function(it){flightSum+=it.p;totalAcc+=it.p;html+="<div class=\"cost-row\"><div><div class=\"name\">"+it.n+"</div><div class=\"dates\">"+it.d+"</div></div><div class=\"price "+pc+"\">EUR "+formatEUR(it.p)+"</div></div>";});
-  html += "<div class=\"cost-group-total\"><span>Summe Fluege</span><span class=\""+pc+"\">EUR "+formatEUR(flightSum)+"</span></div>";
-  html += "<div class=\"cost-section-title\">Transport</div>";
-  var transItems=[{n:"SR Coaches Cairns - Port Douglas",d:"14.09. & 19.09. - Ref. BW5283642",p:153.25},{n:"Mietwagen 1 Avis Toyota Corolla",d:"19.-22. Sept. - Cairns nach Townsville",p:321},{n:"FlixBus Townsville nach Airlie Beach",d:"So. 27.09. - 13:50-17:50 Uhr",p:60},{n:"Mietwagen 2 ab Cape Hillsborough",d:"2.-5. Okt.",p:153},{n:"Faehre Townsville - Magnetic Island",d:"23.09. & 27.09. - Ref. GYG7VKWWBAAG",p:55.70},{n:"Faehre Airlie Beach nach Hamilton Island",d:"29.09. - Ref. 5635629",p:94.50},{n:"Faehre Hamilton Island nach Airlie Beach",d:"02.10. - Ref. 5635630",p:94.50}];
-  var transSum=0;
-  transItems.forEach(function(it){transSum+=it.p;totalAcc+=it.p;html+="<div class=\"cost-row\"><div><div class=\"name\">"+it.n+"</div><div class=\"dates\">"+it.d+"</div></div><div class=\"price "+pc+"\">EUR "+formatEUR(it.p)+"</div></div>";});
-  html += "<div class=\"cost-group-total\"><span>Summe Transport</span><span class=\""+pc+"\">EUR "+formatEUR(transSum)+"</span></div>";
-  html += "<div class=\"cost-section-title\">Ausfluege</div>";
-  var tourItems=[{n:"Low Isles Glass Bottom Boat & Snorkeling",d:"16.09. - Port Douglas - 2 Erw.",p:323.60},{n:"Daintree Tour mit Wildlife Cruise",d:"17.09. - Port Douglas - 2 Erw.",p:216.94},{n:"Kuranda Scenic Train + Bus",d:"18.09. - Ref. #358349003 - 2 Erw.",p:208.94},{n:"Archway Explorer Tour Lavahohlen",d:"21.09. - Undara - Ref. RTJBH7Y",p:87.62},{n:"Whitehaven Katamaran Tagestour",d:"28.09. - Airlie Beach - 2 Erw.",p:326.02}];
-  var tourSum=0;
-  tourItems.forEach(function(it){tourSum+=it.p;totalAcc+=it.p;html+="<div class=\"cost-row\"><div><div class=\"name\">"+it.n+"</div><div class=\"dates\">"+it.d+"</div></div><div class=\"price "+pc+"\">EUR "+formatEUR(it.p)+"</div></div>";});
-  html += "<div class=\"cost-group-total\"><span>Summe Ausfluege</span><span class=\""+pc+"\">EUR "+formatEUR(tourSum)+"</span></div>";
-  var tagesSum=0;
-  Object.keys(dayExpenses).sort().forEach(function(iso){var list=dayExpenses[iso];if(!list||!list.length)return;list.forEach(function(e){tagesSum+=e.amount;});});
-  if(tagesSum>0){
-    html+="<div class=\"cost-section-title\">Tagesausgaben vor Ort</div>";
-    Object.keys(dayExpenses).sort().forEach(function(iso){
-      var list=dayExpenses[iso];if(!list||!list.length)return;
-      var d=new Date(iso+"T12:00:00");
-      var dl=d.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
-      var dayT=list.reduce(function(s,e){return s+e.amount;},0);
-      html+="<div class=\"cost-row\" style=\"font-weight:600;\"><div>"+dl+"</div><div class=\"price "+pc+"\">EUR "+formatEUR(dayT)+"</div></div>";
-      list.forEach(function(e){html+="<div class=\"cost-row\" style=\"padding-left:12px;font-size:.8rem;\"><div>"+e.cat+" "+e.label+"</div><div class=\"price "+pc+"\">EUR "+formatEUR(e.amount)+"</div></div>";});
-    });
-    totalAcc+=tagesSum;
-    html+="<div class=\"cost-group-total\"><span>Summe Tagesausgaben</span><span class=\""+pc+"\">EUR "+formatEUR(tagesSum)+"</span></div>";
-  }
-  var banner=editMode?"":"<div class=\"cost-banner\"><span>Betraege nur im Admin-Modus sichtbar.</span><button onclick=\"toggleEditMode()\">&#128273; Admin</button></div>";
-  document.getElementById("cost-list").innerHTML=banner+html;
-  document.getElementById("cost-total").innerHTML="";
-  document.getElementById("grand-total-box").innerHTML="<div style=\"display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);\"><span>Gesamtkosten</span><span class=\""+pc+"\">EUR "+formatEUR(totalAcc)+"</span></div>";
-}
-
-// ── MODAL ─────────────────────────────────────────────────────────────────
-function openModal(id){
-  const e=entries.find(x=>x.id===id);if(!e)return;
-  const bk=e.bookingId?BOOKINGS.find(b=>b.id===e.bookingId):null;
-  document.getElementById('modal-date').textContent=formatDate(e.datum);
-  document.getElementById('modal-loc').textContent=e.ort||'';
-  document.getElementById('modal-title').textContent=e.titel;
-  document.getElementById('modal-text').textContent=e.text;
-  document.getElementById('modal-stripe').style.background=bk?(COLOR_BG[bk.color]||'var(--sunset)'):'var(--sunset)';
-  document.getElementById('modal').classList.add('open');
-}
-function closeModal(ev){if(ev.target===document.getElementById('modal'))closeModalDirect();}
-function closeModalDirect(){document.getElementById('modal').classList.remove('open');}
-
-// ── KI ───────────────────────────────────────────────────────────────────
-async function aiFormuliere(){
-  const notizen=document.getElementById('f-notizen').value.trim();
-  const ort=document.getElementById('f-ort').value.trim();
-  const titel=document.getElementById('f-titel').value.trim();
-  const kat=document.getElementById('f-kategorie').value;
-  if(!notizen){toast('Bitte erst Stichpunkte eingeben.');return;}
-  const box=document.getElementById('ai-formbox');
-  const res=document.getElementById('ai-form-result');
-  box.style.display='block';res.className='ai-result loading';res.textContent='KI schreibt euren Australien-Eintrag …';
-  const prompt=`Du bist ein enthusiastischer Reiseblogger auf Australien-Reise durch Queensland. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 150–200 Wörter). Wir-Form (Pärchen). Stil: warm, bildhaft, authentisch – mit echter Begeisterung für australisches Wildlife, Natur und Abenteuer.
-
-Ort: ${ort||'Queensland, Australien'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}
-Stichpunkte:
-${notizen}
-
-Nur den Tagebucheintrag, kein Titel davor, keine Anführungszeichen.`;
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const d=await r.json();
-    res.className='ai-result';res.textContent=d.content?.map(c=>c.text||'').join('')||'Fehler.';
-  }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
-}
-function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
-
-async function planRoute(){
-  const stop=document.getElementById('r-stop').value;
-  const interessen=document.getElementById('r-interessen').value.trim();
-  const wunsch=document.getElementById('r-wunsch').value.trim();
-  const box=document.getElementById('route-result-box');
-  const res=document.getElementById('route-result-text');
-  box.style.display='block';res.className='ai-result loading';
-  document.getElementById('route-result-title').textContent='Tipps für '+stop.split('(')[0].trim();
-  res.textContent='KI denkt nach …';
-  const prompt=`Du bist Queensland-Reiseexperte. Konkrete Aktivitätenempfehlungen auf Deutsch für:\n\nStop: ${stop}\nInteressen: ${interessen||'Natur, Wildlife, Strand, Kulinarik'}\nWünsche: ${wunsch||'für zwei Personen'}\n\nFormat:\n1. Top 5 Must-Dos (je 2 Sätze, konkret)\n2. Geheimtipp\n3. Restaurant-Empfehlung\n4. Praktischer Tipp`;
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-    const d=await r.json();
-    lastRouteText=d.content?.map(c=>c.text||'').join('')||'Fehler.';
-    res.className='ai-result';res.textContent=lastRouteText;
-  }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;lastRouteText='';}
-}
-function saveRouteAsEntry(){
-  if(!lastRouteText)return;
-  const stop=document.getElementById('r-stop').value.split('(')[0].trim();
-  document.getElementById('f-titel').value='KI-Tipps: '+stop;
-  document.getElementById('f-ort').value=stop;
-  document.getElementById('f-text').value=lastRouteText;
-  showTab('neu');toast('Als Eintrag vorbereitet!');
-}
-
-function formatDate(d){if(!d)return '';return new Date(d+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
-function shareLink(){const url=window.location.href;if(navigator.share){navigator.share({title:'Australien 2026',url});}else if(navigator.clipboard){navigator.clipboard.writeText(url).then(()=>toast('🔗 Link kopiert!'));}}
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
-
-function saveRouteAsEntry(){
-  if(!lastRouteText)return;
-  document.getElementById('f-titel').value='Tipps';
-  document.getElementById('f-text').value=lastRouteText;
-  showTab('neu');toast('Als Eintrag vorbereitet!');
-}
-
-// ── TIPS DATA ─────────────────────────────────────────────────────────────
-const TIPS = [
-  {
-    stop:'🌴 Port Douglas', dates:'14.–19. Sept.', color:'var(--bush)',
-    mustdos:[
-      {title:'Low Isles Schnorcheln (gebucht!)', text:'Kommt früh an, um vor dem Ansturm die besten Korallenfelder zu erwischen. Achtet auf die riesigen Riffbarsche direkt unter dem Boot — und haltet Ausschau nach Schildkröten beim Auftauchen.'},
-      {title:'Daintree River Bootsfahrt', text:'Der älteste Regenwald der Welt beginnt nördlich von Port Douglas. Eine Bootsfahrt auf dem Daintree River zeigt fast garantiert Krokodile — am besten früh morgens buchen, wenn die Tiere aktiv sind.'},
-      {title:'Four Mile Beach', text:'Vier Kilometer weißer Sand, früh morgens fast menschenleer. Perfekt für Joggen oder Kaffee im Sand — wegen Quallen nur in der Stingerbox schwimmen.'},
-      {title:'Mossman Gorge', text:'Nur 15 Min südlich: kristallklares Bergwasser, das durch mächtige Felsbrocken rauscht. Der Rundweg durch den Regenwald dauert eine Stunde und ist einer der schönsten in Queensland.'},
-      {title:'Kuranda Scenic Train (gebucht!)', text:'Abholung direkt vom Port Douglas Retreat um 08:00 Uhr. Die historische Zugstrecke durch den Regenwald gilt als eine der schönsten Bahnstrecken der Welt — Fenster auf und genießen!'},
-    ],
-    secret:'🤫 Geheimtipp: Rex Lookout auf dem Captain Cook Highway — der Ausblick auf die Coral Sea und den Regenwald ist atemberaubend und wird von kaum einem Reiseführer erwähnt.',
-    food:'🍽️ Zinc Restaurant & Bar: Bestes Frühstück in Port Douglas, direkt am Strand. Abends: Salsa Bar & Grill für frische Seafood-Tapas und den legendären "Reef Margarita".',
-    tip:'💡 Der Captain Cook Highway von Cairns nach Port Douglas ist eine der schönsten Küstenstraßen Australiens — Regenwald auf einer Seite, Coral Sea auf der anderen. Langsam fahren und genießen!',
-  },
-  {
-    stop:'🐦 Yungaburra', dates:'19.–20. Sept.', color:'var(--bush)',
-    mustdos:[
-      {title:'Platypus am Peterson Creek', text:'Yungaburra ist einer der zuverlässigsten Orte Australiens für wild lebende Schnabeltiere. Geht in der Dämmerung (17–19 Uhr) zum Peterson Creek — und seid absolut leise!'},
-      {title:'Curtain Fig Tree', text:'Nur 5 Min außerhalb: ein 500 Jahre alter Würgefeigenbaum, dessen Luftwurzeln einen riesigen Vorhang bilden. Einer der beeindruckendsten Bäume Australiens — und völlig kostenlos.'},
-      {title:'Lake Eacham', text:'Vulkanischer Kratersee mit kristallklarem Wasser — ideal zum Schwimmen, keine Krokodile, kein Stinger. Der kurze Rundweg am Ufer zeigt den Regenwald von seiner schönsten Seite.'},
-      {title:'Malanda Falls', text:'Kleiner aber feiner Wasserfall mit natürlichem Swimminghole — perfekter Stopp auf dem Weg. Umgeben von subtropischem Regenwald mit vielen Vögeln.'},
-      {title:'Yungaburra Village', text:'Das Dörfchen hat schöne Heritage-Gebäude aus den 1920ern. Wenn ihr samstags dort seid: der Farmers Market ist einer der besten im Tablelands-Hinterland.'},
-    ],
-    secret:'🤫 Geheimtipp: The Lake House Café am Lake Eacham — kein Touristenlokal, sondern der Geheimtipp der Einheimischen für hausgemachten Kuchen und den besten Chai im Tablelands.',
-    food:"🍽️ Flynns Restaurant: Abendessen mit lokalen Tablelands-Produkten — Rindfleisch, Avocados, Macadamias. Kleines aber feines Lokal, Reservierung empfohlen.",
-    tip:'💡 Yungaburra liegt auf 800m Höhe — deutlich kühler als die Küste. Eine leichte Jacke für den Abend einpacken!',
-  },
-  {
-    stop:'🌋 Undara', dates:'20.–22. Sept.', color:'var(--sunset)',
-    mustdos:[
-      {title:'Archway Explorer Tour (gebucht!)', text:'Die 2-stündige Tour führt durch drei der beeindruckendsten Lavahöhlen-Abschnitte. Der Guide erklärt die Entstehungsgeschichte — vor 190.000 Jahren floss hier flüssiges Gestein 160 km weit.'},
-      {title:'Sonnenuntergang vom Kalkani Krater', text:'Kurzer Aufstieg (20 Min) auf den alten Vulkankrater. Von oben leuchtet die weite Outback-Landschaft in orangerot — einer der magischsten Sonnenuntergänge Queenslands.'},
-      {title:'Wildlife-Abend am Camp', text:'Discovery Resorts Undara bietet abends geführte Nachtwanderungen mit Wallabies, Possums und Bettongs. Unbedingt mitmachen — kostenlos für Hotelgäste!'},
-      {title:'Eisenbahnwaggon-Erlebnis', text:'Ihr schlaft in historischen umgebauten Eisenbahnwaggons aus den 1950ern. Aperol auf der kleinen Veranda beim Sonnenuntergang ist Pflicht — eines der ungewöhnlichsten Hotel-Erlebnisse Australiens.'},
-      {title:'Savanna-Frühstück', text:'Das Frühstück im Freien mit Blick auf die endlose Savanna ist einmalig. Kängurus kommen oft bis ans Restaurant heran — einfach still sitzen und beobachten.'},
-    ],
-    secret:'🤫 Geheimtipp: Fragt die Ranger nach den "Lava Tubes at Sunset" — manchmal öffnen sie eine kleinere Röhre exklusiv für Hotelgäste, die nicht im offiziellen Programm steht.',
-    food:"🍽️ Undara Experience Restaurant: Überraschend gute Küche für so eine abgelegene Lage. Bestellt den Barramundi — frisch aus dem Gulf. Das Abendessen unter dem Sternenhimmel ist unvergesslich.",
-    tip:'💡 Outback-Regeln: tagsüber heiß (30°C+), nachts kühl. Viel Wasser trinken, Sonnenhut unbedingt dabei. Die nächste Tankstelle ist weit — voll tanken vor der Abfahrt!',
-  },
-  {
-    stop:'🏙️ Townsville', dates:'22.–23. Sept.', color:'var(--ocean)',
-    mustdos:[
-      {title:'Castle Hill Sunrise', text:"Townsvilles Wahrzeichen: ein riesiger rosafarbener Granitfelsen mitten in der Stadt. Der Aufstieg dauert 20 Min — der Blick über Townsville, den Hafen und Magnetic Island bei Sonnenaufgang ist unvergesslich."},
-      {title:'Reef HQ Aquarium', text:'Das weltgrößte Korallenriff-Aquarium direkt am Townsville Strand — perfekte Vorbereitung fürs Schnorcheln auf Magnetic Island. Ihr lernt die Fische schon mal kennen!'},
-      {title:'The Strand & kostenlose Lagoon', text:"Townsvilles Strandpromenade mit riesigem kostenlosen Außenschwimmbecken und Blick auf Magnetic Island. Perfekt für den Abend vor der Fähre."},
-      {title:'Museum of Tropical Queensland', text:'Beherbergt die Überreste der HMS Pandora — das Schiff, das die Meuterer der Bounty verfolgte. Kostenlos, gut klimatisiert, ideal für die heiße Mittagsstunde.'},
-      {title:'Fähre vorbereiten', text:'Sealink-Fähre fährt ca. alle Stunde, Überfahrt dauert 25 Min. Online-Tickets buchen spart Zeit. Vom Hotel zum Terminal ca. 10 Min zu Fuß.'},
-    ],
-    secret:'🤫 Geheimtipp: Magnetic Espresso in der Flinders Street — das beste Café Townsvilles, kleines unauffälliges Lokal, aber der Kaffee schlägt alles in der Stadt.',
-    food:'🍽️ The Watermark Restaurant: Direkt am Strand, frische Meeresfrüchte, Blick auf Magnetic Island. Bestellt den Moreton Bay Bug — eine australische Krebsart, die es sonst kaum in Deutschland gibt.',
-    tip:'💡 Krokodile: Im Meer vor Townsville keine — aber in Flüssen und Mangroven immer möglich. Am Stadtstand sicher schwimmen, nicht in Mangroven-Buchten.',
-  },
-  {
-    stop:'🏝️ Magnetic Island', dates:'23.–27. Sept.', color:'var(--reef)',
-    mustdos:[
-      {title:'Koalas im Forts Walk', text:'Der Forts Walk ist weltberühmt — wild lebende Koalas in den Eukalyptusbäumen direkt am Wanderweg. Früh morgens (7–9 Uhr) sind die meisten aktiv. Die höchste wild-Koala-Dichte Australiens!'},
-      {title:'Schnorcheln Geoffrey Bay', text:'Fantastische Korallenformationen direkt vom Strand aus — keine Bootstour nötig. Geoffrey Bay hat einen ausgewiesenen Schnorchelpfad. Schildkröten sieht man hier sehr häufig.'},
-      {title:'Radical Bay & Balding Bay', text:'Die abgelegensten Strände der Insel — nur zu Fuß oder mit dem Moped erreichbar. Kristallklares Wasser, kaum Menschen, pure Natur.'},
-      {title:'Mopeds mieten', text:'Der beste Weg, die Insel zu erkunden! Moped-Verleih in Nelly Bay für ca. 60 AUD/Tag. Die einzige Straße führt von Nelly Bay nach Horseshoe Bay mit traumhaften Meerblicken.'},
-      {title:'Sonnenuntergang Horseshoe Bay', text:'Horseshoe Bay Beach Bar ist der perfekte Sunset-Spot. Abends kommen oft Wallabies an den Strand — Bier in der Hand, Wallaby nebenan. Australien at its best.'},
-    ],
-    secret:'🤫 Geheimtipp: Picnic Bay Jetty im Süden der Insel — der alte verlassene Pier ist ein perfekter Schnorchelspot mit vielen Fischen. Kaum jemand weiß davon.',
-    food:"🍽️ Marlin Bar in Arcadia: Die legendärste Bar der Insel, direkt am Wasser. Riesenportionen Fisch & Chips, kaltes XXXX Gold Bier, entspannte Atmosphäre. Donnerstags live Musik!",
-    tip:'💡 Moped-Tipp: Helmpflicht in Australien! Werden beim Verleih gestellt. Fahrt langsam — die Straße hat viele Kurven und Wallabies können plötzlich auftauchen.',
-  },
-  {
-    stop:'⛵ Airlie Beach', dates:'27.–29. Sept.', color:'var(--ocean)',
-    mustdos:[
-      {title:'Whitehaven Katamaran (gebucht!)', text:'Einer der schönsten Strände der Welt. Hill Inlet bei Ebbe anschauen: das Farbenspiel aus Türkis und Weiß ist surreal. Bringt eine Unterwasserkamera mit!'},
-      {title:'Airlie Beach Lagoon', text:'Mitten im Ort liegt eine riesige kostenlose Strandlagune mit Blick auf die Whitsundays. Perfekt für den ersten Abend — entspannen, Prosecco, Sonnenuntergang.'},
-      {title:'Conway National Park', text:'Direkt hinter Airlie Beach: kurze Wanderwege durch Regenwald mit Meerblick. Der Whitsunday Ngaro Sea Trail Aussichtspunkt bietet spektakuläre Blicke auf die Inselgruppe.'},
-      {title:'Coral Sea Marina Bummel', text:"Airlies schickstes Viertel mit Cafés, Restaurants und Yachthafen. Abends flanieren und Segelyachten aus aller Welt bestaunen."},
-      {title:'Früh zur Fähre', text:'Plant eine ruhige Morgenroutine vor der Überfahrt zu den Whitsundays — mit Puffer zum Terminal und gut gefrühstückt.'},
-    ],
-    secret:'🤫 Geheimtipp: Bicentennial Walkway — ein versteckter Wanderweg über dem Ort mit phantastischem Blick auf die Whitsunday-Inselwelt bei Sonnenuntergang. Kaum Touristen.',
-    food:"🍽️ Sorrentos Ristorante: Einer der besten Fischrestaurants in Airlie. Bestellt die Seafood Platter for 2 — Barramundi, Prawns, Moreton Bay Bug. Reservieren!",
-    tip:'💡 Airlie Beach ist touristisch und lebhaft — der echte Zauber beginnt auf den Inseln. Nutzt Airlie als Basis und verbringt so viel Zeit wie möglich draußen auf dem Wasser.',
-  },
-  {
-    stop:'🐠 Whitsunday Islands', dates:'29. Sept.–2. Okt.', color:'var(--reef)',
-    mustdos:[
-      {title:'Whitehaven Beach Sonnenaufgang', text:'Ihr seid direkt vor Ort — nutzt das! Früh morgens (vor 8 Uhr) gehört Whitehaven Beach fast nur euch. Bringt Kaffee mit und erlebt einen unvergesslichen Sonnenaufgang.'},
-      {title:'Hill Inlet Lookout', text:'Der Aussichtspunkt über Hill Inlet zeigt das berühmte Farbenspiel — türkisblaues Wasser und weißer Sand verschlingen sich ineinander. Ebbe-Zeiten vorher prüfen (App: Tide Chart)!'},
-      {title:'Schnorcheln Haslewood Island', text:'Wenige Minuten per Kayak oder Mietboot: eines der besten Korallenriffe der Whitsundays mit Nemo-Fischen, Schildkröten und manchmal Mantas.'},
-      {title:'Sunset Kayaking', text:'Mietbare Sea-Kayaks meist direkt von der Unterkunft. Paddelt in die kleine Bucht westlich — bei Windstille spiegeln sich die Inseln perfekt im Wasser. Absolute Magie.'},
-      {title:'Hook Island Schnorcheln', text:'Hook Island bietet das tiefste und artenreichste Korallenriff der Whitsundays. Tagesausflug per Charter-Boot — lohnt sich für mindestens einen Tag.'},
-    ],
-    secret:'🤫 Geheimtipp: Chance Bay auf Whitsunday Island — nur per Boot erreichbar, kaum bekannt, traumhafter Strand mit perfekten Schnorchelbedingungen. Fragt euren Vermieter nach einer Boot-Empfehlung.',
-    food:'🍽️ Kochen in den Whitsunday Apartments! Kauft in Airlie ein: frische Prawns, lokale Avocados, Passionsfrucht. Ein Sunset-Dinner auf der Veranda ist besser als jedes Restaurant.',
-    tip:'💡 Riff-sichere Sonnencreme verwenden (no oxybenzone) um die Korallen zu schützen. UV-Index in Queensland ist extrem hoch — Sonnenhut, Sonnencreme, Langarmshirt im Wasser.',
-  },
-  {
-    stop:'🦘 Cape Hillsborough', dates:'2.–4. Okt.', color:'var(--bush)',
-    mustdos:[
-      {title:'Kängurus beim Sonnenaufgang', text:'DAS Erlebnis von Cape Hillsborough! Jeden Morgen kommen wild lebende Kängurus und Wallabies direkt zum Strand. Seid um 5:45 Uhr dort. Unbeschreiblich schön — eine der magischsten Erfahrungen Australiens.'},
-      {title:'Nationalpark Wanderwege', text:'Mehrere kurze Wanderwege (1–3 Std.) durch subtropischen Regenwald mit Meerblick. Der Diversity Trail zeigt die komplette Pflanzenwelt — sehr empfehlenswert.'},
-      {title:'Schnorcheln vom Nationalpark-Strand', text:'Flacher, ruhiger Strand ohne Krokodile (Stinger-Netz vorhanden). Bei Ebbe kleine Riffe direkt vom Ufer aus erkunden.'},
-      {title:'Ebbe-Wanderung zu den Felsen', text:'Bei Niedrigwasser kann man zu den vorgelagerten Felsenformationen laufen. Dort leben Seesterne, Einsiedlerkrebse und bunte Meeresschnecken — wie ein natürliches Aquarium.'},
-      {title:'Vogelbeobachtung', text:'Cape Hillsborough ist ein Paradies: Rainbow Lorikeets, Kookaburras, Turtiauben. Frühmorgens ist die Vogelwelt am aktivsten — Fernglas einpacken!'},
-    ],
-    secret:'🤫 Geheimtipp: Fragt den Parkranger nach den Turtle Nesting Spots — je nach Saison kann man Meeresschildkröten beim Eier-Ablegen beobachten. Nur wenige wissen, wo genau.',
-    food:'🍽️ Das Kiosk im Nature Tourist Park überrascht mit frischen Sandwiches, lokalen Fruchtshakes und hausgemachten Lamingtons. Mehr braucht man nicht.',
-    tip:'💡 Kängurus sind wild und können kratzen! Haltet 2m Abstand und füttert sie nie. Beim Sonnenaufgang am Strand: leise bleiben, keine hellen Taschenlampen — Rotlicht-Modus am Handy nutzen.',
-  },
-  {
-    stop:'🦆 Eungella / Broken River', dates:'4.–5. Okt.', color:'var(--bush)',
-    mustdos:[
-      {title:'Schnabeltier-Beobachtung', text:'Eungella ist der beste Ort Australiens für wilde Schnabeltiere! Geht zweimal täglich: früh morgens (6–8 Uhr) und abends (17–18:30 Uhr) zur Viewing Platform am Broken River. Leise sein ist alles!'},
-      {title:'Eungella National Park Wanderung', text:'Der Rainforest Circuit (2 Std.) führt durch einen isolierten Regenwald mit eigenen Tier- und Pflanzenarten, die es nirgendwo sonst gibt.'},
-      {title:'Finch Hatton Gorge', text:'Nur 25 km entfernt: spektakuläre Schlucht mit Wasserfällen und Swimminghole. Der Weg führt mehrfach durch den Fluss (Schuhe ausziehen!). Absolut lohnenswert.'},
-      {title:'Veranda-Frühstück', text:'Die Veranda eures Resorts bietet einen phantastischen Blick über das Pioneer Valley. Morgengrauen mit Kaffee — eine der ruhigsten Stunden der ganzen Reise.'},
-      {title:'Slow Travel genießen', text:'Eungella ist einer der ruhigsten Orte Queenslands. Kein Touristenrummel, nur Natur. Nutzt den Nachmittag zum Lesen und Nichtstun — ihr habt es verdient!'},
-    ],
-    secret:'🤫 Geheimtipp: Crediton Hall — ein verlassenes historisches Gebäude auf dem Weg nach Eungella. Tolle Fotokulisse, kaum bekannt, historisch interessant.',
-    food:'🍽️ Das Restaurant im Broken River Mountain Resort ist die einzige Option weit und breit — aber gut! Probiert das lokale Rindfleisch aus dem Pioneer Valley.',
-    tip:'💡 Schnabeltiere sind extrem scheu: kein Blitzlicht, kein Geräusch, keine hellen Lichter. Ein Rotlicht-Stirnband mitnehmen (kaufbar in Mackay). Geduld ist der absolute Schlüssel!',
-  },
-  {
-    stop:'🌆 Brisbane', dates:'5.–9. Okt.', color:'var(--sunset)',
-    mustdos:[
-      {title:'South Bank Parklands', text:"Brisbanes bestes Freigelände: riesiger Park direkt am Fluss mit kostenlosem Außenpool (Streets Beach), Restaurants, Kunstmuseen und der besten Skyline-Aussicht der Stadt."},
-      {title:'Lone Pine Koala Sanctuary', text:'Das älteste Koala-Schutzgebiet der Welt — nur 20 Min vom Zentrum. Koalas halten, mit Kängurus spazieren, Wombats streicheln. Perfekter letzter Australien-Tag!'},
-      {title:'Gallery of Modern Art (GOMA)', text:'Eine der besten Kunstgalerien Australiens — und kostenlos! Direkt neben South Bank. Wechselausstellungen sind oft spektakulär.'},
-      {title:'Story Bridge Climb', text:'Der Aufstieg auf die Story Bridge bietet einen 360°-Blick über Brisbane. Besonders bei Sonnenuntergang unvergesslich — online buchen.'},
-      {title:'West End & Fortitude Valley', text:"Brisbanes hippigste Viertel für Abendessen und Bars. West End: Cafés, Vintage-Läden, multikulturelle Küche. Fortitude Valley: Nightlife bis spät in die Nacht."},
-    ],
-    secret:'🤫 Geheimtipp: New Farm Park — ein riesiger Rosenpark direkt am Brisbane River (Rosen blühen im Oktober!), fast nur von Einheimischen besucht. Perfekt für ein Picknick am letzten Abend.',
-    food:"🍽️ Gus Cafe in South Brisbane: Brisbanes legendärstes Frühstücks-Café seit 1976. Abends: Teneriffe Brewing Co. für lokales Craft Beer und Blick auf die Story Bridge.",
-    tip:'💡 City Hopper Fähre — kostenlos! Fährt alle 30 Min über den Brisbane River und verbindet South Bank, CBD, New Farm und Fortitude Valley. Der schönste Weg, die Stadt zu erkunden.',
-  },
-];
-
-function renderTips() {
-  const container = document.getElementById('tips-list');
-  if(!container) return;
-  container.innerHTML = TIPS.map((t,i) => `
-    <div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden">
-      <div style="background:${t.color};padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleTip(${i})">
-        <div>
-          <div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--white);font-weight:700">${t.stop}</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.75);margin-top:2px">${t.dates}</div>
-        </div>
-        <div id="tip-arrow-${i}" style="color:rgba(255,255,255,.8);font-size:1.1rem;transition:transform .25s">▼</div>
-      </div>
-      <div id="tip-body-${i}" style="display:none;padding:18px 20px">
-        <div style="font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);margin-bottom:10px">🌟 Top Must-Dos</div>
-        ${t.mustdos.map(m=>`<div style="margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(28,26,22,.07)"><div style="font-weight:600;font-size:.87rem;margin-bottom:3px">${m.title}</div><div style="font-size:.82rem;line-height:1.65;color:#4a3d30">${m.text}</div></div>`).join('')}
-        <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.secret}</div>
-        <div style="background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.food}</div>
-        <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.65">${t.tip}</div>
-      </div>
-    </div>`).join('');
-}
-
-function toggleTip(i){
-  const body=document.getElementById('tip-body-'+i);
-  const arrow=document.getElementById('tip-arrow-'+i);
-  const open=body.style.display!=='none';
-  body.style.display=open?'none':'block';
-  arrow.style.transform=open?'':'rotate(180deg)';
-}
-
-// ── EDIT MODE ─────────────────────────────────────────────────────────────
-function toggleEditMode() {
-  if(editMode) {
-    editMode = false;
-    document.getElementById("edit-toggle-btn").textContent = "🔑 Admin";
-    document.getElementById("edit-toggle-btn").style.background = "";
-    document.getElementById("tab-kosten").style.display = "none";
-    document.getElementById("tab-neu").style.display = "none";
-    var at = document.querySelector(".tab-btn.active");
-    if(at && (at.id==="tab-kosten"||at.id==="tab-neu")) showTab("tage");
-    buildDaySlides();
-    toast("Admin-Modus beendet.");
-  } else {
-    editPinBuffer = "";
-    updateEpDots();
-    document.getElementById("edit-pin-overlay").style.display = "flex";
-  }
-}
-function epIn(d){if(editPinBuffer.length>=4)return;editPinBuffer+=d;updateEpDots();if(editPinBuffer.length===4)setTimeout(checkEditPin,150);}
-function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
-function updateEpDots(){for(var i=0;i<4;i++)document.getElementById("epd"+i).classList.toggle("filled",i<editPinBuffer.length);}
-function closeEditPin(){document.getElementById("edit-pin-overlay").style.display="none";editPinBuffer="";}
-function checkEditPin(){
-  if(editPinBuffer===CORRECT_PIN){
-    document.getElementById("edit-pin-overlay").style.display="none";
-    editMode=true;
-    document.getElementById("edit-toggle-btn").textContent="Admin aktiv";
-    document.getElementById("edit-toggle-btn").style.background="var(--sunset)";
-    document.getElementById("tab-kosten").style.display="block";
-    document.getElementById("tab-neu").style.display="block";
-    buildDaySlides();
-    toast("Admin-Modus aktiv!");
-  } else {
-    document.getElementById("ep-err").textContent="Falsche PIN.";
-    editPinBuffer="";
-    updateEpDots();
-    setTimeout(function(){document.getElementById("ep-err").textContent="";},2000);
-  }
-}
-
-// ── PHOTO DELETE ──────────────────────────────────────────────────────────
-function delPhotoEl(btn){
-  if(!editMode)return;
-  if(!confirm("Foto loeschen?"))return;
-  var iso=btn.getAttribute("data-iso");
-  var idx=parseInt(btn.getAttribute("data-idx"));
-  photos[iso].splice(idx,1);
-  buildDaySlides();
-  toast("Foto geloescht.");
-}
-
-// ── HOTEL PHOTOS ──────────────────────────────────────────────────────────
-function addHotelPhotoEl(btn){
-  if(!editMode)return;
-  _hotelBid = btn.getAttribute("data-bid");
-  if(!_hotelInput){
-    _hotelInput = document.createElement("input");
-    _hotelInput.type="file";_hotelInput.accept="image/*";_hotelInput.multiple=true;
-    _hotelInput.style.display="none";
-    _hotelInput.onchange=function(){
-      var files=Array.from(_hotelInput.files);if(!files.length)return;
-      if(!hotelPhotos[_hotelBid])hotelPhotos[_hotelBid]=[];
-      var n=0;
-      files.forEach(function(f){
-        var r=new FileReader();
-        r.onload=function(e){hotelPhotos[_hotelBid].push(e.target.result);if(++n===files.length){buildDaySlides();toast("Hotelfoto gespeichert!");}}
-        r.readAsDataURL(f);
-      });
-    };
-    document.body.appendChild(_hotelInput);
-  }
-  _hotelBid = btn.getAttribute("data-bid");
-  _hotelInput.value="";
-  _hotelInput.click();
-}
-function delHotelPhotoEl(btn){
-  if(!editMode)return;
-  if(!confirm("Hotelfoto loeschen?"))return;
-  var bid=btn.getAttribute("data-bid");
-  var idx=parseInt(btn.getAttribute("data-idx")||"0");
-  if(hotelPhotos[bid]){
-    hotelPhotos[bid].splice(idx,1);
-    if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
-  }
-  buildDaySlides();toast("Foto geloescht.");
-}
-function openHotelLBEl(img){
-  document.getElementById("lightbox-img").src=img.getAttribute("data-bid")?hotelPhotos[img.getAttribute("data-bid")][parseInt(img.getAttribute("data-idx"))||0]:img.src;
-  document.getElementById("lightbox").classList.add("open");
-}
-
-// ── DAY EXPENSES ──────────────────────────────────────────────────────────
-function addExpEl(btn){addDayExpense(btn.getAttribute("data-iso"));}
-function delExpEl(btn){
-  if(!editMode)return;
-  var iso=btn.getAttribute("data-iso");
-  var idx=parseInt(btn.getAttribute("data-idx"));
-  dayExpenses[iso].splice(idx,1);
-  if(!dayExpenses[iso].length)delete dayExpenses[iso];
-  buildDaySlides();
-  if(pinUnlocked)renderCosts();
-  toast("Ausgabe geloescht.");
-}
-function addDayExpense(iso){
-  if(!editMode)return;
-  currentExpenseIso=iso;
-  var d=new Date(iso+"T12:00:00");
-  document.getElementById("exp-date-lbl").textContent=d.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
-  document.getElementById("exp-label").value="";
-  document.getElementById("exp-amount").value="";
-  document.getElementById("expense-modal").style.display="flex";
-}
-function saveExpense(){
-  var iso=currentExpenseIso;
-  var catText=document.getElementById("exp-cat").value;
-  var label=document.getElementById("exp-label").value.trim();
-  var amtStr=document.getElementById("exp-amount").value;
-  if(!label){toast("Bitte Bezeichnung eingeben.");return;}
-  var amt=parseFloat(amtStr.replace(",","."));
-  if(isNaN(amt)||amt<=0){toast("Ungueltiger Betrag.");return;}
-  var parts=catText.split(" ");
-  if(!dayExpenses[iso])dayExpenses[iso]=[];
-  dayExpenses[iso].push({cat:parts[0],label:label,amount:amt});
-  document.getElementById("expense-modal").style.display="none";
-  buildDaySlides();
-  if(pinUnlocked)renderCosts();
-  toast("Ausgabe gespeichert!");
-}
-function closeExpenseModal(){
-  document.getElementById("expense-modal").style.display="none";
-}
-
-
-// ── FORMAT ────────────────────────────────────────────────────────────────
-function formatEUR(n){
-  return n.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-
-// ── EDIT MODE ─────────────────────────────────────────────────────────────
-function toggleEditMode(){
-  if(editMode){
-    editMode=false;
-    document.getElementById("edit-toggle-btn").textContent="🔑 Admin";
-    document.getElementById("edit-toggle-btn").style.background="";
-    document.getElementById("tab-neu").style.display="none";
-    var at=document.querySelector(".tab-btn.active");
-    if(at&&at.id==="tab-neu")showTab("tage");
-    buildDaySlides();
-    toast("Admin-Modus beendet.");
-  } else {
-    editPinBuffer="";updateEpDots();
-    document.getElementById("edit-pin-overlay").style.display="flex";
-  }
-}
-function epIn(d){if(editPinBuffer.length>=4)return;editPinBuffer+=d;updateEpDots();if(editPinBuffer.length===4)setTimeout(checkEditPin,150);}
-function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
-function updateEpDots(){for(var i=0;i<4;i++)document.getElementById("epd"+i).classList.toggle("filled",i<editPinBuffer.length);}
-function closeEditPin(){document.getElementById("edit-pin-overlay").style.display="none";editPinBuffer="";}
-function checkEditPin(){
-  if(editPinBuffer===CORRECT_PIN){
-    document.getElementById("edit-pin-overlay").style.display="none";
-    editMode=true;
-    document.getElementById("edit-toggle-btn").textContent="Admin aktiv";
-    document.getElementById("edit-toggle-btn").style.background="var(--sunset)";
-    document.getElementById("tab-neu").style.display="block";
-    buildDaySlides();
-    toast("Admin-Modus aktiv!");
-    if(!_apiKey){
-      var saved=loadApiKey();
-      if(saved){_apiKey=saved;toast("API-Key geladen.");}
-      else{document.getElementById("apikey-overlay").style.display="flex";}
-    }
-  } else {
-    document.getElementById("ep-err").textContent="Falsche PIN.";
-    editPinBuffer="";updateEpDots();
-    setTimeout(function(){document.getElementById("ep-err").textContent="";},2000);
-  }
-}
-
-// ── API KEY ────────────────────────────────────────────────────────────────
-function saveApiKey(){
-  var k=document.getElementById("apikey-input").value.trim();
-  if(!k||k.length<20){toast("Bitte gueltigen Key eingeben.");return;}
-  _apiKey=k;
-  try{
-    var enc=btoa(k.split("").map(function(c,i){return String.fromCharCode(c.charCodeAt(0)^"MReisen2026".charCodeAt(i%11));}).join(""));
-    localStorage.setItem("_mk",enc);
-  }catch(e){}
-  document.getElementById("apikey-overlay").style.display="none";
-  document.getElementById("apikey-input").value="";
-  toast("API-Key gespeichert!");
-}
-function loadApiKey(){
-  try{
-    var enc=localStorage.getItem("_mk");if(!enc)return"";
-    return atob(enc).split("").map(function(c,i){return String.fromCharCode(c.charCodeAt(0)^"MReisen2026".charCodeAt(i%11));}).join("");
-  }catch(e){return"";}
-}
-function skipApiKey(){document.getElementById("apikey-overlay").style.display="none";}
-
-// ── PHOTO ─────────────────────────────────────────────────────────────────
-function delPhotoEl(btn){
-  if(!editMode)return;
-  if(!confirm("Foto loeschen?"))return;
-  var iso=btn.getAttribute("data-iso");
-  var idx=parseInt(btn.getAttribute("data-idx"));
-  photos[iso].splice(idx,1);
-  buildDaySlides();toast("Foto geloescht.");
-}
-function handlePhotosEl(inp){handlePhotos({target:inp},inp.getAttribute("data-iso"));}
-function refreshPhotoGrid(iso){buildDaySlides();toast("Foto gespeichert!");}
-function startEntryEl(btn){startEntryForDate(btn.getAttribute("data-iso"));}
-function editEntry(id){
-  var entry=entries.find(function(e){return e.id===id;});if(!entry)return;
-  document.getElementById("f-datum").value=entry.datum;
-  document.getElementById("f-ort").value=entry.ort||"";
-  document.getElementById("f-titel").value=entry.titel;
-  document.getElementById("f-kategorie").value=entry.kat;
-  document.getElementById("f-text").value=entry.text;
-  showTab("neu");toast("Eintrag zum Bearbeiten geoeffnet.");
-}
-
-// ── LIGHTBOX ──────────────────────────────────────────────────────────────
-function openLB(el){
-  var iso=el.getAttribute("data-iso");
-  var startIdx=parseInt(el.getAttribute("data-idx")||"0");
-  openGalleryLB(iso,photos[iso]||[],startIdx);
-}
-function openGalleryLB(iso,allPhotos,startIdx){
-  if(!allPhotos.length)return;
-  _lbIso=iso;_lbIdx=startIdx;
-  var track=document.getElementById("lb-track");
-  var nav=document.getElementById("lb-nav");
-  track.innerHTML="";nav.innerHTML="";
-  allPhotos.forEach(function(src,pi){
-    var slide=document.createElement("div");slide.className="lightbox-slide";
-    var img=document.createElement("img");img.src=src;img.alt="Foto";
-    slide.appendChild(img);track.appendChild(slide);
-    var dot=document.createElement("div");
-    dot.className="lightbox-dot"+(pi===startIdx?" active":"");
-    dot.onclick=(function(i){return function(){scrollToLBSlide(i,iso,allPhotos.length);};})(pi);
-    nav.appendChild(dot);
-  });
-  document.getElementById("lightbox").classList.add("open");
-  var editBtn=document.getElementById("lb-edit-btn");
-  if(editBtn)editBtn.style.display=editMode?"block":"none";
-  setTimeout(function(){
-    track.scrollLeft=startIdx*track.offsetWidth;
-    updateLBCaption(iso,startIdx,allPhotos.length);
-  },50);
-  track.onscroll=function(){
-    var idx=Math.round(track.scrollLeft/Math.max(track.offsetWidth,1));
-    if(idx!==_lbIdx){_lbIdx=idx;updateLBCaption(iso,idx,allPhotos.length);}
-  };
-}
-function updateLBCaption(iso,idx,total){
-  document.getElementById("lb-counter").textContent=(idx+1)+" / "+total;
-  document.getElementById("lb-caption").textContent=photoComments[iso+"_"+idx]||"";
-  document.querySelectorAll(".lightbox-dot").forEach(function(d,i){d.classList.toggle("active",i===idx);});
-}
-function scrollToLBSlide(idx,iso,total){
-  var track=document.getElementById("lb-track");
-  track.scrollLeft=idx*track.offsetWidth;
-  updateLBCaption(iso,idx,total);
-}
-function openLBCaption(){
-  if(!editMode||!_lbIso)return;
-  _captionKey=_lbIso+"_"+_lbIdx;
-  document.getElementById("caption-input").value=photoComments[_captionKey]||"";
-  document.getElementById("caption-modal").style.display="flex";
-  setTimeout(function(){document.getElementById("caption-input").focus();},200);
-}
-function closeLightbox(){
-  document.getElementById("lightbox").classList.remove("open");
-  document.getElementById("lb-track").innerHTML="";
-}
-
-// ── PHOTO CAPTIONS ────────────────────────────────────────────────────────
-function openCaptionModal(btn){
-  _captionKey=btn.getAttribute("data-iso")+"_"+btn.getAttribute("data-idx");
-  document.getElementById("caption-input").value=photoComments[_captionKey]||"";
-  document.getElementById("caption-modal").style.display="flex";
-  setTimeout(function(){document.getElementById("caption-input").focus();},200);
-}
-function saveCaption(){
-  var val=document.getElementById("caption-input").value.trim();
-  if(_captionKey)photoComments[_captionKey]=val;
-  document.getElementById("caption-modal").style.display="none";
-  if(document.getElementById("lightbox").classList.contains("open")){
-    document.getElementById("lb-caption").textContent=val;
-  }
-  buildDaySlides();toast("Kommentar gespeichert!");
-}
-function closeCaptionModal(){document.getElementById("caption-modal").style.display="none";}
-
-// ── HOTEL PHOTOS ──────────────────────────────────────────────────────────
-function addHotelPhotoEl(btn){
-  if(!editMode)return;
-  _hotelBid=btn.getAttribute("data-bid");
-  if(!_hotelInput){
-    _hotelInput=document.createElement("input");
-    _hotelInput.type="file";_hotelInput.accept="image/*";_hotelInput.multiple=true;
-    _hotelInput.style.display="none";
-    _hotelInput.onchange=function(){
-      var files=Array.from(_hotelInput.files);if(!files.length)return;
-      if(!hotelPhotos[_hotelBid])hotelPhotos[_hotelBid]=[];
-      var n=0;
-      files.forEach(function(f){
-        var r=new FileReader();
-        r.onload=function(e){hotelPhotos[_hotelBid].push(e.target.result);if(++n===files.length){buildDaySlides();toast("Hotelfoto gespeichert!");}};
-        r.readAsDataURL(f);
-      });
-    };
-    document.body.appendChild(_hotelInput);
-  }
-  _hotelBid=btn.getAttribute("data-bid");
-  _hotelInput.value="";_hotelInput.click();
-}
-function delHotelPhotoEl(btn){
-  if(!editMode)return;if(!confirm("Hotelfoto loeschen?"))return;
-  var bid=btn.getAttribute("data-bid");var idx=parseInt(btn.getAttribute("data-idx")||"0");
-  if(hotelPhotos[bid]){hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];}
-  buildDaySlides();toast("Foto geloescht.");
-}
-function openHotelLBEl(img){
-  var bid=img.getAttribute("data-bid");var idx=parseInt(img.getAttribute("data-idx")||"0");
-  var photos_arr=hotelPhotos[bid]||[];
-  if(!photos_arr.length)return;
-  document.getElementById("lightbox-img")||0;
-  openGalleryLB("hotel_"+bid,photos_arr,idx);
-}
-
-// ── DAY EXPENSES ──────────────────────────────────────────────────────────
-function addExpEl(btn){addDayExpense(btn.getAttribute("data-iso"));}
-function delExpEl(btn){
-  if(!editMode)return;
-  var iso=btn.getAttribute("data-iso");var idx=parseInt(btn.getAttribute("data-idx"));
-  dayExpenses[iso].splice(idx,1);
-  if(!dayExpenses[iso].length)delete dayExpenses[iso];
-  buildDaySlides();if(pinUnlocked)renderCosts();toast("Ausgabe geloescht.");
-}
-function addDayExpense(iso){
-  if(!editMode)return;
-  currentExpenseIso=iso;
-  var d=new Date(iso+"T12:00:00");
-  document.getElementById("exp-date-lbl").textContent=d.toLocaleDateString("de-DE",{weekday:"short",day:"numeric",month:"short"});
-  document.getElementById("exp-label").value="";document.getElementById("exp-amount").value="";
-  document.getElementById("expense-modal").style.display="flex";
-}
-function saveExpense(){
-  var iso=currentExpenseIso;
-  var catText=document.getElementById("exp-cat").value;
-  var label=document.getElementById("exp-label").value.trim();
-  var amtStr=document.getElementById("exp-amount").value;
-  if(!label){toast("Bitte Bezeichnung eingeben.");return;}
-  var amt=parseFloat(amtStr.replace(",","."));
-  if(isNaN(amt)||amt<=0){toast("Ungueltiger Betrag.");return;}
-  var parts=catText.split(" ");
-  if(!dayExpenses[iso])dayExpenses[iso]=[];
-  dayExpenses[iso].push({cat:parts[0],label:label,amount:amt});
-  document.getElementById("expense-modal").style.display="none";
-  buildDaySlides();renderCosts();toast("Ausgabe gespeichert!");
-}
-function closeExpenseModal(){document.getElementById("expense-modal").style.display="none";}
-
-// ── HOTEL REVIEWS ─────────────────────────────────────────────────────────
-function setStarEl(btn){
-  if(!editMode)return;
-  var bid=btn.getAttribute("data-bid");var stars=parseInt(btn.getAttribute("data-star"));
-  if(!hotelReviews[bid])hotelReviews[bid]={stars:0,text:""};
-  hotelReviews[bid].stars=stars;buildDaySlides();toast(stars+" Sterne gespeichert!");
-}
-function clearReviewEl(btn){
-  var bid=btn.getAttribute("data-bid");
-  if(hotelReviews[bid])hotelReviews[bid].text="";
-  buildDaySlides();toast("Bewertung geloescht.");
-}
-function genReviewEl(btn){
-  if(!editMode)return;
-  var bid=btn.getAttribute("data-bid");
-  var hotel=btn.getAttribute("data-hotel");
-  var stars=parseInt(btn.getAttribute("data-stars")||"0");
-  var existing=(hotelReviews[bid]||{}).text||"";
-  document.getElementById("rev-bid").value=bid;
-  document.getElementById("rev-hotel-name").textContent=hotel;
-  document.getElementById("rev-text").value=existing;
-  document.getElementById("rev-modal").style.display="flex";
-}
-async function polishReviewText(){
-  var ta=document.getElementById("rev-text");
-  var raw=ta.value.trim();
-  if(!raw){toast("Bitte erst Text eingeben.");return;}
-  if(!_apiKey){document.getElementById("apikey-overlay").style.display="flex";return;}
-  var orig=raw;ta.disabled=true;ta.value="Text wird verbessert...";
-  var hotel=document.getElementById("rev-hotel-name").textContent;
-  var promptText="Verbessere diesen Hotelbewertungstext. Fluessiger und lebendiger. Inhalt beibehalten. Keine persoenlichen Anreden. Nur den Text.\n\nHotel: "+hotel+"\nText: "+orig;
-  try{
-    var resp=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-api-key":_apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-      body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:300,messages:[{role:"user",content:promptText}]})
-    });
-    var d=await resp.json();ta.disabled=false;
-    if(d.error){if(d.error.type==="authentication_error"){_apiKey="";}ta.value=orig;toast("Fehler: "+d.error.message);}
-    else if(d.content&&d.content[0]){ta.value=d.content[0].text||orig;toast("Text verbessert!");}
-    else{ta.value=orig;toast("Kein Ergebnis.");}
-  }catch(e){ta.disabled=false;ta.value=orig;toast("Verbindungsfehler.");}
-}
-async function generateReviewText(bid,hotel,starsText){
-  // Not auto-called anymore
-}
-function saveReview(){
-  var bid=document.getElementById("rev-bid").value;if(!bid){closeRevModal();return;}
-  if(_recognition){_recognition.stop();_recognition=null;}
-  var text=document.getElementById("rev-text").value.trim();
-  if(!hotelReviews[bid])hotelReviews[bid]={stars:0,text:""};
-  hotelReviews[bid].text=text;
-  document.getElementById("rev-modal").style.display="none";
-  buildDaySlides();toast(text?"Bewertung gespeichert!":"Gespeichert.");
-}
-function closeRevModal(){document.getElementById("rev-modal").style.display="none";}
-function dictateReviewEl(btn){
-  var bid=btn.getAttribute("data-bid");var hotel=btn.getAttribute("data-hotel")||"";
-  document.getElementById("rev-bid").value=bid;
-  document.getElementById("rev-hotel-name").textContent=hotel;
-  var existing=(hotelReviews[bid]||{}).text||"";
-  document.getElementById("rev-text").value=existing;
-  document.getElementById("rev-modal").style.display="flex";
-  toast("Tippe auf Diktieren zum Sprechen.");
-}
-function startDictation(){
-  var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRec){toast("Diktierfunktion nicht verfuegbar.");return;}
-  if(_recognition){_recognition.stop();_recognition=null;document.getElementById("rev-mic-btn").textContent="🎤 Diktieren";return;}
-  _recognition=new SpeechRec();
-  _recognition.lang="de-DE";_recognition.continuous=false;_recognition.interimResults=false;
-  _recognition.onresult=function(e){
-    var transcript=e.results[0][0].transcript;
-    if(transcript){
-      var ta=document.getElementById("rev-text");
-      ta.value=ta.value?ta.value+" "+transcript:transcript;
-      toast("+"+transcript.substring(0,25));
-    }
-    if(_recognition){try{_recognition.start();}catch(ex){}}
-  };
-  _recognition.onerror=function(e){
-    if(e.error!=="no-speech")toast("Fehler: "+e.error);
-    if(e.error==="not-allowed"){_recognition=null;document.getElementById("rev-mic-btn").textContent="🎤 Diktieren";}
-  };
-  _recognition.onend=function(){if(_recognition===null){document.getElementById("rev-mic-btn").textContent="🎤 Diktieren";}};
-  try{
-    _recognition.start();
-    document.getElementById("rev-mic-btn").textContent="⏹ Stop";
-    toast("Sprechen...");
-  }catch(e){_recognition=null;toast("Fehler: "+e.message);}
-}
-
-// INIT
-showTab('tage');
-</script>
-<!-- Edit PIN overlay -->
-<div id="edit-pin-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditPin()">
-  <div style="background:#fff;border-radius:16px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="font-size:1.8rem;margin-bottom:10px">🔑</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:5px">Admin-Modus</div>
-    <div style="font-size:.8rem;color:var(--fog);margin-bottom:18px">PIN eingeben</div>
-    <div class="pin-dots" style="margin-bottom:16px">
-      <div class="pin-dot" id="epd0"></div><div class="pin-dot" id="epd1"></div>
-      <div class="pin-dot" id="epd2"></div><div class="pin-dot" id="epd3"></div>
-    </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="epIn('1')">1</button><button class="pin-key" onclick="epIn('2')">2</button><button class="pin-key" onclick="epIn('3')">3</button>
-      <button class="pin-key" onclick="epIn('4')">4</button><button class="pin-key" onclick="epIn('5')">5</button><button class="pin-key" onclick="epIn('6')">6</button>
-      <button class="pin-key" onclick="epIn('7')">7</button><button class="pin-key" onclick="epIn('8')">8</button><button class="pin-key" onclick="epIn('9')">9</button>
-      <button class="pin-key" style="font-size:.8rem;color:var(--fog)" onclick="epDel()">&#9003;</button>
-      <button class="pin-key" onclick="epIn('0')">0</button>
-      <button class="pin-key" style="font-size:.75rem;color:var(--fog)" onclick="closeEditPin()">&#10005;</button>
-    </div>
-    <div id="ep-err" style="color:#dc2626;font-size:.77rem;margin-top:8px;min-height:15px"></div>
-  </div>
-</div>
-
-<!-- Expense Modal -->
-<div id="expense-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeExpenseModal()">
-  <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">Ausgabe erfassen</div>
-      <div id="exp-date-lbl" style="font-size:.8rem;color:var(--fog);"></div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;">Kategorie</label>
-      <select id="exp-cat" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-        <option>&#127869; Essen &amp; Trinken</option>
-        <option>&#127915; Eintritt</option>
-        <option>&#128717; Shopping</option>
-        <option>&#128661; Taxi / Transport</option>
-        <option>&#127958; Aktivitaet</option>
-        <option>&#128134; Wellness / Sonstiges</option>
-      </select>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;">Bezeichnung</label>
-      <input id="exp-label" type="text" placeholder="z.B. Abendessen am Strand" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-    </div>
-    <div style="margin-bottom:20px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px;">Betrag (EUR)</label>
-      <input id="exp-amount" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-    </div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="closeExpenseModal()" style="flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;font-family:'Inter',sans-serif;cursor:pointer;color:var(--fog);">Abbrechen</button>
-      <button onclick="saveExpense()" style="flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;">Speichern</button>
-    </div>
-  </div>
-</div>
-
-<!-- Lightbox -->
 <div class="lightbox" id="lightbox">
   <div class="lightbox-header">
     <div class="lightbox-counter" id="lb-counter"></div>
@@ -1680,11 +377,11 @@ showTab('tage');
   <div class="lightbox-nav" id="lb-nav"></div>
 </div>
 
-<!-- Edit PIN -->
 <div id="edit-pin-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditPin()">
   <div style="background:#fff;border-radius:16px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);">
     <div style="font-size:1.8rem;margin-bottom:10px">🔑</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:18px">Admin-Modus</div>
+    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:5px">Admin-Modus</div>
+    <div style="font-size:.8rem;color:var(--fog);margin-bottom:18px">PIN eingeben</div>
     <div class="pin-dots" style="margin-bottom:16px">
       <div class="pin-dot" id="epd0"></div><div class="pin-dot" id="epd1"></div>
       <div class="pin-dot" id="epd2"></div><div class="pin-dot" id="epd3"></div>
@@ -1701,72 +398,6 @@ showTab('tage');
   </div>
 </div>
 
-<!-- API Key -->
-<div id="apikey-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:600;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="font-size:1.6rem;text-align:center;margin-bottom:10px;">🔑</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:6px;text-align:center;">API-Key eingeben</div>
-    <div style="font-size:.78rem;color:var(--fog);margin-bottom:16px;text-align:center;line-height:1.5;">Wird verschluesselt lokal gespeichert.</div>
-    <input id="apikey-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:14px;">
-    <div style="display:flex;gap:10px;">
-      <button onclick="skipApiKey()" style="flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;font-family:'Inter',sans-serif;cursor:pointer;color:var(--fog);">Spaeter</button>
-      <button onclick="saveApiKey()" style="flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;">Speichern</button>
-    </div>
-    <div style="margin-top:10px;text-align:center;"><button onclick="(function(){localStorage.removeItem('_mk');_apiKey='';toast('Key geloescht.')()" style="background:none;border:none;font-size:.7rem;color:#dc2626;cursor:pointer;text-decoration:underline;">Key loeschen</button></div>
-  </div>
-</div>
-
-<!-- Expense Modal -->
-<div id="expense-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeExpenseModal()">
-  <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">Ausgabe erfassen</div>
-      <div id="exp-date-lbl" style="font-size:.8rem;color:var(--fog);"></div>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Kategorie</label>
-      <select id="exp-cat" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-        <option>🍽️ Essen &amp; Trinken</option><option>🎫 Eintritt</option>
-        <option>🛍️ Shopping</option><option>🚕 Taxi / Transport</option>
-        <option>🏖️ Aktivitaet</option><option>💆 Sonstiges</option>
-      </select>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Bezeichnung</label>
-      <input id="exp-label" type="text" placeholder="z.B. Abendessen am Strand" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-    </div>
-    <div style="margin-bottom:20px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Betrag (EUR)</label>
-      <input id="exp-amount" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
-    </div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="closeExpenseModal()" style="flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;cursor:pointer;color:var(--fog);">Abbrechen</button>
-      <button onclick="saveExpense()" style="flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Speichern</button>
-    </div>
-  </div>
-</div>
-
-<!-- Hotel Review Modal -->
-<div id="rev-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeRevModal()">
-  <div style="background:#fff;border-radius:16px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">Hotelbewertung</div>
-      <button onclick="closeRevModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--fog);">✕</button>
-    </div>
-    <div id="rev-hotel-name" style="font-size:.8rem;color:var(--fog);margin-bottom:14px;"></div>
-    <input type="hidden" id="rev-bid">
-    <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:6px;">Bewertungstext</label>
-    <textarea id="rev-text" rows="5" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.86rem;background:var(--paper);resize:vertical;" placeholder="Bewertung eingeben..."></textarea>
-    <div id="rev-interim" style="font-size:.75rem;color:var(--fog);font-style:italic;min-height:16px;margin-top:4px;"></div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button id="rev-mic-btn" onclick="startDictation()" style="padding:8px 14px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">🎤 Diktieren</button>
-      <button onclick="polishReviewText()" style="padding:8px 14px;background:var(--reef);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">✨ Verschoenern</button>
-      <button onclick="saveReview()" style="flex:1;padding:8px 14px;background:var(--sunset);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">✓ Speichern</button>
-    </div>
-  </div>
-</div>
-
-<!-- Caption Modal -->
 <div id="caption-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:flex-end;justify-content:center;padding:0;" onclick="if(event.target===this)closeCaptionModal()">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.2);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1781,5 +412,379 @@ showTab('tage');
   </div>
 </div>
 
+<div id="toast"></div>
+
+<script>
+// ── SUPABASE ──────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function sbLoadEntries(){
+  const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
+  if(error){console.error(error);return[];}
+  return data||[];
+}
+async function sbSaveEntry(datum,titel,text){
+  const {error}=await sb.from('kommentare').upsert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString()},{onConflict:'ort'});
+  return !error;
+}
+async function sbSaveComment(iso,name,text){
+  const {error}=await sb.from('kommentare').insert({ort:'kommentar_'+iso+'_'+Date.now(),name:name,nachricht:text,created_at:new Date().toISOString()});
+  return !error;
+}
+async function sbLoadComments(iso){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort','kommentar_'+iso+'%').order('created_at',{ascending:true});
+  if(error)return[];
+  return data||[];
+}
+async function sbUploadPhoto(iso,file){
+  const ext=file.name.split('.').pop();
+  const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
+  const {error}=await sb.storage.from('reisefotos').upload(path,file);
+  if(error){console.error(error);return null;}
+  const {data}=sb.storage.from('reisefotos').getPublicUrl(path);
+  return data.publicUrl;
+}
+async function sbLoadPhotos(iso){
+  const {data,error}=await sb.storage.from('reisefotos').list(iso,{limit:100});
+  if(error||!data)return[];
+  return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
+    const {data:u}=sb.storage.from('reisefotos').getPublicUrl(iso+'/'+f.name);
+    return u.publicUrl;
+  });
+}
+async function sbDeletePhoto(url){
+  const path=url.split('/reisefotos/')[1];
+  if(path)await sb.storage.from('reisefotos').remove([decodeURIComponent(path)]);
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────
+const ACTIVITIES = [
+  { id:'a1', emoji:'🚤', name:'Low Isles Glass Bottom Boat & Snorkeling Tour', loc:'Port Douglas', datum:'2026-09-16', dateStr:'Mi. 16. Sept. · 13:15 Uhr', pax:'2 Erwachsene', info:'Glasbodenboot über dem Great Barrier Reef · Low Isles', price:null, note:'Tickets nach Bezahlung verfügbar' },
+  { id:'a2', emoji:'🌿', name:'Nachmittags Daintree Tour mit Wildlife Cruise', loc:'Port Douglas', datum:'2026-09-17', dateStr:'Do. 17. Sept. · 12:50 Uhr', pax:'2 Erwachsene', info:'Daintree Regenwald · Wildlife Bootsfahrt · Krokodile!', price:null, note:'Voucher vorhanden' },
+  { id:'a5', emoji:'🚂', name:'Kuranda Scenic Train (hin) + Bus (zurück)', loc:'Port Douglas / Kuranda', datum:'2026-09-18', dateStr:'Fr. 18. Sept. · 08:00–16:30 Uhr', pax:'2 Erwachsene', info:'Abholung 08:00 Uhr vom Port Douglas Retreat · Scenic Rail · Ref. #358349003', price:'€208,49', note:'Kuranda & Outback Tours · bequeme Schuhe, Trinkflasche, Hut' },
+  { id:'a3', emoji:'🌋', name:'Archway Explorer Tour – Undara Lavahöhlen', loc:'Undara, Mount Surprise QLD', datum:'2026-09-21', dateStr:'Mo. 21. Sept. · 10:30 Uhr', pax:'2 Erwachsene', info:'Ca. 2 Std. · 3 Abschnitte der Lavahöhlen · Ref. RTJBH7Y', price:'€87,62', note:'Discovery Resorts – Undara · mit Guide' },
+  { id:'a4', emoji:'⛵', name:'Whitehaven Tagestour · Katamaran mit Klimaanlage', loc:'Airlie Beach', datum:'2026-09-28', dateStr:'Mo. 28. Sept. · ganztags', pax:'2 Erwachsene', info:'Whitehaven Beach & Hill Inlet · Schnorcheln inklusive', price:null, note:'Voucher vorhanden' },
+];
+const TIMELINE = [
+  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 327 · München → Singapur', info:'So. 13.09. · ab 12:30 MUC → an 06:40 SIN (+1)', dot:'flight', datum:'2026-09-13' },
+  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 203 · Singapur → Cairns', info:'Mo. 14.09. · ab 08:30 SIN → an 17:00 CNS', dot:'flight', datum:'2026-09-14' },
+  { type:'transport', cls:'bus', icon:'🚌', name:'SR Coaches · Cairns → Port Douglas', info:'Mo. 14.09. · ab 18:00 · Ref. BW5283642', dot:'bus', datum:'2026-09-14' },
+  { type:'stay', id:'b1', emoji:'🌴', name:'Port Douglas Retreat', loc:'Port Douglas, QLD', dateStr:'14.–19. Sept.', datum:'2026-09-14', nights:5, price:643.12, color:'bush', badge:'badge-nature', note:'Daintree Regenwald & Great Barrier Reef', dot:'bush' },
+  { type:'tour', ref:'a1', datum:'2026-09-16' },
+  { type:'tour', ref:'a2', datum:'2026-09-17' },
+  { type:'tour', ref:'a5', datum:'2026-09-18' },
+  { type:'transport', cls:'bus', icon:'🚌', name:'SR Coaches · Port Douglas → Cairns', info:'Sa. 19.09. · ab 09:00 · Ref. BW5283642', dot:'bus', datum:'2026-09-19' },
+  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 1 · Avis (Toyota Corolla)', info:'19.09. 11:00 Cairns → Rückgabe Townsville 22.09. 20:00', dot:'car', datum:'2026-09-19' },
+  { type:'stay', id:'b2', emoji:'🐦', name:'Kookaburra Motel Yungaburra', loc:'Yungaburra, QLD', dateStr:'19.–20. Sept.', datum:'2026-09-19', nights:1, price:96.89, color:'bush', badge:'badge-nature', note:'Atherton Tablelands · Platypus beobachten', dot:'bush' },
+  { type:'stay', id:'b3', emoji:'🌋', name:'Discovery Resorts – Undara', loc:'Undara Volcanic NP, QLD', dateStr:'20.–22. Sept.', datum:'2026-09-20', nights:2, price:352.44, color:'sunset', badge:'badge-nature', note:'Lavahöhlen & Outback-Feeling', dot:'sunset' },
+  { type:'tour', ref:'a3', datum:'2026-09-21' },
+  { type:'stay', id:'b4', emoji:'🏙️', name:'Oaks Townsville Hotel', loc:'Townsville, QLD', dateStr:'22.–23. Sept.', datum:'2026-09-22', nights:1, price:122.14, color:'ocean', badge:'badge-city', note:'Fähre zur Magnetic Island', dot:'ocean' },
+  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Townsville → Magnetic Island', info:'Di. 23.09. · ab 10:30', dot:'ferry', datum:'2026-09-23' },
+  { type:'stay', id:'b5', emoji:'🏝️', name:'Project Tranquility', loc:'Magnetic Island, QLD', dateStr:'23.–27. Sept.', datum:'2026-09-23', nights:4, price:605.57, color:'reef', badge:'badge-island', note:'Koalas im Freiland & Schnorcheln', dot:'reef' },
+  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Magnetic Island → Townsville', info:'So. 27.09. · ab 11:00', dot:'ferry', datum:'2026-09-27' },
+  { type:'transport', cls:'bus', icon:'🚌', name:'FlixBus · Townsville → Airlie Beach', info:'So. 27.09. · ab 13:50 → an 17:50', dot:'bus', datum:'2026-09-27' },
+  { type:'stay', id:'b6', emoji:'⛵', name:'Airlie Beach Hotel', loc:'Airlie Beach, QLD', dateStr:'27.–29. Sept.', datum:'2026-09-27', nights:2, price:239.37, color:'ocean', badge:'badge-beach', note:'Ausgangspunkt Whitsunday Islands', dot:'ocean' },
+  { type:'tour', ref:'a4', datum:'2026-09-28' },
+  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Airlie Beach → Whitsunday Islands', info:'Ende Sept.', dot:'ferry', datum:'2026-09-29' },
+  { type:'stay', id:'b7', emoji:'🐠', name:'Whitsunday Apartments', loc:'Whitsunday Islands, QLD', dateStr:'29. Sept.–2. Okt.', datum:'2026-09-29', nights:3, price:973.76, color:'reef', badge:'badge-island', note:'Whitehaven Beach & Great Barrier Reef', dot:'reef' },
+  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Whitsunday Islands → Airlie Beach', info:'Fr. 2. Okt. · ca. 11:00', dot:'ferry', datum:'2026-10-02' },
+  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 2 · ab Cape Hillsborough', info:'Ab 2. Okt. · Cape Hillsborough → Eungella → Mackay', dot:'car', datum:'2026-10-02' },
+  { type:'stay', id:'b8', emoji:'🦘', name:'Cape Hillsborough Nature Tourist Park', loc:'Cape Hillsborough, QLD', dateStr:'2.–4. Okt.', datum:'2026-10-02', nights:2, price:264.88, color:'bush', badge:'badge-nature', note:'Kängurus beim Sonnenaufgang am Strand!', dot:'bush' },
+  { type:'stay', id:'b9', emoji:'🦆', name:'Broken River Mountain Resort', loc:'Eungella NP, QLD', dateStr:'4.–5. Okt.', datum:'2026-10-04', nights:1, price:87.00, color:'bush', badge:'badge-nature', note:'Schnabeltier-Beobachtung', dot:'bush' },
+  { type:'transport', cls:'flight', icon:'✈️', name:'QF 1825 · Mackay → Brisbane', info:'Mo. 05.10. · ab 13:05 → an 14:35', dot:'flight', datum:'2026-10-05' },
+  { type:'stay', id:'b10', emoji:'🌆', name:'Oaks Brisbane on Charlotte Suites', loc:'Brisbane, QLD', dateStr:'5.–6. Okt.', datum:'2026-10-05', nights:1, price:168.41, color:'sunset', badge:'badge-city', note:'City-Night Brisbane', dot:'sunset' },
+  { type:'transport', cls:'flight', icon:'✈️', name:'QF 541 · Brisbane → Sydney', info:'Di. 06.10. · ab 15:00 → an 17:40', dot:'flight', datum:'2026-10-06' },
+  { type:'stay', id:'b11', emoji:'🏙️', name:'Veriu Central', loc:'Sydney, NSW', dateStr:'6.–9. Okt.', datum:'2026-10-06', nights:3, price:444.49, color:'sunset', badge:'badge-city', note:'Letzte Tage · Harbour Bridge & Farewell', dot:'sunset' },
+  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 222 · Sydney → Singapur', info:'Fr. 09.10. · ab 15:50 SYD → an 21:15 SIN', dot:'flight', datum:'2026-10-09' },
+  { type:'transport', cls:'flight', icon:'✈️', name:'SQ 328 · Singapur → München', info:'Sa. 10.10. · ab 00:05 SIN → an 06:45 MUC', dot:'flight', datum:'2026-10-10' },
+];
+const BOOKINGS = TIMELINE.filter(t=>t.type==='stay');
+const DOT_T = {flight:'var(--flight)',bus:'var(--bus)',car:'var(--car)',ferry:'var(--ferry)'};
+
+let currentDay=0, entries=[], photos={}, photoComments={}, editMode=false, editPinBuffer='', prefillBooking=null, _lbIso='', _lbIdx=0, _captionKey='';
+const CORRECT_PIN='2026';
+
+function buildDays(){
+  const days=[];
+  const start=new Date('2026-09-13T12:00:00'), end=new Date('2026-10-10T12:00:00');
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    const iso=d.toISOString().split('T')[0];
+    const dayItems=TIMELINE.filter(t=>t.datum===iso);
+    const stay=BOOKINGS.find(b=>{const s=new Date(b.datum+'T12:00:00');const e=new Date(s);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=s&&c<e;});
+    days.push({iso,dayItems,stay});
+  }
+  return days;
+}
+const DAYS=buildDays();
+
+async function initApp(){
+  try{
+    const db=await sbLoadEntries();
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+  }catch(e){console.error(e);}
+  buildDaySlides();
+  setTimeout(()=>{loadCommentsForDay(DAYS[0].iso);},300);
+}
+
+let touchStartX=0,touchStartY=0;
+function initSwipe(){
+  const wrap=document.getElementById('swipe-wrap');
+  wrap.addEventListener('touchstart',e=>{touchStartX=e.touches[0].clientX;touchStartY=e.touches[0].clientY;},{passive:true});
+  wrap.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchStartX;const dy=e.changedTouches[0].clientY-touchStartY;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)slideDay(dx<0?1:-1);},{passive:true});
+}
+
+function buildDaySlides(){
+  const track=document.getElementById('swipe-track'), dots=document.getElementById('days-dots');
+  track.innerHTML='';dots.innerHTML='';
+  DAYS.forEach((day,i)=>{
+    const slide=document.createElement('div');slide.className='day-slide';slide.innerHTML=buildDayHTML(day,i);track.appendChild(slide);
+    const dot=document.createElement('div');dot.className='day-dot'+(i===currentDay?' active':'');dot.onclick=(idx=>()=>goToDay(idx))(i);dots.appendChild(dot);
+  });
+  updateDayNav();initSwipe();
+  loadPhotosForDay(DAYS[currentDay].iso);
+}
+
+async function loadPhotosForDay(iso){
+  if(photos[iso])return;
+  try{photos[iso]=await sbLoadPhotos(iso);refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
+}
+
+function buildDayHTML(day,i){
+  const d=new Date(day.iso+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const loc=day.stay?day.stay.loc:(day.dayItems.length?'✈️ Reisetag':'–');
+  const badges=day.dayItems.map(t=>{
+    if(t.type==='transport'){const cls={flight:'badge-flight-s',bus:'badge-bus-s',car:'badge-car-s',ferry:'badge-ferry-s'}[t.cls]||'badge-bus-s';return `<span class="day-transport-badge ${cls}">${t.icon} ${t.name.split('·')[0].trim()}</span>`;}
+    if(t.type==='tour'){const a=ACTIVITIES.find(x=>x.id===t.ref);return a?`<span class="day-transport-badge badge-tour-s">${a.emoji} ${a.name.split('·')[0].trim()}</span>`:'';}
+    return '';
+  }).filter(Boolean).join('');
+  const entry=entries.find(e=>e.datum===day.iso);
+  const entryHTML=entry
+    ?`<div class="day-entry-text">${entry.text.substring(0,200)}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>`
+    :`<div class="day-entry-empty">Noch kein Eintrag für diesen Tag.</div>${editMode?`<button class="btn btn-primary btn-sm" onclick="startEntryForDate('${day.iso}')">✍️ Eintrag schreiben</button>`:''}`;
+  const dayPhotos=photos[day.iso]||[];
+  const photoItems=dayPhotos.map((src,pi)=>{
+    const caption=photoComments[day.iso+'_'+pi]||'';
+    return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+  }).join('');
+  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
+  const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
+  const comments=`<div class="comments-section"><div class="comments-title">💬 Kommentare</div><div id="comment-list-${day.iso}"><div class="sb-loading">Lädt…</div></div><div class="comment-form"><input type="text" placeholder="Dein Name" id="cn-${day.iso}" maxlength="50"><textarea placeholder="Dein Kommentar…" id="ct-${day.iso}" rows="2"></textarea><button class="btn btn-reef btn-sm" onclick="submitComment('${day.iso}')">💬 Kommentar senden</button></div></div>`;
+  return `<div class="day-card"><div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}</div>`;
+}
+
+async function loadCommentsForDay(iso){
+  const list=document.getElementById('comment-list-'+iso);
+  if(!list)return;
+  const comments=await sbLoadComments(iso);
+  if(!comments.length){list.innerHTML='<div style="font-size:.8rem;color:var(--fog);font-style:italic">Noch keine Kommentare.</div>';return;}
+  list.innerHTML=comments.map(c=>`<div class="comment-item"><div class="comment-name">${c.name||'Anonym'}</div><div class="comment-text">${c.nachricht}</div><div class="comment-date">${new Date(c.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');
+}
+async function submitComment(iso){
+  const name=document.getElementById('cn-'+iso).value.trim();
+  const text=document.getElementById('ct-'+iso).value.trim();
+  if(!text){toast('Bitte Kommentar eingeben.');return;}
+  const ok=await sbSaveComment(iso,name||'Anonym',text);
+  if(ok){document.getElementById('cn-'+iso).value='';document.getElementById('ct-'+iso).value='';toast('✓ Kommentar gespeichert!');loadCommentsForDay(iso);}
+  else toast('Fehler beim Speichern.');
+}
+
+function updateDayNav(){
+  const day=DAYS[currentDay];
+  const d=new Date(day.iso+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'});
+  const loc=day.stay?day.stay.name:(day.dayItems.length?'Reisetag':'');
+  document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${DAYS.length}<small>${dateLabel}${loc?' · '+loc:''}</small>`;
+  document.getElementById('btn-prev').disabled=currentDay===0;
+  document.getElementById('btn-next').disabled=currentDay===DAYS.length-1;
+  document.querySelectorAll('.day-dot').forEach((d,i)=>d.classList.toggle('active',i===currentDay));
+}
+function slideDay(dir){const n=currentDay+dir;if(n<0||n>=DAYS.length)return;goToDay(n);}
+function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').style.transform=`translateX(-${idx*100}%)`;updateDayNav();loadPhotosForDay(DAYS[idx].iso);loadCommentsForDay(DAYS[idx].iso);}
+
+async function handlePhotos(event,iso){
+  const files=Array.from(event.target.files);
+  if(!files.length)return;
+  toast('⏳ Fotos werden hochgeladen…');
+  if(!photos[iso])photos[iso]=[];
+  for(const file of files){const url=await sbUploadPhoto(iso,file);if(url)photos[iso].push(url);}
+  refreshPhotoGrid(iso);
+  toast('✓ '+files.length+' Foto(s) gespeichert!');
+}
+function refreshPhotoGrid(iso){
+  const grid=document.getElementById('photo-grid-'+iso);
+  if(!grid)return;
+  const dayPhotos=photos[iso]||[];
+  const items=dayPhotos.map((src,pi)=>{
+    const caption=photoComments[iso+'_'+pi]||'';
+    return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+  }).join('');
+  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
+  grid.innerHTML=items+addBtn;
+}
+async function delPhotoEl(btn){
+  if(!editMode)return;
+  if(!confirm('Foto löschen?'))return;
+  const iso=btn.getAttribute('data-iso'), idx=parseInt(btn.getAttribute('data-idx'));
+  await sbDeletePhoto(photos[iso][idx]);
+  photos[iso].splice(idx,1);
+  refreshPhotoGrid(iso);
+  toast('Foto gelöscht.');
+}
+
+function showTab(tab){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('section-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='tage'){buildDaySlides();setTimeout(()=>loadCommentsForDay(DAYS[currentDay].iso),200);}
+  if(tab==='route')renderTimeline();
+  if(tab==='kosten')renderCosts();
+  if(tab==='ausfluege')renderActivities();
+  if(tab==='planer')renderTips();
+  if(tab==='neu'){if(!document.getElementById('f-datum').value)document.getElementById('f-datum').value='2026-09-14';if(prefillBooking){const b=prefillBooking;document.getElementById('f-datum').value=b.datum;document.getElementById('f-ort').value=b.loc.split(',')[0];document.getElementById('f-titel').value=b.emoji+' '+b.name;prefillBooking=null;}}
+}
+
+async function saveEntry(){
+  const datum=document.getElementById('f-datum').value;
+  const ort=document.getElementById('f-ort').value.trim();
+  const titel=document.getElementById('f-titel').value.trim();
+  const kat=document.getElementById('f-kategorie').value;
+  const text=document.getElementById('f-text').value.trim();
+  if(!datum||!titel||!text){toast('Bitte Datum, Titel und Text ausfüllen.');return;}
+  const btn=document.querySelector('#section-neu .btn-primary');
+  btn.textContent='⏳ Speichern…';btn.disabled=true;
+  const ok=await sbSaveEntry(datum,titel,text);
+  btn.textContent='💾 Speichern';btn.disabled=false;
+  if(!ok){toast('Fehler beim Speichern.');return;}
+  const ex=entries.findIndex(e=>e.datum===datum);
+  const entry={id:datum,datum,ort,titel,text,kat};
+  if(ex>=0)entries[ex]=entry;else entries.unshift(entry);
+  resetForm();showTab('tage');
+  const idx=DAYS.findIndex(d=>d.iso===datum);
+  if(idx>=0)setTimeout(()=>goToDay(idx),100);
+  toast('✓ Eintrag gespeichert!');
+}
+function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';}
+function startEntryForDate(iso){document.getElementById('f-datum').value=iso;const s=BOOKINGS.find(b=>{const st=new Date(b.datum+'T12:00:00');const e=new Date(st);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=st&&c<e;});if(s)document.getElementById('f-ort').value=s.loc.split(',')[0];showTab('neu');}
+
+function openModal(id){
+  const e=entries.find(x=>x.id===id||x.datum===id);
+  if(!e)return;
+  document.getElementById('modal-date').textContent=formatDate(e.datum);
+  document.getElementById('modal-loc').textContent=e.ort||'';
+  document.getElementById('modal-title').textContent=e.titel;
+  document.getElementById('modal-text').textContent=e.text;
+  document.getElementById('modal-stripe').style.background='var(--sunset)';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(ev){if(ev.target===document.getElementById('modal'))closeModalDirect();}
+function closeModalDirect(){document.getElementById('modal').classList.remove('open');}
+
+function openLB(el){openGalleryLB(el.getAttribute('data-iso'),photos[el.getAttribute('data-iso')]||[],parseInt(el.getAttribute('data-idx')||'0'));}
+function openGalleryLB(iso,all,startIdx){
+  if(!all.length)return;
+  _lbIso=iso;_lbIdx=startIdx;
+  const track=document.getElementById('lb-track'),nav=document.getElementById('lb-nav');
+  track.innerHTML='';nav.innerHTML='';
+  all.forEach((src,pi)=>{
+    const slide=document.createElement('div');slide.className='lightbox-slide';
+    const img=document.createElement('img');img.src=src;slide.appendChild(img);track.appendChild(slide);
+    const dot=document.createElement('div');dot.className='lightbox-dot'+(pi===startIdx?' active':'');dot.onclick=(i=>()=>{track.scrollLeft=i*track.offsetWidth;updateLBCaption(iso,i,all.length);})(pi);nav.appendChild(dot);
+  });
+  document.getElementById('lightbox').classList.add('open');
+  document.getElementById('lb-edit-btn').style.display=editMode?'block':'none';
+  setTimeout(()=>{track.scrollLeft=startIdx*track.offsetWidth;updateLBCaption(iso,startIdx,all.length);},50);
+  track.onscroll=function(){const idx=Math.round(track.scrollLeft/Math.max(track.offsetWidth,1));if(idx!==_lbIdx){_lbIdx=idx;updateLBCaption(iso,idx,all.length);}};
+}
+function updateLBCaption(iso,idx,total){document.getElementById('lb-counter').textContent=(idx+1)+' / '+total;document.getElementById('lb-caption').textContent=photoComments[iso+'_'+idx]||'';document.querySelectorAll('.lightbox-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');document.getElementById('lb-track').innerHTML='';}
+function openLBCaption(){if(!editMode||!_lbIso)return;_captionKey=_lbIso+'_'+_lbIdx;document.getElementById('caption-input').value=photoComments[_captionKey]||'';document.getElementById('caption-modal').style.display='flex';setTimeout(()=>document.getElementById('caption-input').focus(),200);}
+
+function openCaptionModal(btn){_captionKey=btn.getAttribute('data-iso')+'_'+btn.getAttribute('data-idx');document.getElementById('caption-input').value=photoComments[_captionKey]||'';document.getElementById('caption-modal').style.display='flex';setTimeout(()=>document.getElementById('caption-input').focus(),200);}
+function saveCaption(){const v=document.getElementById('caption-input').value.trim();if(_captionKey)photoComments[_captionKey]=v;document.getElementById('caption-modal').style.display='none';if(document.getElementById('lightbox').classList.contains('open'))document.getElementById('lb-caption').textContent=v;buildDaySlides();toast('Kommentar gespeichert!');}
+function closeCaptionModal(){document.getElementById('caption-modal').style.display='none';}
+
+async function aiFormuliere(){
+  const notizen=document.getElementById('f-notizen').value.trim();
+  const ort=document.getElementById('f-ort').value.trim();
+  const titel=document.getElementById('f-titel').value.trim();
+  const kat=document.getElementById('f-kategorie').value;
+  if(!notizen){toast('Bitte erst Stichpunkte eingeben.');return;}
+  const box=document.getElementById('ai-formbox'),res=document.getElementById('ai-form-result');
+  box.style.display='block';res.className='ai-result loading';res.textContent='KI schreibt euren Australien-Eintrag …';
+  const prompt=`Du bist ein enthusiastischer Reiseblogger auf Australien-Reise durch Queensland. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 150–200 Wörter). Wir-Form (Pärchen). Stil: warm, bildhaft, authentisch.\n\nOrt: ${ort||'Queensland'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}\nStichpunkte:\n${notizen}\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.`;
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const d=await r.json();
+    res.className='ai-result';res.textContent=d.content?.map(c=>c.text||'').join('')||'Fehler.';
+  }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
+}
+function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
+
+function renderActivities(){
+  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${a.info}${a.price?'<br><strong>'+a.price+'</strong>':''}<br><em style="opacity:.7;font-size:.78rem">${a.note}</em></div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
+}
+
+function renderCosts(){
+  const pc=editMode?'':'price-blur';
+  let total=0,html='';
+  html+="<div class='cost-section-title'>Unterkünfte</div>";
+  let uk=0;
+  BOOKINGS.forEach(b=>{uk+=b.price;total+=b.price;html+=`<div class="cost-row"><div><div>${b.emoji} ${b.name}</div><div style="font-size:.73rem;color:var(--fog)">${b.dateStr}</div></div><div class="${pc}">EUR ${fmt(b.price)}</div></div>`;});
+  html+=`<div class="cost-group-total"><span>Summe Unterkünfte</span><span class="${pc}">EUR ${fmt(uk)}</span></div>`;
+  html+="<div class='cost-section-title'>Flüge</div>";
+  [{n:'Singapore Airlines SQ 327/203/222/328',p:2352},{n:'Qantas QF 1825 + QF 541',p:505.94}].forEach(it=>{total+=it.p;html+=`<div class="cost-row"><div>${it.n}</div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  html+="<div class='cost-section-title'>Transport & Ausflüge</div>";
+  [{n:'SR Coaches + FlixBus',p:213.25},{n:'Mietwagen 1+2',p:474},{n:'Fähren',p:244.70},{n:'Ausflüge gesamt',p:1163.12}].forEach(it=>{total+=it.p;html+=`<div class="cost-row"><div>${it.n}</div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  document.getElementById('cost-list').innerHTML=editMode?html:`<div style="background:#fef3c7;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:14px">🔒 Beträge nur im Admin-Modus sichtbar</div>`+html;
+  document.getElementById('grand-total-box').innerHTML=`<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
+}
+function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+function renderTimeline(){
+  const c=document.getElementById('timeline-items');
+  c.innerHTML=TIMELINE.map(item=>{
+    if(item.type==='transport'){const dc=DOT_T[item.cls]||'var(--fog)';return `<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:${dc};background:${dc}"></div></div><div class="tl-transport-card ${item.cls}"><span class="transport-icon">${item.icon}</span><div class="transport-detail"><div class="transport-name">${item.name}</div><div class="transport-info">${item.info}</div></div></div></div>`;}
+    if(item.type==='tour'){const a=ACTIVITIES.find(x=>x.id===item.ref);if(!a)return'';return `<div class="tl-tour"><div class="tl-dot"><div class="dot dot-tour"></div></div><div class="tl-tour-card"><span class="tour-icon">${a.emoji}</span><div class="tour-detail"><div class="tour-name">🎟️ ${a.name}</div><div class="tour-info">${a.dateStr}</div></div></div></div>`;}
+    const b=item;const entry=entries.find(e=>e.datum===b.datum);
+    const eHtml=entry?`<div class="tl-write-btn"><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.15)" onclick="openModal('${b.datum}')">📖 Lesen</button></div>`:(editMode?`<div class="tl-write-btn"><button class="btn btn-reef btn-sm" onclick="startEntryForDate('${b.datum}')">✍️ Eintrag</button></div>`:'');
+    return `<div class="tl-item"><div class="tl-dot"><div class="dot dot-${b.dot}"></div></div><div class="tl-card ${b.color}-border"><div class="tl-top"><div class="tl-date">${b.dateStr}</div><span class="tl-badge ${b.badge}">${b.emoji} ${b.nights} Nacht${b.nights>1?'e':''}</span></div><div class="tl-name">${b.name}</div><div class="tl-loc">${b.loc}</div><div class="tl-note">${b.note}</div>${eHtml}</div></div>`;
+  }).join('');
+}
+
+const TIPS=[
+  {stop:'🌴 Port Douglas',dates:'14.–19. Sept.',color:'var(--bush)',mustdos:[{title:'Low Isles Schnorcheln',text:'Kommt früh – die besten Korallenfelder und Schildkröten vor dem Ansturm.'},{title:'Daintree Bootsfahrt',text:'Ältester Regenwald der Welt. Früh morgens für Krokodile.'},{title:'Four Mile Beach',text:'Vier Kilometer weißer Sand, morgens fast menschenleer.'},{title:'Mossman Gorge',text:'Kristallklares Bergwasser, 1 Stunde Rundweg.'},{title:'Kuranda Scenic Train',text:'Eine der schönsten Bahnstrecken der Welt!'}],secret:'🤫 Rex Lookout – atemberaubender Blick, kaum bekannt.',food:'🍽️ Zinc Restaurant zum Frühstück · Salsa Bar für Seafood abends.',tip:'💡 Captain Cook Highway: Regenwald und Coral Sea zugleich.'},
+  {stop:'🏝️ Magnetic Island',dates:'23.–27. Sept.',color:'var(--reef)',mustdos:[{title:'Koalas im Forts Walk',text:'Früh morgens 7–9 Uhr – höchste Koala-Dichte Australiens!'},{title:'Schnorcheln Geoffrey Bay',text:'Fantastische Korallen direkt vom Strand.'},{title:'Mopeds mieten',text:'Bester Weg die Insel zu erkunden, ~60 AUD/Tag.'},{title:'Radical Bay',text:'Abgelegenster Strand, nur zu Fuß oder Moped.'},{title:'Horseshoe Bay Sunset',text:'Abends kommen Wallabies an den Strand.'}],secret:'🤫 Picnic Bay Jetty – alter Pier als Schnorchelspot.',food:'🍽️ Marlin Bar in Arcadia: Fisch & Chips, Donnerstags live Musik!',tip:'💡 Helmpflicht! Wallabies tauchen plötzlich auf – langsam fahren.'},
+  {stop:'🐠 Whitsundays',dates:'29. Sept.–2. Okt.',color:'var(--reef)',mustdos:[{title:'Whitehaven Sonnenaufgang',text:'Vor 8 Uhr gehört der Strand fast nur euch.'},{title:'Hill Inlet Lookout',text:'Surreales Farbenspiel. Ebbe-Zeiten prüfen!'},{title:'Kayak bei Windstille',text:'Abends spiegeln sich die Inseln perfekt.'},{title:'Hook Island Schnorcheln',text:'Artenreichstes Riff der Whitsundays.'},{title:'Chance Bay',text:'Nur per Boot, kaum bekannt.'}],secret:'🤫 Fragt den Vermieter nach Boot-Empfehlung für Chance Bay.',food:'🍽️ Selbst kochen! Frische Prawns vom Airlie-Markt, Sunset auf der Veranda.',tip:'💡 Riff-sichere Sonnencreme – UV-Index extrem hoch!'},
+  {stop:'🦘 Cape Hillsborough',dates:'2.–4. Okt.',color:'var(--bush)',mustdos:[{title:'Kängurus beim Sonnenaufgang',text:'Um 5:45 Uhr am Strand – magischstes Erlebnis Australiens!'},{title:'Nationalpark Wanderwege',text:'Diversity Trail zeigt die Pflanzenwelt.'},{title:'Ebbe-Wanderung',text:'Seesterne, Krebse, natürliches Aquarium.'},{title:'Vogelbeobachtung',text:'Lorikeets, Kookaburras – Fernglas einpacken!'},{title:'Schnorcheln',text:'Flacher ruhiger Strand, Stinger-Netz.'}],secret:'🤫 Fragt den Ranger nach Turtle Nesting Spots!',food:'🍽️ Das Kiosk im Park: frische Sandwiches, Lamingtons.',tip:'💡 Kängurus nie füttern! Rotlicht-Modus beim Sonnenaufgang.'},
+  {stop:'🦆 Eungella',dates:'4.–5. Okt.',color:'var(--bush)',mustdos:[{title:'Schnabeltier-Beobachtung',text:'Bester Ort Australiens! Früh 6–8 und abends 17–18:30 Uhr.'},{title:'Rainforest Circuit',text:'2 Stunden durch einzigartigen Regenwald.'},{title:'Finch Hatton Gorge',text:'Wasserfälle, absolut lohnenswert.'},{title:'Veranda-Frühstück',text:'Kaffee mit Blick über das Pioneer Valley.'},{title:'Slow Travel',text:'Kein Touristenrummel – einfach genießen.'}],secret:'🤫 Crediton Hall – verlassenes Gebäude, tolle Fotokulisse.',food:'🍽️ Resort-Restaurant – lokales Rindfleisch probieren.',tip:'💡 Rotlicht-Stirnband mitbringen – Schnabeltiere sind scheu!'},
+];
+function renderTips(){
+  const c=document.getElementById('tips-list');if(!c)return;
+  c.innerHTML=TIPS.map((t,i)=>`<div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden"><div style="background:${t.color};padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleTip(${i})"><div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--white);font-weight:700">${t.stop}</div><div style="font-size:.75rem;color:rgba(255,255,255,.75);margin-top:2px">${t.dates}</div></div><div id="tip-arrow-${i}" style="color:rgba(255,255,255,.8);font-size:1.1rem;transition:transform .25s">▼</div></div><div id="tip-body-${i}" style="display:none;padding:18px 20px"><div style="font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);margin-bottom:10px">🌟 Top Must-Dos</div>${t.mustdos.map(m=>`<div style="margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(28,26,22,.07)"><div style="font-weight:600;font-size:.87rem;margin-bottom:3px">${m.title}</div><div style="font-size:.82rem;line-height:1.65;color:#4a3d30">${m.text}</div></div>`).join('')}<div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.secret}</div><div style="background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.food}</div><div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.65">${t.tip}</div></div></div>`).join('');
+}
+function toggleTip(i){const body=document.getElementById('tip-body-'+i),arrow=document.getElementById('tip-arrow-'+i);const open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';}
+
+function toggleEditMode(){
+  if(editMode){editMode=false;document.getElementById('edit-toggle-btn').textContent='🔑 Admin';document.getElementById('edit-toggle-btn').style.background='';document.getElementById('tab-neu').style.display='none';document.getElementById('tab-kosten').style.display='none';const at=document.querySelector('.tab-btn.active');if(at&&(at.id==='tab-neu'||at.id==='tab-kosten'))showTab('tage');buildDaySlides();toast('Admin-Modus beendet.');}
+  else{editPinBuffer='';updateEpDots();document.getElementById('edit-pin-overlay').style.display='flex';}
+}
+function epIn(d){if(editPinBuffer.length>=4)return;editPinBuffer+=d;updateEpDots();if(editPinBuffer.length===4)setTimeout(checkEditPin,150);}
+function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
+function updateEpDots(){for(var i=0;i<4;i++)document.getElementById('epd'+i).classList.toggle('filled',i<editPinBuffer.length);}
+function closeEditPin(){document.getElementById('edit-pin-overlay').style.display='none';editPinBuffer='';}
+function checkEditPin(){
+  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();toast('Admin-Modus aktiv!');}
+  else{document.getElementById('ep-err').textContent='Falsche PIN.';editPinBuffer='';updateEpDots();setTimeout(()=>document.getElementById('ep-err').textContent='',2000);}
+}
+
+function formatDate(d){return d?new Date(d+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+initApp();
+</script>
 </body>
 </html>
