@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V11</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V12</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -787,27 +787,28 @@ function pickPhotos(iso){
 }
 
 async function handlePhotos(event,iso){
-  const files=Array.from(event.target.files);
+  const fileList=event.target.files;
+  const files=[];
+  for(let i=0;i<fileList.length;i++)files.push(fileList[i]);
   if(!files.length){toast('Kein Foto ausgewählt.');return;}
-  alert('START: '+files.length+' Foto(s), '+Math.round(files[0].size/1024)+' KB, iso='+iso);
-  alert('CHECK: sb='+(typeof sb)+', storage='+((typeof sb!=='undefined'&&sb)?typeof sb.storage:'-')+', supabase='+(typeof supabase));
-  toast('⏳ Foto(s) werden hochgeladen…');
+  toast('⏳ Foto wird hochgeladen…');
+  if(typeof photos!=='object'||photos===null)window.photos={};
   if(!photos[iso])photos[iso]=[];
   let ok=0;
-  for(const file of files){
+  alert('Y0: vor Schleife, files='+files.length);
+  for(let fi=0;fi<files.length;fi++){
+    const file=files[fi];
     try{
-      alert('X1: Schleife läuft, rufe Upload auf');
-      const ext=(file.name?file.name.split('.').pop():'jpg')||'jpg';
-      const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext.toLowerCase();
-      alert('X2: Pfad gebaut: '+path);
+      const ext=(file.name&&file.name.indexOf('.')>=0?file.name.split('.').pop():'jpg').toLowerCase();
+      const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
       const result=await sb.storage.from('Reisefotos').upload(path,file);
-      alert('X3: Antwort! '+(result.error?('FEHLER: '+JSON.stringify(result.error)):'OK'));
-      if(!result.error){
+      if(result.error){alert('FEHLER: '+JSON.stringify(result.error));}
+      else{
         const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
         if(data&&data.publicUrl){photos[iso].push(data.publicUrl);ok++;}
       }
     }catch(err){
-      alert('XF: Ausnahme: '+(err&&err.message?err.message:JSON.stringify(err)));
+      alert('Ausnahme: '+(err&&err.message?err.message:JSON.stringify(err)));
     }
   }
   refreshPhotoGrid(iso);
