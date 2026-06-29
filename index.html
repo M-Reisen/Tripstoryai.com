@@ -259,7 +259,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V36</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V37</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1346,65 +1346,44 @@ let _dictRec = null, _dictTimeout = null, _dictBase = '', _dictFinal = '';
 function startDictationEntry(){
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
-  const btn=document.getElementById('dictate-btn');
-  // Wenn läuft: SOFORT stoppen
-  if(_dictRec){
-    stopDictation();
-    return;
-  }
+  // Wenn läuft: stoppen
+  if(_dictRec){stopDictation();return;}
   // Starten
-  _dictBase=document.getElementById('f-notizen').value||'';
   _dictRec = new SpeechRec();
   _dictRec.lang='de-DE';
-  _dictRec.continuous=true;
-  _dictRec.interimResults=true;
-  _dictFinal='';
+  _dictRec.continuous=false;
+  _dictRec.interimResults=false;
   _dictRec.onresult=function(e){
-    let interim='', final='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      const t=e.results[i][0].transcript;
-      if(e.results[i].isFinal)final+=t+' ';else interim+=t;
-    }
-    if(final)_dictFinal+=final;
+    const t=e.results[0][0].transcript;
     const ta=document.getElementById('f-notizen');
-    if(ta){
-      const sep=_dictBase&&!_dictBase.endsWith(' ')?' ':'';
-      ta.value=_dictBase+sep+_dictFinal+interim;
-    }
-    // Inaktivitäts-Timer zurücksetzen: nach 4 Sek Stille automatisch stoppen
-    if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec)stopDictation();},4000);
+    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
+    toast('✓ Text übernommen.');
   };
   _dictRec.onerror=function(e){
-    if(e.error==='not-allowed'||e.error==='service-not-allowed'){toast('Mikrofon-Zugriff verweigert. Bitte in den Einstellungen erlauben.');stopDictation();return;}
     if(e.error!=='no-speech'&&e.error!=='aborted')toast('Diktat-Fehler: '+e.error);
   };
   _dictRec.onend=function(){
-    // Falls unerwartet beendet und wir noch "an" sind, sauber aufräumen
-    if(_dictRec){_dictRec=null;updateDictBtn(false);}
+    _dictRec=null;
+    updateDictBtn(false);
   };
   try{
     _dictRec.start();
     updateDictBtn(true);
-    toast('🔴 Aufnahme läuft – zum Beenden auf „⏹ Stopp" tippen.');
-    if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec)stopDictation();},8000);
-  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+    toast('🔴 Sprechen Sie jetzt…');
+  }catch(e){_dictRec=null;updateDictBtn(false);toast('Fehler: '+e.message);}
 }
 function stopDictation(){
   if(_dictTimeout){clearTimeout(_dictTimeout);_dictTimeout=null;}
   if(_dictRec){
-    try{_dictRec.onend=null;_dictRec.stop();}catch(e){}
-    try{_dictRec.abort();}catch(e){}
+    try{_dictRec.stop();}catch(e){}
     _dictRec=null;
   }
   updateDictBtn(false);
-  toast('✓ Diktat beendet.');
 }
 function updateDictBtn(recording){
   const btn=document.getElementById('dictate-btn');
   if(!btn)return;
-  if(recording){btn.textContent='⏹ Stopp (Aufnahme läuft)';btn.style.background='#dc2626';btn.style.animation='dictpulse 1.2s infinite';}
+  if(recording){btn.textContent='⏹ Stopp';btn.style.background='#dc2626';btn.style.animation='dictpulse 1.2s infinite';}
   else{btn.textContent='🎤 Diktieren';btn.style.background='';btn.style.animation='';}
 }
 
