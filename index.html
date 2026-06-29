@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V31</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V32</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -488,10 +488,23 @@ textarea{resize:vertical;min-height:100px;}
       <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Bezeichnung</label>
       <input id="exp-label" type="text" placeholder="z.B. Abendessen am Strand" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
     </div>
-    <div style="margin-bottom:20px;">
-      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Betrag (EUR)</label>
-      <input id="exp-amount" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+    <div style="margin-bottom:20px;display:flex;gap:10px;">
+      <div style="flex:1.4;">
+        <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Betrag</label>
+        <input id="exp-amount" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateExpPreview()" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Währung</label>
+        <select id="exp-currency" onchange="updateExpPreview()" style="width:100%;padding:9px 8px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+          <option value="AUD">🇦🇺 AUD</option>
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="USD">🇺🇸 USD</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="NZD">🇳🇿 NZD</option>
+        </select>
+      </div>
     </div>
+    <div id="exp-preview" style="font-size:.78rem;color:var(--sunset);text-align:right;margin-top:-12px;margin-bottom:16px;min-height:16px;"></div>
     <div style="display:flex;gap:10px;">
       <button onclick="closeExpenseModal()" style="flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;cursor:pointer;color:var(--fog);">Abbrechen</button>
       <button onclick="saveExpense()" style="flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Speichern</button>
@@ -646,6 +659,17 @@ const DOT_T = {flight:'var(--flight)',bus:'var(--bus)',car:'var(--car)',ferry:'v
 
 let currentDay=0, entries=[], photos={}, photoComments={}, editMode=false, editPinBuffer='', prefillBooking=null, _lbIso='', _lbIdx=0, _captionKey='';
 let hotelPhotos={}, hotelReviews={}, dayExpenses={}, _hotelInput=null, _hotelBid='', _apiKey='', pinUnlocked=false, pinBuffer='', currentExpenseIso='';
+// Wechselkurse zu EUR (1 Fremdwährung = X EUR). Stand für die Reise – anpassbar.
+const FX={EUR:1, AUD:0.61, USD:0.92, GBP:1.17, NZD:0.56};
+function toEUR(amount,cur){return amount*(FX[cur]||1);}
+function updateExpPreview(){
+  const amt=parseFloat((document.getElementById('exp-amount').value||'').replace(',','.'));
+  const cur=document.getElementById('exp-currency').value;
+  const pv=document.getElementById('exp-preview');
+  if(!pv)return;
+  if(isNaN(amt)||amt<=0||cur==='EUR'){pv.textContent='';return;}
+  pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
+}
 const CORRECT_PIN_COSTS='2026';
 const CORRECT_PIN='2026';
 
@@ -749,8 +773,8 @@ function buildDayHTML(day,i){
   return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
-    const rows=exps.map((e,ei)=>`<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>EUR ${e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span></div>`).join('');
-    const total=exps.reduce((s,e)=>s+e.amount,0);
+    const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const eur=toEUR(e.amount,cur);const orig=cur==='EUR'?'':` <span style="color:var(--fog);font-size:.72rem">(${e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})} ${cur})</span>`;return `<div class="day-cost-row"><span>${e.cat} ${e.label}${orig}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>EUR ${eur.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span></div>`;}).join('');
+    const total=exps.reduce((s,e)=>s+toEUR(e.amount,e.cur||'EUR'),0);
     const totalRow=exps.length?`<div class="day-cost-total"><span>Summe</span><span>EUR ${total.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`:'';
     const addBtn=editMode?`<button class="day-cost-add" data-iso="${day.iso}" onclick="addExpEl(this)">+ Ausgabe erfassen</button>`:'';
     return `<div class="day-costs-section"><div class="day-costs-title">💶 Tagesausgaben</div>${rows}${totalRow}${addBtn}</div>`;
@@ -1038,9 +1062,9 @@ function renderCosts(){
     const list=dayExpenses[iso];if(!list||!list.length)return;
     const d=new Date(iso+'T12:00:00');
     const dl=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
-    const dayT=list.reduce((s,e)=>s+e.amount,0);
+    const dayT=list.reduce((s,e)=>s+toEUR(e.amount,e.cur||'EUR'),0);
     tagHtml+=`<div class="cost-row" style="font-weight:600"><div>${dl}</div><div class="${pc}">EUR ${fmt(dayT)}</div></div>`;
-    list.forEach(e=>{tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div class="${pc}">EUR ${fmt(e.amount)}</div></div>`;tag+=e.amount;});
+    list.forEach(e=>{const cur=e.cur||'EUR';const orig=cur==='EUR'?'':` <span style="color:var(--fog);font-size:.72rem">(${fmt(e.amount)} ${cur})</span>`;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}${orig}</div><div class="${pc}">EUR ${fmt(toEUR(e.amount,cur))}</div></div>`;tag+=toEUR(e.amount,cur);});
   });
   if(tag>0){
     html+="<div class='cost-section-title'>Tagesausgaben vor Ort</div>"+tagHtml;
@@ -1210,10 +1234,14 @@ function addDayExpense(iso){
   var d=new Date(iso+'T12:00:00');
   document.getElementById('exp-date-lbl').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
   document.getElementById('exp-label').value='';document.getElementById('exp-amount').value='';
+  var pv=document.getElementById('exp-preview');if(pv)pv.textContent='';
   document.getElementById('expense-modal').style.display='flex';
 }
-async function sbSaveExpense(iso,cat,label,amount){
-  const {data,error}=await sb.from('kommentare').insert({ort:'ausgabe_'+iso,name:cat+'|'+label,nachricht:String(amount),created_at:new Date().toISOString()}).select();
+async function sbSaveExpense(iso,cat,label,amount,cur){
+  // Eindeutiger ort-Wert pro Ausgabe (Zeitstempel+Zufall) → mehrere pro Tag möglich
+  const uid='ausgabe_'+iso+'_'+Date.now()+Math.floor(Math.random()*1000);
+  // Betrag+Währung in nachricht: "amount|currency"
+  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString()}).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
   return data&&data[0]?data[0].id:null;
 }
@@ -1222,13 +1250,17 @@ async function sbLoadExpenses(){
   if(error){console.error('Ausgaben laden:',error);return;}
   dayExpenses={};
   (data||[]).forEach(r=>{
-    const iso=r.ort.replace('ausgabe_','');
+    // ort = ausgabe_<iso>_<uid>  → iso extrahieren
+    const m=r.ort.match(/^ausgabe_(\d{4}-\d{2}-\d{2})/);
+    const iso=m?m[1]:r.ort.replace('ausgabe_','');
     const parts=(r.name||'').split('|');
     const cat=parts[0]||'💶';
     const label=parts.slice(1).join('|')||'Ausgabe';
-    const amount=parseFloat(r.nachricht)||0;
+    const nparts=(r.nachricht||'').split('|');
+    const amount=parseFloat(nparts[0])||0;
+    const cur=nparts[1]||'EUR';
     if(!dayExpenses[iso])dayExpenses[iso]=[];
-    dayExpenses[iso].push({id:r.id,cat:cat,label:label,amount:amount});
+    dayExpenses[iso].push({id:r.id,cat:cat,label:label,amount:amount,cur:cur});
   });
 }
 async function sbDeleteExpense(id){
@@ -1241,13 +1273,14 @@ async function saveExpense(){
   var catText=document.getElementById('exp-cat').value;
   var label=document.getElementById('exp-label').value.trim();
   var amt=parseFloat(document.getElementById('exp-amount').value.replace(',','.'));
+  var cur=document.getElementById('exp-currency').value;
   if(!label){toast('Bitte Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
   var cat=catText.split(' ')[0];
-  const id=await sbSaveExpense(iso,cat,label,amt);
+  const id=await sbSaveExpense(iso,cat,label,amt,cur);
   if(id===null)return;
   if(!dayExpenses[iso])dayExpenses[iso]=[];
-  dayExpenses[iso].push({id:id,cat:cat,label:label,amount:amt});
+  dayExpenses[iso].push({id:id,cat:cat,label:label,amount:amt,cur:cur});
   document.getElementById('expense-modal').style.display='none';
   buildDaySlides();renderCosts();toast('Ausgabe gespeichert!');
 }
