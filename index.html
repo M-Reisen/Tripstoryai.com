@@ -511,9 +511,7 @@ textarea{resize:vertical;min-height:100px;}
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
-const sb = (typeof supabase !== 'undefined' && supabase.createClient)
-  ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-  : { from:function(){return {select:function(){return Promise.resolve({data:[],error:null});},insert:function(){return Promise.resolve({error:null});},upsert:function(){return Promise.resolve({error:null});},like:function(){return this;},order:function(){return Promise.resolve({data:[],error:null});}};}, storage:{from:function(){return {upload:function(){return Promise.resolve({error:{message:'Supabase nicht geladen'}});},getPublicUrl:function(){return {data:{publicUrl:''}};},list:function(){return Promise.resolve({data:[],error:null});},remove:function(){return Promise.resolve({error:null});}};}} };
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function sbLoadEntries(){
   const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
