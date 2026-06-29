@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V19</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V20</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -859,8 +859,9 @@ function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(
 function startEntryForDate(iso){document.getElementById('f-datum').value=iso;const s=BOOKINGS.find(b=>{const st=new Date(b.datum+'T12:00:00');const e=new Date(st);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=st&&c<e;});if(s)document.getElementById('f-ort').value=s.loc.split(',')[0];showTab('neu');}
 
 function openModal(id){
+  alert('Volltext-Klick erkannt! id='+id+', entries='+entries.length);
   const e=entries.find(x=>x.id===id||x.datum===id);
-  if(!e)return;
+  if(!e){alert('Eintrag nicht gefunden. Vorhandene Daten: '+entries.map(x=>x.datum).join(', '));return;}
   const md=document.getElementById('modal');
   if(!md)return;
   document.getElementById('modal-date').textContent=formatDate(e.datum);
