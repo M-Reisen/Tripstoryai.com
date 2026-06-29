@@ -665,7 +665,7 @@ function buildDayHTML(day,i){
     const caption=photoComments[day.iso+'_'+pi]||'';
     return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
-  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
+  const addBtn=editMode?`<div class="photo-add-cell" onclick="pickPhotos('${day.iso}')"><span class="photo-add-cell-icon">📷</span><span>Foto</span></div>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
   const comments=`<div class="comments-section"><div class="comments-title">💬 Kommentare</div><div id="comment-list-${day.iso}"><div class="sb-loading">Lädt…</div></div><div class="comment-form"><input type="text" placeholder="Dein Name" id="cn-${day.iso}" maxlength="50"><textarea placeholder="Dein Kommentar…" id="ct-${day.iso}" rows="2"></textarea><button class="btn btn-reef btn-sm" onclick="submitComment('${day.iso}')">💬 Kommentar senden</button></div></div>`;
   // Hotel-Banner
@@ -726,6 +726,20 @@ function updateDayNav(){
 function slideDay(dir){const n=currentDay+dir;if(n<0||n>=DAYS.length)return;goToDay(n);}
 function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').style.transform=`translateX(-${idx*100}%)`;updateDayNav();loadPhotosForDay(DAYS[idx].iso);loadCommentsForDay(DAYS[idx].iso);}
 
+
+// ── ZUVERLÄSSIGER FOTO-PICKER (iOS-kompatibel) ────────────────────────────
+function pickPhotos(iso){
+  const inp=document.createElement('input');
+  inp.type='file';inp.accept='image/*';inp.multiple=true;
+  inp.style.position='fixed';inp.style.left='-9999px';
+  document.body.appendChild(inp);
+  inp.onchange=function(){
+    handlePhotos({target:inp},iso);
+    setTimeout(function(){if(inp.parentNode)inp.parentNode.removeChild(inp);},1000);
+  };
+  inp.click();
+}
+
 async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);
   if(!files.length)return;
@@ -743,7 +757,7 @@ function refreshPhotoGrid(iso){
     const caption=photoComments[iso+'_'+pi]||'';
     return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
-  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
+  const addBtn=editMode?`<div class="photo-add-cell" onclick="pickPhotos('${iso}')"><span class="photo-add-cell-icon">📷</span><span>Foto</span></div>`:'';
   grid.innerHTML=items+addBtn;
 }
 async function delPhotoEl(btn){
