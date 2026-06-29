@@ -760,13 +760,13 @@ function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').styl
 let _photoPickIso='';
 let _dayPhotoInput=null;
 function pickPhotos(iso){
-  alert('Foto-Button funktioniert! Tag: '+iso);
   _photoPickIso=iso;
   if(!_dayPhotoInput){
     _dayPhotoInput=document.createElement('input');
     _dayPhotoInput.type='file';_dayPhotoInput.accept='image/*';_dayPhotoInput.multiple=true;
     _dayPhotoInput.style.display='none';
     _dayPhotoInput.onchange=function(){
+      alert('Foto gewählt: '+(_dayPhotoInput.files?_dayPhotoInput.files.length:0)+' Datei(en)');
       var files=Array.from(_dayPhotoInput.files);
       if(!files.length)return;
       handlePhotos({target:_dayPhotoInput},_photoPickIso);
@@ -780,6 +780,7 @@ function pickPhotos(iso){
 async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);
   if(!files.length){toast('Kein Foto ausgewählt.');return;}
+  alert('Upload startet für '+files.length+' Foto(s)…');
   toast('⏳ '+files.length+' Foto(s) werden hochgeladen…');
   if(!photos[iso])photos[iso]=[];
   let ok=0;
