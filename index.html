@@ -532,18 +532,19 @@ async function sbLoadComments(iso){
 }
 async function sbUploadPhoto(iso,file){
   try{
-    alert('A: Upload-Funktion erreicht. Dateigröße: '+Math.round(file.size/1024)+' KB');
     const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
     const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-    alert('B: Sende an Supabase… Pfad: '+path);
-    const result=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
-    alert('C: Antwort erhalten. Error: '+(result.error?JSON.stringify(result.error):'KEINER'));
-    if(result.error){alert('Foto-Fehler: '+(result.error.message||JSON.stringify(result.error)));return null;}
+    alert('B: Sende an Supabase… ('+Math.round(file.size/1024)+' KB, Typ: '+(file.type||'unbekannt')+')');
+    // Timeout: bricht nach 30s ab statt ewig zu hängen
+    const uploadPromise=sb.storage.from('Reisefotos').upload(path,file);
+    const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Zeitüberschreitung (30s) – Upload hängt')),30000));
+    const result=await Promise.race([uploadPromise,timeoutPromise]);
+    alert('C: Antwort da! '+(result.error?('Fehler: '+JSON.stringify(result.error)):'OK'));
+    if(result.error){return null;}
     const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
-    alert('D: Fertig! URL: '+(data.publicUrl||'LEER'));
     return data.publicUrl;
   }catch(err){
-    alert('AUSNAHME im Upload: '+(err&&err.message?err.message:JSON.stringify(err)));
+    alert('ABBRUCH: '+(err&&err.message?err.message:JSON.stringify(err)));
     return null;
   }
 }
@@ -775,7 +776,6 @@ function pickPhotos(iso){
     _dayPhotoInput.type='file';_dayPhotoInput.accept='image/*';_dayPhotoInput.multiple=true;
     _dayPhotoInput.style.display='none';
     _dayPhotoInput.onchange=function(){
-      alert('Foto gewählt: '+(_dayPhotoInput.files?_dayPhotoInput.files.length:0)+' Datei(en)');
       var files=Array.from(_dayPhotoInput.files);
       if(!files.length)return;
       handlePhotos({target:_dayPhotoInput},_photoPickIso);
@@ -789,7 +789,6 @@ function pickPhotos(iso){
 async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);
   if(!files.length){toast('Kein Foto ausgewählt.');return;}
-  alert('Upload startet für '+files.length+' Foto(s)…');
   toast('⏳ '+files.length+' Foto(s) werden hochgeladen…');
   if(!photos[iso])photos[iso]=[];
   let ok=0;
