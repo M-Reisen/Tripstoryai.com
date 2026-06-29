@@ -731,6 +731,8 @@ let _photoPickIso='';
 function pickPhotos(iso){
   _photoPickIso=iso;
   const inp=document.getElementById('global-photo-input');
+  if(!inp){alert('FEHLER: Foto-Input nicht gefunden!');return;}
+  toast('① Auswahl wird geöffnet…');
   inp.value='';
   inp.click();
 }
@@ -1148,7 +1150,9 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
   const gi=document.getElementById('global-photo-input');
   if(gi){
     gi.addEventListener('change',function(){
+      toast('② Foto ausgewählt ('+(gi.files?gi.files.length:0)+')');
       if(_photoPickIso)handlePhotos({target:gi},_photoPickIso);
+      else alert('FEHLER: Kein Tag-Datum gesetzt!');
     });
   }
 })();
