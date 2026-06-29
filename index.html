@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V17</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V18</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -519,8 +519,17 @@ async function sbLoadEntries(){
   return data||[];
 }
 async function sbSaveEntry(datum,titel,text){
-  const {error}=await sb.from('kommentare').upsert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString()},{onConflict:'ort'});
-  if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
+  // Prüfen ob für diesen Tag schon ein Eintrag existiert
+  const {data:existing}=await sb.from('kommentare').select('id').eq('ort',datum).not('ort','like','kommentar_%').limit(1);
+  if(existing&&existing.length){
+    // Aktualisieren
+    const {error}=await sb.from('kommentare').update({name:titel,nachricht:text,created_at:new Date().toISOString()}).eq('id',existing[0].id);
+    if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
+  }else{
+    // Neu anlegen
+    const {error}=await sb.from('kommentare').insert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString()});
+    if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
+  }
   return true;
 }
 async function sbSaveComment(iso,name,text){
@@ -850,13 +859,15 @@ function startEntryForDate(iso){document.getElementById('f-datum').value=iso;con
 
 function openModal(id){
   const e=entries.find(x=>x.id===id||x.datum===id);
-  if(!e)return;
+  if(!e){alert('Kein Eintrag gefunden für: '+id+' (entries: '+entries.length+')');return;}
+  const md=document.getElementById('modal');
+  if(!md){alert('Modal-Element fehlt!');return;}
   document.getElementById('modal-date').textContent=formatDate(e.datum);
   document.getElementById('modal-loc').textContent=e.ort||'';
   document.getElementById('modal-title').textContent=e.titel;
   document.getElementById('modal-text').textContent=e.text;
   document.getElementById('modal-stripe').style.background='var(--sunset)';
-  document.getElementById('modal').classList.add('open');
+  md.classList.add('open');
 }
 function closeModal(ev){if(ev.target===document.getElementById('modal'))closeModalDirect();}
 function closeModalDirect(){document.getElementById('modal').classList.remove('open');}
