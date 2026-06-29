@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V25</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V26</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1256,19 +1256,13 @@ async function createPhotobook(){
     }
   }
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // ── Foto-Layout je nach Anzahl (max 8) ──
+  // ── Foto-Layout je nach Anzahl (max 8) – lockerer Polaroid-Stil ──
   function photoLayout(pics,iso){
     const n=pics.length;
+    const rots=['-2.5deg','2deg','-1.5deg','3deg','-3deg','1.5deg','-2deg','2.5deg'];
     const cap=pi=>{const c=photoComments[iso+'_'+pi]||'';return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
-    const img=(pi,cls)=>'<figure class="'+(cls||'')+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
-    if(n===1)return '<div class="L1">'+img(0,'big')+'</div>';
-    if(n===2)return '<div class="L2">'+img(0)+img(1)+'</div>';
-    if(n===3)return '<div class="L3"><div class="L3-main">'+img(0)+'</div><div class="L3-side">'+img(1)+img(2)+'</div></div>';
-    if(n===4)return '<div class="L4">'+[0,1,2,3].map(i=>img(i)).join('')+'</div>';
-    if(n===5)return '<div class="L5"><div class="L5-top">'+img(0,'wide')+'</div><div class="L5-bot">'+[1,2,3,4].map(i=>img(i)).join('')+'</div></div>';
-    if(n===6)return '<div class="L6">'+[0,1,2,3,4,5].map(i=>img(i)).join('')+'</div>';
-    if(n===7)return '<div class="L7"><div class="L7-hero">'+img(0,'wide')+'</div><div class="L7-grid">'+[1,2,3,4,5,6].map(i=>img(i)).join('')+'</div></div>';
-    return '<div class="L8"><div class="L8-hero">'+img(0,'wide')+img(1,'wide')+'</div><div class="L8-grid">'+[2,3,4,5,6,7].map(i=>img(i)).join('')+'</div></div>';
+    const img=(pi,cls)=>'<figure class="po-'+(cls||'')+'" style="--rot:'+rots[pi%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
+    return '<div class="pomasonry poN'+n+'">'+pics.map((_,i)=>img(i)).join('')+'</div>';
   }
   // ── Tagesseiten ──
   const pages=[];
@@ -1343,18 +1337,20 @@ async function createPhotobook(){
     +'.pb-date{font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#c2533a;}'
     +'.pb-loc{font-size:13px;color:#999;margin-top:1mm;letter-spacing:.5px;}'
     +'.pb-tagnr{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#bbb;border:1px solid #e0d8cc;border-radius:20px;padding:2mm 4mm;}'
-    // Foto-Layouts
-    +'figure{overflow:hidden;border-radius:3mm;position:relative;background:#eee;box-shadow:0 2px 8px rgba(0,0,0,.08);}'
-    +'figure img{width:100%;height:100%;object-fit:cover;display:block;}'
-    +'.pb-cap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;font-size:10px;padding:6mm 3mm 2mm;font-style:italic;}'
-    +'.L1{height:200mm;}.L1 .big{height:100%;}'
-    +'.L2{display:grid;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}'
-    +'.L3{display:grid;grid-template-columns:1.6fr 1fr;gap:5mm;height:200mm;}.L3-side{display:grid;grid-template-rows:1fr 1fr;gap:5mm;}'
-    +'.L4{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}'
-    +'.L5{display:grid;grid-template-rows:1.3fr 1fr;gap:5mm;height:200mm;}.L5-bot{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;}'
-    +'.L6{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:5mm;height:200mm;}'
-    +'.L7{display:grid;grid-template-rows:1.2fr 1fr;gap:5mm;height:200mm;}.L7-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:4mm;}'
-    +'.L8{display:grid;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}.L8-hero{display:grid;grid-template-columns:1fr 1fr;gap:5mm;}.L8-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:4mm;}'
+    // Foto-Layouts: Polaroid-Stil, locker, leicht schief
+    +'.pomasonry{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8mm 6mm;padding:6mm 4mm;}'
+    +'.pomasonry figure{background:#fff;padding:2.5mm 2.5mm 6mm;border-radius:1mm;box-shadow:0 4px 14px rgba(0,0,0,.16);transform:rotate(var(--rot));position:relative;}'
+    +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
+    +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
+    // Größen je nach Fotoanzahl
+    +'.poN1 figure{width:150mm;}.poN1 figure img{height:170mm;}'
+    +'.poN2 figure{width:120mm;}.poN2 figure img{height:88mm;}'
+    +'.poN3 figure{width:88mm;}.poN3 figure img{height:66mm;}'
+    +'.poN4 figure{width:82mm;}.poN4 figure img{height:62mm;}'
+    +'.poN5 figure{width:78mm;}.poN5 figure img{height:58mm;}'
+    +'.poN6 figure{width:74mm;}.poN6 figure img{height:55mm;}'
+    +'.poN7 figure{width:70mm;}.poN7 figure img{height:52mm;}'
+    +'.poN8 figure{width:66mm;}.poN8 figure img{height:50mm;}'
     // Textbox
     +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #e8843f;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
     +'.pb-title{font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#c2533a;margin-bottom:3mm;}'
