@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V16</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V17</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -520,7 +520,8 @@ async function sbLoadEntries(){
 }
 async function sbSaveEntry(datum,titel,text){
   const {error}=await sb.from('kommentare').upsert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString()},{onConflict:'ort'});
-  return !error;
+  if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
+  return true;
 }
 async function sbSaveComment(iso,name,text){
   const {error}=await sb.from('kommentare').insert({ort:'kommentar_'+iso+'_'+Date.now(),name:name,nachricht:text,created_at:new Date().toISOString()});
@@ -1153,7 +1154,7 @@ function skipApiKey(){document.getElementById('apikey-overlay').style.display='n
 
 
 // ── DIKTIERFUNKTION FÜR TAGEBUCH ─────────────────────────────────────────
-let _dictRec = null;
+let _dictRec = null, _dictTimeout = null;
 function startDictationEntry(){
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
@@ -1188,6 +1189,9 @@ function startDictationEntry(){
     _dictRec.start();
     if(btn)btn.textContent='⏹ Stopp';
     toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
+    // Sicherheits-Stopp nach 60 Sekunden
+    if(_dictTimeout)clearTimeout(_dictTimeout);
+    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
 }
 
