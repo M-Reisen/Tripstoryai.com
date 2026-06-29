@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V7</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V8</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -789,6 +789,7 @@ function pickPhotos(iso){
 async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);
   if(!files.length){toast('Kein Foto ausgewählt.');return;}
+  alert('START: '+files.length+' Foto(s), '+Math.round(files[0].size/1024)+' KB, Typ: '+(files[0].type||'?'));
   toast('⏳ '+files.length+' Foto(s) werden hochgeladen…');
   if(!photos[iso])photos[iso]=[];
   let ok=0;
