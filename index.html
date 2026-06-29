@@ -742,12 +742,21 @@ function pickPhotos(iso){
 
 async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);
-  if(!files.length)return;
-  toast('⏳ Fotos werden hochgeladen…');
+  if(!files.length){toast('Kein Foto ausgewählt.');return;}
+  toast('⏳ '+files.length+' Foto(s) werden hochgeladen…');
   if(!photos[iso])photos[iso]=[];
-  for(const file of files){const url=await sbUploadPhoto(iso,file);if(url)photos[iso].push(url);}
+  let ok=0;
+  for(const file of files){
+    try{
+      const url=await sbUploadPhoto(iso,file);
+      if(url){photos[iso].push(url);ok++;}
+    }catch(err){
+      alert('Upload-Fehler: '+(err&&err.message?err.message:JSON.stringify(err)));
+    }
+  }
   refreshPhotoGrid(iso);
-  toast('✓ '+files.length+' Foto(s) gespeichert!');
+  if(ok>0)toast('✓ '+ok+' Foto(s) gespeichert!');
+  else toast('⚠️ Kein Foto gespeichert – siehe Meldung.');
 }
 function refreshPhotoGrid(iso){
   const grid=document.getElementById('photo-grid-'+iso);
@@ -1100,29 +1109,38 @@ function skipApiKey(){document.getElementById('apikey-overlay').style.display='n
 let _dictRec = null;
 function startDictationEntry(){
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRec){toast('Diktierfunktion nicht verfügbar (nur Chrome/Safari).');return;}
+  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
+  const btn=document.getElementById('dictate-btn');
+  // Wenn läuft: stoppen
   if(_dictRec){
-    _dictRec.stop();_dictRec=null;
-    document.getElementById('dictate-btn').textContent='🎤 Diktieren';
-    toast('Diktat gestoppt.');return;
+    try{_dictRec.stop();}catch(e){}
+    _dictRec=null;
+    if(btn)btn.textContent='🎤 Diktieren';
+    toast('Diktat beendet.');
+    return;
   }
+  // Starten
   _dictRec = new SpeechRec();
-  _dictRec.lang='de-DE';_dictRec.continuous=true;_dictRec.interimResults=false;
+  _dictRec.lang='de-DE';
+  _dictRec.continuous=false;
+  _dictRec.interimResults=false;
   _dictRec.onresult=function(e){
-    const t=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(' ');
+    const t=e.results[0][0].transcript;
     const ta=document.getElementById('f-notizen');
-    ta.value=ta.value?(ta.value+' '+t):t;
+    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
   };
   _dictRec.onerror=function(e){
-    if(e.error!=='no-speech'){toast('Fehler: '+e.error);_dictRec=null;document.getElementById('dictate-btn').textContent='🎤 Diktieren';}
+    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
   };
   _dictRec.onend=function(){
-    if(_dictRec){try{_dictRec.start();}catch(ex){_dictRec=null;document.getElementById('dictate-btn').textContent='🎤 Diktieren';}}
+    // KEIN Auto-Neustart – sauber beenden
+    _dictRec=null;
+    if(btn)btn.textContent='🎤 Diktieren';
   };
   try{
     _dictRec.start();
-    document.getElementById('dictate-btn').textContent='⏹ Stopp';
-    toast('Sprechen… (tippt auf Stopp zum Beenden)');
+    if(btn)btn.textContent='⏹ Stopp';
+    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
 }
 
