@@ -68,6 +68,9 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .photo-cell-del{display:none;position:absolute;top:4px;right:4px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.7rem;cursor:pointer;align-items:center;justify-content:center;z-index:3;line-height:1;}
 .photo-cell-caption{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.52);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;}
 .photo-cell-edit{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.45);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.6rem;cursor:pointer;z-index:3;}
+.photo-move{position:absolute;top:4px;background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.8rem;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.photo-move-l{left:4px;}
+.photo-move-r{left:32px;}
 .photo-add-cell{height:110px;border:2px dashed rgba(28,26,22,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--paper);gap:4px;font-size:.65rem;color:var(--fog);}
 .photo-add-cell-icon{font-size:1.4rem;}
 .day-entry-area{padding:18px 22px;}
@@ -255,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V22</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V23</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -685,7 +688,7 @@ function buildDaySlides(){
 async function loadPhotosForDay(iso){
   // Tagesfotos
   if(!photos[iso]){
-    try{photos[iso]=await sbLoadPhotos(iso);refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
+    try{photos[iso]=loadPhotoOrder(iso,await sbLoadPhotos(iso));refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
   }
   // Hotelfotos (für die Unterkunft dieses Tages)
   const day=DAYS.find(d=>d.iso===iso);
@@ -714,7 +717,7 @@ function buildDayHTML(day,i){
   const dayPhotos=photos[day.iso]||[];
   const photoItems=dayPhotos.map((src,pi)=>{
     const caption=photoComments[day.iso+'_'+pi]||'';
-    return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
@@ -807,7 +810,7 @@ function refreshPhotoGrid(iso){
   const dayPhotos=photos[iso]||[];
   const items=dayPhotos.map((src,pi)=>{
     const caption=photoComments[iso+'_'+pi]||'';
-    return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
   grid.innerHTML=items+addBtn;
@@ -820,6 +823,38 @@ async function delPhotoEl(btn){
   photos[iso].splice(idx,1);
   refreshPhotoGrid(iso);
   toast('Foto gelöscht.');
+}
+
+function movePhoto(btn,dir){
+  if(!editMode)return;
+  const iso=btn.getAttribute('data-iso'), idx=parseInt(btn.getAttribute('data-idx'));
+  const arr=photos[iso];
+  if(!arr)return;
+  const ni=idx+dir;
+  if(ni<0||ni>=arr.length)return;
+  // Fotos tauschen
+  const tmp=arr[idx];arr[idx]=arr[ni];arr[ni]=tmp;
+  // Bildunterschriften mittauschen (hängen am Index)
+  const ca=photoComments[iso+'_'+idx], cb=photoComments[iso+'_'+ni];
+  if(cb!==undefined)photoComments[iso+'_'+idx]=cb;else delete photoComments[iso+'_'+idx];
+  if(ca!==undefined)photoComments[iso+'_'+ni]=ca;else delete photoComments[iso+'_'+ni];
+  refreshPhotoGrid(iso);
+  savePhotoOrder(iso);
+}
+
+function savePhotoOrder(iso){
+  try{localStorage.setItem('_order_'+iso,JSON.stringify(photos[iso]));}catch(e){}
+}
+function loadPhotoOrder(iso,loaded){
+  try{
+    const saved=localStorage.getItem('_order_'+iso);
+    if(!saved)return loaded;
+    const order=JSON.parse(saved);
+    // Nur Fotos behalten die noch existieren, neue ans Ende
+    const inOrder=order.filter(u=>loaded.includes(u));
+    const newOnes=loaded.filter(u=>!inOrder.includes(u));
+    return inOrder.concat(newOnes);
+  }catch(e){return loaded;}
 }
 
 function showTab(tab){
