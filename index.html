@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V28</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V29</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -396,6 +396,7 @@ textarea{resize:vertical;min-height:100px;}
       </div>
       <div class="modal-title" id="modal-title"></div>
       <div class="modal-text" id="modal-text"></div>
+      <button class="btn btn-primary btn-sm" id="modal-edit-btn" style="display:none;margin-top:16px" onclick="editFromModal()">✏️ Diesen Eintrag bearbeiten</button>
     </div>
   </div>
 </div>
@@ -716,7 +717,7 @@ function buildDayHTML(day,i){
   const entry=entries.find(e=>e.datum===day.iso);
   const _esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   const entryHTML=entry
-    ?`<div class="day-entry-text">${_esc(entry.text.substring(0,200))}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>`
+    ?`<div class="day-entry-text">${_esc(entry.text.substring(0,200))}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>${editMode?`<button class="btn btn-ghost btn-sm" style="color:var(--sunset);border-color:var(--sunset);margin-top:4px;margin-left:6px" onclick="editEntry('${day.iso}')">✏️ Bearbeiten</button>`:''}`
     :`<div class="day-entry-empty">Noch kein Eintrag für diesen Tag.</div>${editMode?`<button class="btn btn-primary btn-sm" onclick="startEntryForDate('${day.iso}')">✍️ Eintrag schreiben</button>`:''}`;
   const dayPhotos=photos[day.iso]||[];
   const photoItems=dayPhotos.map((src,pi)=>{
@@ -897,6 +898,19 @@ async function saveEntry(){
 function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';}
 function startEntryForDate(iso){document.getElementById('f-datum').value=iso;const s=BOOKINGS.find(b=>{const st=new Date(b.datum+'T12:00:00');const e=new Date(st);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=st&&c<e;});if(s)document.getElementById('f-ort').value=s.loc.split(',')[0];showTab('neu');}
 
+function editEntry(iso){
+  const e=entries.find(x=>x.datum===iso||x.id===iso);
+  if(!e){toast('Eintrag nicht gefunden.');return;}
+  document.getElementById('f-datum').value=e.datum;
+  document.getElementById('f-ort').value=e.ort||'';
+  document.getElementById('f-titel').value=e.titel||'';
+  if(document.getElementById('f-kategorie'))document.getElementById('f-kategorie').value=e.kat||'Sonstiges';
+  document.getElementById('f-text').value=e.text||'';
+  const md=document.getElementById('modal');if(md)md.classList.remove('open');
+  showTab('neu');
+  toast('✏️ Eintrag wird bearbeitet');
+}
+
 function formatDate(d){return d?new Date(d+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';}
 function openModal(id){
   const e=entries.find(x=>x.id===id||x.datum===id);
@@ -908,7 +922,13 @@ function openModal(id){
   document.getElementById('modal-title').textContent=e.titel;
   document.getElementById('modal-text').textContent=e.text;
   document.getElementById('modal-stripe').style.background='var(--sunset)';
+  const eb=document.getElementById('modal-edit-btn');
+  if(eb){eb.style.display=editMode?'inline-block':'none';eb.setAttribute('data-iso',e.datum);}
   md.classList.add('open');
+}
+function editFromModal(){
+  const eb=document.getElementById('modal-edit-btn');
+  if(eb)editEntry(eb.getAttribute('data-iso'));
 }
 function closeModal(ev){if(ev.target===document.getElementById('modal'))closeModalDirect();}
 function closeModalDirect(){document.getElementById('modal').classList.remove('open');}
