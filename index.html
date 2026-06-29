@@ -538,6 +538,26 @@ async function sbUploadPhoto(iso,file){
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data.publicUrl;
 }
+async function sbUploadHotelPhoto(bid,file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path='hotels/'+bid+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  if(error){alert('Hotelfoto-Fehler: '+(error.message||JSON.stringify(error)));console.error(error);return null;}
+  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+  return data.publicUrl;
+}
+async function sbLoadHotelPhotos(bid){
+  const {data,error}=await sb.storage.from('Reisefotos').list('hotels/'+bid,{limit:100});
+  if(error||!data)return[];
+  return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl('hotels/'+bid+'/'+f.name);
+    return u.publicUrl;
+  });
+}
+async function sbDeleteHotelPhoto(url){
+  const path=url.split('/Reisefotos/')[1];
+  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
 async function sbLoadPhotos(iso){
   const {data,error}=await sb.storage.from('Reisefotos').list(iso,{limit:100});
   if(error||!data)return[];
@@ -642,8 +662,18 @@ function buildDaySlides(){
 }
 
 async function loadPhotosForDay(iso){
-  if(photos[iso])return;
-  try{photos[iso]=await sbLoadPhotos(iso);refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
+  // Tagesfotos
+  if(!photos[iso]){
+    try{photos[iso]=await sbLoadPhotos(iso);refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
+  }
+  // Hotelfotos (für die Unterkunft dieses Tages)
+  const day=DAYS.find(d=>d.iso===iso);
+  if(day&&day.stay&&!hotelPhotos[day.stay.id]){
+    try{
+      const hp=await sbLoadHotelPhotos(day.stay.id);
+      if(hp.length){hotelPhotos[day.stay.id]=hp;buildDaySlides();}
+    }catch(e){}
+  }
 }
 
 function buildDayHTML(day,i){
@@ -991,25 +1021,30 @@ function addHotelPhotoEl(btn){
     _hotelInput=document.createElement('input');
     _hotelInput.type='file';_hotelInput.accept='image/*';_hotelInput.multiple=true;
     _hotelInput.style.display='none';
-    _hotelInput.onchange=function(){
+    _hotelInput.onchange=async function(){
       var files=Array.from(_hotelInput.files);if(!files.length)return;
+      toast('⏳ Hotelfoto wird hochgeladen…');
       if(!hotelPhotos[_hotelBid])hotelPhotos[_hotelBid]=[];
-      var n=0;
-      files.forEach(function(f){
-        var r=new FileReader();
-        r.onload=function(e){hotelPhotos[_hotelBid].push(e.target.result);if(++n===files.length){buildDaySlides();toast('Hotelfoto gespeichert!');}}
-        r.readAsDataURL(f);
-      });
+      let ok=0;
+      for(const f of files){
+        try{const url=await sbUploadHotelPhoto(_hotelBid,f);if(url){hotelPhotos[_hotelBid].push(url);ok++;}}
+        catch(e){alert('Fehler: '+(e.message||e));}
+      }
+      buildDaySlides();
+      if(ok>0)toast('✓ '+ok+' Hotelfoto(s) gespeichert!');
     };
     document.body.appendChild(_hotelInput);
   }
   _hotelBid=btn.getAttribute('data-bid');
   _hotelInput.value='';_hotelInput.click();
 }
-function delHotelPhotoEl(btn){
+async function delHotelPhotoEl(btn){
   if(!editMode)return;if(!confirm('Hotelfoto löschen?'))return;
   var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
-  if(hotelPhotos[bid]){hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];}
+  if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
+    await sbDeleteHotelPhoto(hotelPhotos[bid][idx]);
+    hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
+  }
   buildDaySlides();toast('Foto gelöscht.');
 }
 function setStarEl(btn){
