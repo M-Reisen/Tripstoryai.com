@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V10</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V11</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -796,10 +796,18 @@ async function handlePhotos(event,iso){
   let ok=0;
   for(const file of files){
     try{
-      const url=await sbUploadPhoto(iso,file);
-      if(url){photos[iso].push(url);ok++;}
+      alert('X1: Schleife läuft, rufe Upload auf');
+      const ext=(file.name?file.name.split('.').pop():'jpg')||'jpg';
+      const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext.toLowerCase();
+      alert('X2: Pfad gebaut: '+path);
+      const result=await sb.storage.from('Reisefotos').upload(path,file);
+      alert('X3: Antwort! '+(result.error?('FEHLER: '+JSON.stringify(result.error)):'OK'));
+      if(!result.error){
+        const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+        if(data&&data.publicUrl){photos[iso].push(data.publicUrl);ok++;}
+      }
     }catch(err){
-      alert('Upload-Fehler: '+(err&&err.message?err.message:JSON.stringify(err)));
+      alert('XF: Ausnahme: '+(err&&err.message?err.message:JSON.stringify(err)));
     }
   }
   refreshPhotoGrid(iso);
