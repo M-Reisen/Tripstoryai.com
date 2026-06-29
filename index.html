@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V24</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V25</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1249,49 +1249,120 @@ function startDictationEntry(){
 
 async function createPhotobook(){
   toast('📖 Fotobuch wird vorbereitet…');
-  // Alle Fotos aller Tage laden (falls noch nicht geladen)
+  // Alle Fotos aller Tage laden
   for(const day of DAYS){
     if(!photos[day.iso]){
       try{photos[day.iso]=loadPhotoOrder(day.iso,await sbLoadPhotos(day.iso));}catch(e){photos[day.iso]=[];}
     }
   }
-  // Nur Tage mit Inhalt (Eintrag oder Fotos)
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  // ── Foto-Layout je nach Anzahl (max 8) ──
+  function photoLayout(pics,iso){
+    const n=pics.length;
+    const cap=pi=>{const c=photoComments[iso+'_'+pi]||'';return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
+    const img=(pi,cls)=>'<figure class="'+(cls||'')+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
+    if(n===1)return '<div class="L1">'+img(0,'big')+'</div>';
+    if(n===2)return '<div class="L2">'+img(0)+img(1)+'</div>';
+    if(n===3)return '<div class="L3"><div class="L3-main">'+img(0)+'</div><div class="L3-side">'+img(1)+img(2)+'</div></div>';
+    if(n===4)return '<div class="L4">'+[0,1,2,3].map(i=>img(i)).join('')+'</div>';
+    if(n===5)return '<div class="L5"><div class="L5-top">'+img(0,'wide')+'</div><div class="L5-bot">'+[1,2,3,4].map(i=>img(i)).join('')+'</div></div>';
+    if(n===6)return '<div class="L6">'+[0,1,2,3,4,5].map(i=>img(i)).join('')+'</div>';
+    if(n===7)return '<div class="L7"><div class="L7-hero">'+img(0,'wide')+'</div><div class="L7-grid">'+[1,2,3,4,5,6].map(i=>img(i)).join('')+'</div></div>';
+    return '<div class="L8"><div class="L8-hero">'+img(0,'wide')+img(1,'wide')+'</div><div class="L8-grid">'+[2,3,4,5,6,7].map(i=>img(i)).join('')+'</div></div>';
+  }
+  // ── Tagesseiten ──
   const pages=[];
+  let tagNr=0;
   for(const day of DAYS){
     const entry=entries.find(e=>e.datum===day.iso);
-    const dayPhotos=photos[day.iso]||[];
+    let dayPhotos=(photos[day.iso]||[]).slice(0,8);
     if(!entry&&dayPhotos.length===0)continue;
+    tagNr++;
     const ort=day.stay?day.stay.loc:'';
-    let photoHTML='';
-    if(dayPhotos.length){
-      photoHTML='<div class="pb-photos">'+dayPhotos.map((src,pi)=>{
-        const cap=photoComments[day.iso+'_'+pi]||'';
-        return '<div class="pb-photo"><img src="'+src+'">'+(cap?'<div class="pb-cap">'+cap.replace(/</g,'&lt;')+'</div>':'')+'</div>';
-      }).join('')+'</div>';
-    }
-    const txt=entry?('<div class="pb-title">'+(entry.titel||'').replace(/</g,'&lt;')+'</div><div class="pb-text">'+(entry.text||'').replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>'):'';
-    pages.push('<div class="pb-page"><div class="pb-head"><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+ort+'</div>':'')+'</div>'+txt+photoHTML+'</div>');
+    const emoji=day.stay?day.stay.emoji:'📸';
+    const photoHTML=dayPhotos.length?photoLayout(dayPhotos,day.iso):'';
+    const titel=entry&&entry.titel?esc(entry.titel):'';
+    const text=entry&&entry.text?esc(entry.text).replace(/\n/g,'<br>'):'';
+    const textBlock=(titel||text)?('<div class="pb-textbox">'+(titel?'<div class="pb-title">'+titel+'</div>':'')+(text?'<div class="pb-text">'+text+'</div>':'')+'</div>'):'';
+    pages.push(
+      '<div class="pb-page pb-day">'
+      +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
+      +'<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">'+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tagNr+'</div></header>'
+      +photoHTML
+      +textBlock
+      +'</div>'
+    );
   }
   if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
+  // ── Deckblatt ──
+  const stations=BOOKINGS.map(b=>b.emoji+' '+b.loc.split(',')[0]).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+  const cover=
+    '<div class="pb-page pb-cover">'
+    +'<div class="pb-cover-sun"></div>'
+    +'<div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div>'
+    +'<div class="pb-cover-inner">'
+    +'<div class="pb-cover-koala">🐨</div>'
+    +'<div class="pb-cover-eyebrow">Unser Reisetagebuch</div>'
+    +'<h1 class="pb-cover-title">Australien</h1>'
+    +'<div class="pb-cover-sub">Queensland &amp; Great Barrier Reef</div>'
+    +'<div class="pb-cover-line"></div>'
+    +'<div class="pb-cover-dates">13. September – 10. Oktober 2026</div>'
+    +'<div class="pb-cover-route">'+stations+'</div>'
+    +'</div>'
+    +'<div class="pb-cover-footer">M-Reisen · tripstoryai.com</div>'
+    +'</div>';
+  // ── CSS ──
   const css='<style>'
-    +'@page{size:A4;margin:14mm;}'
-    +'*{box-sizing:border-box;margin:0;padding:0;}'
-    +'body{font-family:Georgia,serif;color:#2b2620;}'
-    +'.pb-page{page-break-after:always;min-height:255mm;}'
+    +'@page{size:A4;margin:0;}'
+    +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
+    +'.pb-page{position:relative;width:210mm;min-height:297mm;padding:16mm;page-break-after:always;overflow:hidden;}'
     +'.pb-page:last-child{page-break-after:auto;}'
-    +'.pb-head{border-bottom:3px solid #d98c4a;padding-bottom:8px;margin-bottom:14px;}'
-    +'.pb-date{font-size:22px;color:#d98c4a;font-weight:bold;}'
-    +'.pb-loc{font-size:14px;color:#777;margin-top:3px;}'
-    +'.pb-title{font-size:18px;font-weight:bold;margin-bottom:8px;}'
-    +'.pb-text{font-size:13px;line-height:1.7;margin-bottom:16px;text-align:justify;}'
-    +'.pb-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;}'
-    +'.pb-photo{break-inside:avoid;}'
-    +'.pb-photo img{width:100%;height:auto;border-radius:4px;display:block;}'
-    +'.pb-cap{font-size:10px;color:#666;font-style:italic;margin-top:3px;text-align:center;}'
+    // Deckblatt
+    +'.pb-cover{background:linear-gradient(160deg,#e8843f 0%,#d96b3a 45%,#c2533a 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
+    +'.pb-cover-sun{position:absolute;top:42mm;left:50%;transform:translateX(-50%);width:120mm;height:120mm;background:radial-gradient(circle,rgba(255,240,200,.55) 0%,rgba(255,240,200,0) 70%);border-radius:50%;}'
+    +'.pb-cover-waves{position:absolute;bottom:0;left:0;width:100%;height:60mm;}'
+    +'.pb-cover-waves svg{width:100%;height:100%;display:block;}'
+    +'.pb-cover-inner{position:relative;z-index:2;padding:20mm;}'
+    +'.pb-cover-koala{font-size:64px;margin-bottom:10mm;}'
+    +'.pb-cover-eyebrow{font-size:15px;letter-spacing:4px;text-transform:uppercase;opacity:.9;margin-bottom:6mm;}'
+    +'.pb-cover-title{font-family:Georgia,serif;font-size:72px;font-weight:bold;letter-spacing:1px;line-height:1;}'
+    +'.pb-cover-sub{font-family:Georgia,serif;font-size:24px;font-style:italic;margin-top:4mm;opacity:.95;}'
+    +'.pb-cover-line{width:40mm;height:3px;background:rgba(255,255,255,.7);margin:10mm auto;}'
+    +'.pb-cover-dates{font-size:18px;letter-spacing:1px;margin-bottom:8mm;}'
+    +'.pb-cover-route{font-size:12px;line-height:2;opacity:.92;max-width:150mm;margin:0 auto;}'
+    +'.pb-cover-footer{position:absolute;bottom:14mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.8;z-index:2;}'
+    // Tagesseite
+    +'.pb-day{background:#fdfbf7;display:flex;flex-direction:column;}'
+    +'.pb-corner{position:absolute;width:22mm;height:22mm;}'
+    +'.pb-corner-tl{top:8mm;left:8mm;border-top:2px solid #e8843f;border-left:2px solid #e8843f;}'
+    +'.pb-corner-br{bottom:8mm;right:8mm;border-bottom:2px solid #e8843f;border-right:2px solid #e8843f;}'
+    +'.pb-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e8843f;padding-bottom:6mm;margin-bottom:8mm;}'
+    +'.pb-head-l{display:flex;align-items:center;gap:5mm;}'
+    +'.pb-emoji{font-size:34px;}'
+    +'.pb-date{font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#c2533a;}'
+    +'.pb-loc{font-size:13px;color:#999;margin-top:1mm;letter-spacing:.5px;}'
+    +'.pb-tagnr{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#bbb;border:1px solid #e0d8cc;border-radius:20px;padding:2mm 4mm;}'
+    // Foto-Layouts
+    +'figure{overflow:hidden;border-radius:3mm;position:relative;background:#eee;box-shadow:0 2px 8px rgba(0,0,0,.08);}'
+    +'figure img{width:100%;height:100%;object-fit:cover;display:block;}'
+    +'.pb-cap{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;font-size:10px;padding:6mm 3mm 2mm;font-style:italic;}'
+    +'.L1{height:200mm;}.L1 .big{height:100%;}'
+    +'.L2{display:grid;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}'
+    +'.L3{display:grid;grid-template-columns:1.6fr 1fr;gap:5mm;height:200mm;}.L3-side{display:grid;grid-template-rows:1fr 1fr;gap:5mm;}'
+    +'.L4{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}'
+    +'.L5{display:grid;grid-template-rows:1.3fr 1fr;gap:5mm;height:200mm;}.L5-bot{display:grid;grid-template-columns:repeat(4,1fr);gap:4mm;}'
+    +'.L6{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:5mm;height:200mm;}'
+    +'.L7{display:grid;grid-template-rows:1.2fr 1fr;gap:5mm;height:200mm;}.L7-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:4mm;}'
+    +'.L8{display:grid;grid-template-rows:1fr 1fr;gap:5mm;height:200mm;}.L8-hero{display:grid;grid-template-columns:1fr 1fr;gap:5mm;}.L8-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr 1fr;gap:4mm;}'
+    // Textbox
+    +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #e8843f;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
+    +'.pb-title{font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#c2533a;margin-bottom:3mm;}'
+    +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
     +'</style>';
   const win=window.open('','_blank');
   if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>M-Reisen Fotobuch – Australien 2026</title>'+css+'</head><body>'+pages.join('')+'</body></html>');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>M-Reisen Fotobuch – Australien 2026</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
   win.document.close();
   toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann drucken.');
 }
