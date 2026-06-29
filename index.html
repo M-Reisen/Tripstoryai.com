@@ -338,6 +338,7 @@ textarea{resize:vertical;min-height:100px;}
     <div style="margin-top:13px">
       <button class="btn btn-reef" onclick="aiFormuliere()">✨ KI formuliert den Eintrag</button>
       <button class="btn btn-bush" onclick="startDictationEntry()" id="dictate-btn" style="margin-left:8px">🎤 Diktieren</button>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('apikey-overlay').style.display='flex'" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-left:8px">🔑 API-Key</button>
       <div class="ai-box" id="ai-formbox" style="display:none;margin-top:11px">
         <div class="ai-box-title">✨ KI-Formulierung</div>
         <div class="ai-result" id="ai-form-result"></div>
@@ -889,13 +890,16 @@ async function aiFormuliere(){
   const titel=document.getElementById('f-titel').value.trim();
   const kat=document.getElementById('f-kategorie').value;
   if(!notizen){toast('Bitte erst Stichpunkte eingeben.');return;}
+  if(!_apiKey){_apiKey=loadApiKey();}
+  if(!_apiKey){document.getElementById('apikey-overlay').style.display='flex';toast('Bitte zuerst API-Key eingeben.');return;}
   const box=document.getElementById('ai-formbox'),res=document.getElementById('ai-form-result');
   box.style.display='block';res.className='ai-result loading';res.textContent='KI schreibt euren Australien-Eintrag …';
   const prompt=`Du bist ein enthusiastischer Reiseblogger auf Australien-Reise durch Queensland. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 150–200 Wörter). Wir-Form (Pärchen). Stil: warm, bildhaft, authentisch.\n\nOrt: ${ort||'Queensland'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}\nStichpunkte:\n${notizen}\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.`;
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
-    res.className='ai-result';res.textContent=d.content?.map(c=>c.text||'').join('')||'Fehler.';
+    if(d.error){res.className='ai-result';res.textContent='Fehler: '+(d.error.message||'API-Fehler');if(d.error.type==='authentication_error'){_apiKey='';}return;}
+    res.className='ai-result';res.textContent=d.content?d.content.map(c=>c.text||'').join(''):'Keine Antwort.';
   }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
 }
 function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
@@ -1005,9 +1009,13 @@ function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
 function updateEpDots(){for(var i=0;i<4;i++)document.getElementById('epd'+i).classList.toggle('filled',i<editPinBuffer.length);}
 function closeEditPin(){document.getElementById('edit-pin-overlay').style.display='none';editPinBuffer='';}
 function checkEditPin(){
-  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();toast('Admin-Modus aktiv!');}
+  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();toast('Admin-Modus aktiv!');
+    // API-Key laden oder abfragen
+    if(!_apiKey){var saved=loadApiKey();if(saved){_apiKey=saved;}else{setTimeout(()=>{document.getElementById('apikey-overlay').style.display='flex';},400);}}
+  }
   else{document.getElementById('ep-err').textContent='Falsche PIN.';editPinBuffer='';updateEpDots();setTimeout(()=>document.getElementById('ep-err').textContent='',2000);}
 }
+function loadApiKey(){try{var enc=localStorage.getItem('_mk_au26');return enc?atob(enc):'';}catch(e){return'';}}
 
 // ── HOTEL PHOTOS & REVIEWS ────────────────────────────────────────────────
 function addHotelPhotoEl(btn){
@@ -1077,14 +1085,16 @@ async function polishReviewText(){
   var ta=document.getElementById('rev-text');
   var raw=ta.value.trim();
   if(!raw){toast('Bitte erst Text eingeben.');return;}
+  if(!_apiKey){_apiKey=loadApiKey();}
+  if(!_apiKey){document.getElementById('apikey-overlay').style.display='flex';toast('Bitte zuerst API-Key eingeben.');return;}
   var orig=raw;ta.disabled=true;ta.value='✨ Text wird verbessert…';
   var hotel=document.getElementById('rev-hotel-name').textContent;
   var prompt='Du verbesserst eine Hotelbewertung. Mache den folgenden Text flüssiger, lebendiger und ansprechender, aber behalte alle inhaltlichen Aussagen bei. Antworte auf Deutsch und gib NUR den verbesserten Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+orig;
   try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
     var d=await resp.json();
     ta.disabled=false;
-    if(d.error){ta.value=orig;toast('Fehler: '+(d.error.message||'API-Fehler'));return;}
+    if(d.error){ta.value=orig;toast('Fehler: '+(d.error.message||'API-Fehler'));if(d.error.type==='authentication_error'){_apiKey='';}return;}
     var out=d.content?d.content.map(function(c){return c.text||'';}).join('').trim():'';
     if(out){ta.value=out;toast('✓ Text verbessert!');}
     else{ta.value=orig;toast('Keine Antwort erhalten.');}
