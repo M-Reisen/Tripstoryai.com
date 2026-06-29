@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V7</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -760,6 +760,7 @@ function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').styl
 let _photoPickIso='';
 let _dayPhotoInput=null;
 function pickPhotos(iso){
+  alert('Foto-Button funktioniert! Tag: '+iso);
   _photoPickIso=iso;
   if(!_dayPhotoInput){
     _dayPhotoInput=document.createElement('input');
