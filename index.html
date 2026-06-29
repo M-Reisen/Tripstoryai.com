@@ -533,10 +533,10 @@ async function sbLoadComments(iso){
   return data||[];
 }
 async function sbUploadPhoto(iso,file){
-  const ext=file.name.split('.').pop();
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
   const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-  const {error}=await sb.storage.from('Reisefotos').upload(path,file);
-  if(error){console.error(error);return null;}
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  if(error){alert('Foto-Fehler: '+(error.message||JSON.stringify(error)));console.error(error);return null;}
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data.publicUrl;
 }
