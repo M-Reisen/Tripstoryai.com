@@ -531,12 +531,21 @@ async function sbLoadComments(iso){
   return data||[];
 }
 async function sbUploadPhoto(iso,file){
-  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
-  const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
-  if(error){alert('Foto-Fehler: '+(error.message||JSON.stringify(error)));console.error(error);return null;}
-  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
-  return data.publicUrl;
+  try{
+    alert('A: Upload-Funktion erreicht. Dateigröße: '+Math.round(file.size/1024)+' KB');
+    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
+    alert('B: Sende an Supabase… Pfad: '+path);
+    const result=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+    alert('C: Antwort erhalten. Error: '+(result.error?JSON.stringify(result.error):'KEINER'));
+    if(result.error){alert('Foto-Fehler: '+(result.error.message||JSON.stringify(result.error)));return null;}
+    const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+    alert('D: Fertig! URL: '+(data.publicUrl||'LEER'));
+    return data.publicUrl;
+  }catch(err){
+    alert('AUSNAHME im Upload: '+(err&&err.message?err.message:JSON.stringify(err)));
+    return null;
+  }
 }
 async function sbUploadHotelPhoto(bid,file){
   const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
