@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V32</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V33</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -773,7 +773,7 @@ function buildDayHTML(day,i){
   return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
-    const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const eur=toEUR(e.amount,cur);const orig=cur==='EUR'?'':` <span style="color:var(--fog);font-size:.72rem">(${e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})} ${cur})</span>`;return `<div class="day-cost-row"><span>${e.cat} ${e.label}${orig}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>EUR ${eur.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span></div>`;}).join('');
+    const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const amtStr=e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;return `<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>${amtStr}</b></span></div>`;}).join('');
     const total=exps.reduce((s,e)=>s+toEUR(e.amount,e.cur||'EUR'),0);
     const totalRow=exps.length?`<div class="day-cost-total"><span>Summe</span><span>EUR ${total.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`:'';
     const addBtn=editMode?`<button class="day-cost-add" data-iso="${day.iso}" onclick="addExpEl(this)">+ Ausgabe erfassen</button>`:'';
@@ -1064,7 +1064,7 @@ function renderCosts(){
     const dl=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
     const dayT=list.reduce((s,e)=>s+toEUR(e.amount,e.cur||'EUR'),0);
     tagHtml+=`<div class="cost-row" style="font-weight:600"><div>${dl}</div><div class="${pc}">EUR ${fmt(dayT)}</div></div>`;
-    list.forEach(e=>{const cur=e.cur||'EUR';const orig=cur==='EUR'?'':` <span style="color:var(--fog);font-size:.72rem">(${fmt(e.amount)} ${cur})</span>`;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}${orig}</div><div class="${pc}">EUR ${fmt(toEUR(e.amount,cur))}</div></div>`;tag+=toEUR(e.amount,cur);});
+    list.forEach(e=>{const cur=e.cur||'EUR';const amtStr=fmt(e.amount)+' '+cur;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div>${amtStr}</div></div>`;tag+=toEUR(e.amount,cur);});
   });
   if(tag>0){
     html+="<div class='cost-section-title'>Tagesausgaben vor Ort</div>"+tagHtml;
