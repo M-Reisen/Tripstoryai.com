@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V29</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V30</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -761,7 +761,15 @@ async function loadCommentsForDay(iso){
   if(!list)return;
   const comments=await sbLoadComments(iso);
   if(!comments.length){list.innerHTML='<div style="font-size:.8rem;color:var(--fog);font-style:italic">Noch keine Kommentare.</div>';return;}
-  list.innerHTML=comments.map(c=>`<div class="comment-item"><div class="comment-name">${c.name||'Anonym'}</div><div class="comment-text">${c.nachricht}</div><div class="comment-date">${new Date(c.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');
+  list.innerHTML=comments.map(c=>`<div class="comment-item" style="position:relative">${editMode?`<button onclick="deleteComment('${c.id}','${iso}')" style="position:absolute;top:6px;right:6px;background:rgba(220,38,38,.85);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:.7rem;cursor:pointer;line-height:1">✕</button>`:''}<div class="comment-name">${c.name||'Anonym'}</div><div class="comment-text">${c.nachricht}</div><div class="comment-date">${new Date(c.created_at).toLocaleDateString('de-DE',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div></div>`).join('');
+}
+async function deleteComment(id,iso){
+  if(!editMode)return;
+  if(!confirm('Diesen Kommentar wirklich löschen?'))return;
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  if(error){toast('Fehler: '+(error.message||'Löschen fehlgeschlagen'));return;}
+  toast('Kommentar gelöscht.');
+  loadCommentsForDay(iso);
 }
 async function submitComment(iso){
   const name=document.getElementById('cn-'+iso).value.trim();
