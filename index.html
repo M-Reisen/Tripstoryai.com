@@ -337,6 +337,7 @@ textarea{resize:vertical;min-height:100px;}
     </div>
     <div style="margin-top:13px">
       <button class="btn btn-reef" onclick="aiFormuliere()">✨ KI formuliert den Eintrag</button>
+      <button class="btn btn-bush" onclick="startDictationEntry()" id="dictate-btn" style="margin-left:8px">🎤 Diktieren</button>
       <div class="ai-box" id="ai-formbox" style="display:none;margin-top:11px">
         <div class="ai-box-title">✨ KI-Formulierung</div>
         <div class="ai-result" id="ai-form-result"></div>
@@ -683,7 +684,15 @@ function buildDayHTML(day,i){
     const revAct=editMode?`<div class="hotel-review-actions"><button class="btn btn-reef btn-sm" data-bid="${stayItem.id}" data-hotel="${stayItem.name}" data-stars="${rev.stars}" onclick="genReviewEl(this)">✍️ Bewertung</button>${rev.text?`<button class="btn btn-ghost btn-sm" style="color:var(--fog)" data-bid="${stayItem.id}" onclick="clearReviewEl(this)">Löschen</button>`:''}</div>`:'';
     hotelBannerHTML+=`<div class="hotel-review"><div class="hotel-review-stars">${starsHTML}</div>${revTxt}${revAct}</div>`;
   }
-  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}</div>`;
+  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}${(()=>{
+    const exps=dayExpenses[day.iso]||[];
+    if(!exps.length&&!editMode)return'';
+    const rows=exps.map((e,ei)=>`<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>EUR ${e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</b></span></div>`).join('');
+    const total=exps.reduce((s,e)=>s+e.amount,0);
+    const totalRow=exps.length?`<div class="day-cost-total"><span>Summe</span><span>EUR ${total.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})}</span></div>`:'';
+    const addBtn=editMode?`<button class="day-cost-add" data-iso="${day.iso}" onclick="addExpEl(this)">+ Ausgabe erfassen</button>`:'';
+    return `<div class="day-costs-section"><div class="day-costs-title">💶 Tagesausgaben</div>${rows}${totalRow}${addBtn}</div>`;
+  })()}</div>`;
 }
 
 async function loadCommentsForDay(iso){
@@ -842,14 +851,60 @@ function renderActivities(){
 function renderCosts(){
   const pc=editMode?'':'price-blur';
   let total=0,html='';
+  // ── Unterkünfte (einzeln) ──
   html+="<div class='cost-section-title'>Unterkünfte</div>";
   let uk=0;
-  BOOKINGS.forEach(b=>{uk+=b.price;total+=b.price;html+=`<div class="cost-row"><div><div>${b.emoji} ${b.name}</div><div style="font-size:.73rem;color:var(--fog)">${b.dateStr}</div></div><div class="${pc}">EUR ${fmt(b.price)}</div></div>`;});
+  BOOKINGS.forEach(b=>{uk+=b.price;total+=b.price;html+=`<div class="cost-row"><div><div>${b.emoji} ${b.name}</div><div style="font-size:.73rem;color:var(--fog)">${b.dateStr} · ${b.nights} Nacht${b.nights>1?'e':''}</div></div><div class="${pc}">EUR ${fmt(b.price)}</div></div>`;});
   html+=`<div class="cost-group-total"><span>Summe Unterkünfte</span><span class="${pc}">EUR ${fmt(uk)}</span></div>`;
+  // ── Flüge (einzeln) ──
   html+="<div class='cost-section-title'>Flüge</div>";
-  [{n:'Singapore Airlines SQ 327/203/222/328',p:2352},{n:'Qantas QF 1825 + QF 541',p:505.94}].forEach(it=>{total+=it.p;html+=`<div class="cost-row"><div>${it.n}</div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
-  html+="<div class='cost-section-title'>Transport & Ausflüge</div>";
-  [{n:'SR Coaches + FlixBus',p:213.25},{n:'Mietwagen 1+2',p:474},{n:'Fähren',p:244.70},{n:'Ausflüge gesamt',p:1163.12}].forEach(it=>{total+=it.p;html+=`<div class="cost-row"><div>${it.n}</div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  let fl=0;
+  [
+    {n:'Singapore Airlines SQ 327/203/222/328',d:'MUC–SIN–CNS / SYD–SIN–MUC · Ref. FSARTK',p:2352},
+    {n:'Qantas QF 1825 + QF 541',d:'Mackay–Brisbane–Sydney · Ref. EU3G36',p:505.94}
+  ].forEach(it=>{fl+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  html+=`<div class="cost-group-total"><span>Summe Flüge</span><span class="${pc}">EUR ${fmt(fl)}</span></div>`;
+  // ── Transport (einzeln) ──
+  html+="<div class='cost-section-title'>Transport</div>";
+  let tr=0;
+  [
+    {n:'SR Coaches · Cairns ↔ Port Douglas',d:'14.09. & 19.09. · Ref. BW5283642',p:153.25},
+    {n:'Mietwagen 1 · Avis Toyota Corolla',d:'19.–22. Sept. · Cairns → Townsville',p:321},
+    {n:'FlixBus · Townsville → Airlie Beach',d:'So. 27.09. · 13:50–17:50 Uhr',p:60},
+    {n:'Mietwagen 2 · ab Cape Hillsborough',d:'2.–5. Okt.',p:153},
+    {n:'Fähre · Townsville ↔ Magnetic Island',d:'23.09. & 27.09. · Ref. GYG7VKWWBAAG',p:55.70},
+    {n:'Fähre · Airlie Beach → Hamilton Island',d:'29.09. · Ref. 5635629',p:94.50},
+    {n:'Fähre · Hamilton Island → Airlie Beach',d:'02.10. · Ref. 5635630',p:94.50}
+  ].forEach(it=>{tr+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  html+=`<div class="cost-group-total"><span>Summe Transport</span><span class="${pc}">EUR ${fmt(tr)}</span></div>`;
+  // ── Ausflüge (einzeln) ──
+  html+="<div class='cost-section-title'>Ausflüge</div>";
+  let au=0;
+  [
+    {n:'🚤 Low Isles Glass Bottom Boat & Snorkeling',d:'16.09. · Port Douglas · 2 Erw.',p:323.60},
+    {n:'🌿 Daintree Tour mit Wildlife Cruise',d:'17.09. · Port Douglas · 2 Erw.',p:216.94},
+    {n:'🚂 Kuranda Scenic Train + Bus',d:'18.09. · Ref. #358349003 · 2 Erw.',p:208.94},
+    {n:'🌋 Archway Explorer Tour Lavahöhlen',d:'21.09. · Undara · Ref. RTJBH7Y',p:87.62},
+    {n:'⛵ Whitehaven Katamaran Tagestour',d:'28.09. · Airlie Beach · 2 Erw.',p:326.02}
+  ].forEach(it=>{au+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
+  html+=`<div class="cost-group-total"><span>Summe Ausflüge</span><span class="${pc}">EUR ${fmt(au)}</span></div>`;
+  // ── Tagesausgaben vor Ort (einzeln) ──
+  let tag=0;
+  const isos=Object.keys(dayExpenses).sort();
+  let tagHtml='';
+  isos.forEach(iso=>{
+    const list=dayExpenses[iso];if(!list||!list.length)return;
+    const d=new Date(iso+'T12:00:00');
+    const dl=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const dayT=list.reduce((s,e)=>s+e.amount,0);
+    tagHtml+=`<div class="cost-row" style="font-weight:600"><div>${dl}</div><div class="${pc}">EUR ${fmt(dayT)}</div></div>`;
+    list.forEach(e=>{tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div class="${pc}">EUR ${fmt(e.amount)}</div></div>`;tag+=e.amount;});
+  });
+  if(tag>0){
+    html+="<div class='cost-section-title'>Tagesausgaben vor Ort</div>"+tagHtml;
+    total+=tag;
+    html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
+  }
   document.getElementById('cost-list').innerHTML=editMode?html:`<div style="background:#fef3c7;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:14px">🔒 Beträge nur im Admin-Modus sichtbar</div>`+html;
   document.getElementById('grand-total-box').innerHTML=`<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
 }
@@ -872,6 +927,11 @@ const TIPS=[
   {stop:'🐠 Whitsundays',dates:'29. Sept.–2. Okt.',color:'var(--reef)',mustdos:[{title:'Whitehaven Sonnenaufgang',text:'Vor 8 Uhr gehört der Strand fast nur euch.'},{title:'Hill Inlet Lookout',text:'Surreales Farbenspiel. Ebbe-Zeiten prüfen!'},{title:'Kayak bei Windstille',text:'Abends spiegeln sich die Inseln perfekt.'},{title:'Hook Island Schnorcheln',text:'Artenreichstes Riff der Whitsundays.'},{title:'Chance Bay',text:'Nur per Boot, kaum bekannt.'}],secret:'🤫 Fragt den Vermieter nach Boot-Empfehlung für Chance Bay.',food:'🍽️ Selbst kochen! Frische Prawns vom Airlie-Markt, Sunset auf der Veranda.',tip:'💡 Riff-sichere Sonnencreme – UV-Index extrem hoch!'},
   {stop:'🦘 Cape Hillsborough',dates:'2.–4. Okt.',color:'var(--bush)',mustdos:[{title:'Kängurus beim Sonnenaufgang',text:'Um 5:45 Uhr am Strand – magischstes Erlebnis Australiens!'},{title:'Nationalpark Wanderwege',text:'Diversity Trail zeigt die Pflanzenwelt.'},{title:'Ebbe-Wanderung',text:'Seesterne, Krebse, natürliches Aquarium.'},{title:'Vogelbeobachtung',text:'Lorikeets, Kookaburras – Fernglas einpacken!'},{title:'Schnorcheln',text:'Flacher ruhiger Strand, Stinger-Netz.'}],secret:'🤫 Fragt den Ranger nach Turtle Nesting Spots!',food:'🍽️ Das Kiosk im Park: frische Sandwiches, Lamingtons.',tip:'💡 Kängurus nie füttern! Rotlicht-Modus beim Sonnenaufgang.'},
   {stop:'🦆 Eungella',dates:'4.–5. Okt.',color:'var(--bush)',mustdos:[{title:'Schnabeltier-Beobachtung',text:'Bester Ort Australiens! Früh 6–8 und abends 17–18:30 Uhr.'},{title:'Rainforest Circuit',text:'2 Stunden durch einzigartigen Regenwald.'},{title:'Finch Hatton Gorge',text:'Wasserfälle, absolut lohnenswert.'},{title:'Veranda-Frühstück',text:'Kaffee mit Blick über das Pioneer Valley.'},{title:'Slow Travel',text:'Kein Touristenrummel – einfach genießen.'}],secret:'🤫 Crediton Hall – verlassenes Gebäude, tolle Fotokulisse.',food:'🍽️ Resort-Restaurant – lokales Rindfleisch probieren.',tip:'💡 Rotlicht-Stirnband mitbringen – Schnabeltiere sind scheu!'},
+  {stop:'🐦 Yungaburra',dates:'19.–20. Sept.',color:'var(--bush)',mustdos:[{title:'Schnabeltier am Peterson Creek',text:'Einer der zuverlässigsten Orte Australiens! Geht in der Dämmerung (17–19 Uhr) zum Peterson Creek — absolut leise sein!'},{title:'Curtain Fig Tree',text:'500 Jahre alter Würgefeigenbaum, dessen Luftwurzeln einen riesigen Vorhang bilden.'},{title:'Lake Eacham',text:'Vulkanischer Kratersee — ideal zum Schwimmen, keine Krokodile. Der Rundweg zeigt den Regenwald von seiner schönsten Seite.'},{title:'Malanda Falls',text:'Kleiner Wasserfall mit natürlichem Swimminghole. Umgeben von subtropischem Regenwald.'},{title:'Yungaburra Village',text:'Heritage-Gebäude aus den 1920ern. Samstags: Farmers Market — einer der besten im Tablelands-Hinterland.'}],secret:'🤫 The Lake House Café am Lake Eacham — Geheimtipp der Einheimischen für hausgemachten Kuchen und den besten Chai im Tablelands.',food:'🍽️ Flynns Restaurant: Abendessen mit lokalen Tablelands-Produkten — Rindfleisch, Avocados, Macadamias.',tip:'💡 Yungaburra liegt auf 800m Höhe — deutlich kühler als die Küste. Eine leichte Jacke für den Abend einpacken!'},
+  {stop:'🌋 Undara',dates:'20.–22. Sept.',color:'var(--sunset)',mustdos:[{title:'Archway Explorer Tour (gebucht!)',text:'Die 2-stündige Tour führt durch drei Lavahöhlen-Abschnitte. Vor 190.000 Jahren floss hier flüssiges Gestein 160 km weit.'},{title:'Sonnenuntergang vom Kalkani Krater',text:'Kurzer Aufstieg (20 Min) auf den alten Vulkankrater. Die weite Outback-Landschaft leuchtet in orangerot — magisch!'},{title:'Wildlife-Abend am Camp',text:'Discovery Resorts bietet abends geführte Nachtwanderungen. Kostenlos für Hotelgäste!'},{title:'Eisenbahnwaggon-Erlebnis',text:'Ihr schlaft in historischen umgebauten Eisenbahnwaggons aus den 1950ern. Aperol auf der Veranda beim Sonnenuntergang ist Pflicht.'},{title:'Savanna-Frühstück',text:'Frühstück im Freien mit Blick auf die endlose Savanna. Kängurus kommen oft bis ans Restaurant heran.'}],secret:'🤫 Fragt die Ranger nach den "Lava Tubes at Sunset" — manchmal öffnen sie eine kleinere Röhre exklusiv für Hotelgäste.',food:'🍽️ Undara Experience Restaurant: Den Barramundi bestellen — frisch aus dem Gulf. Abendessen unter dem Sternenhimmel.',tip:'💡 Outback-Regeln: tagsüber heiß (30°C+), nachts kühl. Viel Wasser, Sonnenhut. Die nächste Tankstelle ist weit — voll tanken!'},
+  {stop:'🏙️ Townsville',dates:'22.–23. Sept.',color:'var(--ocean)',mustdos:[{title:'Castle Hill Sunrise',text:'Riesiger rosafarbener Granitfelsen mitten in der Stadt. Aufstieg 20 Min — Blick über Townsville und Magnetic Island bei Sonnenaufgang.'},{title:'Reef HQ Aquarium',text:'Das weltgrößte Korallenriff-Aquarium — perfekte Vorbereitung fürs Schnorcheln auf Magnetic Island.'},{title:'The Strand & kostenlose Lagoon',text:'Strandpromenade mit riesigem kostenlosen Außenschwimmbecken und Blick auf Magnetic Island.'},{title:'Museum of Tropical Queensland',text:'Beherbergt die Überreste der HMS Pandora. Kostenlos, gut klimatisiert.'},{title:'Fähre vorbereiten',text:'Sealink-Fähre fährt ca. stündlich, Überfahrt 25 Min. Online-Tickets buchen spart Zeit.'}],secret:'🤫 Magnetic Espresso in der Flinders Street — das beste Café Townsvilles.',food:'🍽️ The Watermark Restaurant: Direkt am Strand, frische Meeresfrüchte. Moreton Bay Bug bestellen!',tip:'💡 Krokodile im Meer vor Townsville: keine. Aber in Flüssen und Mangroven möglich.'},
+  {stop:'⛵ Airlie Beach',dates:'27.–29. Sept.',color:'var(--ocean)',mustdos:[{title:'Whitehaven Katamaran (gebucht!)',text:'Einer der schönsten Strände der Welt. Hill Inlet bei Ebbe: Türkis und Weiß verschlingen sich ineinander.'},{title:'Airlie Beach Lagoon',text:'Riesige kostenlose Strandlagune mit Blick auf die Whitsundays. Perfekt für den ersten Abend.'},{title:'Conway National Park',text:'Direkt hinter Airlie Beach: kurze Wanderwege durch Regenwald mit Meerblick.'},{title:'Coral Sea Marina Bummel',text:'Airlies schickstes Viertel mit Cafés und Yachthafen.'},{title:'Früh zur Fähre',text:'Plant eine ruhige Morgenroutine vor der Überfahrt — mit Puffer und gut gefühstückt.'}],secret:'🤫 Bicentennial Walkway — versteckter Wanderweg über dem Ort mit phantastischem Blick auf die Whitsunday-Inselwelt.',food:'🍽️ Sorrentos Ristorante: Seafood Platter for 2 — Barramundi, Prawns, Moreton Bay Bug.',tip:'💡 Airlie Beach ist touristisch — der echte Zauber beginnt auf den Inseln.'},
+  {stop:'🌆 Brisbane',dates:'5.–9. Okt.',color:'var(--sunset)',mustdos:[{title:'South Bank Parklands',text:'Riesiger Park direkt am Fluss mit kostenlosem Außenpool und der besten Skyline-Aussicht.'},{title:'Lone Pine Koala Sanctuary',text:'Das älteste Koala-Schutzgebiet der Welt — nur 20 Min vom Zentrum. Koalas halten, mit Kängurus spazieren.'},{title:'Gallery of Modern Art (GOMA)',text:'Eine der besten Kunstgalerien Australiens — kostenlos! Direkt neben South Bank.'},{title:'Story Bridge Climb',text:'360°-Blick über Brisbane. Besonders bei Sonnenuntergang unvergässlich.'},{title:'West End & Fortitude Valley',text:'Brisbanes hippigste Viertel: Cafés, Vintage-Läden, multikulturelle Küche und Nightlife.'}],secret:'🤫 New Farm Park — riesiger Rosenpark direkt am Brisbane River (Rosen blühen im Oktober!).',food:'🍽️ Gus Cafe in South Brisbane: Brisbanes legendärstes Frühstücks-Café seit 1976.',tip:'💡 City Hopper Fähre — kostenlos! Fährt alle 30 Min über den Brisbane River.'},
 ];
 function renderTips(){
   const c=document.getElementById('tips-list');if(!c)return;
@@ -955,14 +1015,18 @@ async function polishReviewText(){
   var ta=document.getElementById('rev-text');
   var raw=ta.value.trim();
   if(!raw){toast('Bitte erst Text eingeben.');return;}
-  var orig=raw;ta.disabled=true;ta.value='Text wird verbessert...';
+  var orig=raw;ta.disabled=true;ta.value='✨ Text wird verbessert…';
   var hotel=document.getElementById('rev-hotel-name').textContent;
-  var prompt='Verbessere diesen Hotelbewertungstext. Flüssiger und lebendiger. Inhalt beibehalten. Nur den Text.\n\nHotel: '+hotel+'\nText: '+orig;
+  var prompt='Du verbesserst eine Hotelbewertung. Mache den folgenden Text flüssiger, lebendiger und ansprechender, aber behalte alle inhaltlichen Aussagen bei. Antworte auf Deutsch und gib NUR den verbesserten Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+orig;
   try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:400,messages:[{role:'user',content:prompt}]})});
-    var d=await resp.json();ta.disabled=false;
-    ta.value=(d.content&&d.content[0]?d.content[0].text:orig)||orig;toast('Text verbessert!');
-  }catch(e){ta.disabled=false;ta.value=orig;toast('Fehler: '+e.message);}
+    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    var d=await resp.json();
+    ta.disabled=false;
+    if(d.error){ta.value=orig;toast('Fehler: '+(d.error.message||'API-Fehler'));return;}
+    var out=d.content?d.content.map(function(c){return c.text||'';}).join('').trim():'';
+    if(out){ta.value=out;toast('✓ Text verbessert!');}
+    else{ta.value=orig;toast('Keine Antwort erhalten.');}
+  }catch(e){ta.disabled=false;ta.value=orig;toast('Verbindungsfehler: '+e.message);}
 }
 function startDictation(){
   var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
@@ -1008,6 +1072,37 @@ function saveApiKey(){
   toast('API-Key gespeichert!');
 }
 function skipApiKey(){document.getElementById('apikey-overlay').style.display='none';}
+
+
+// ── DIKTIERFUNKTION FÜR TAGEBUCH ─────────────────────────────────────────
+let _dictRec = null;
+function startDictationEntry(){
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRec){toast('Diktierfunktion nicht verfügbar (nur Chrome/Safari).');return;}
+  if(_dictRec){
+    _dictRec.stop();_dictRec=null;
+    document.getElementById('dictate-btn').textContent='🎤 Diktieren';
+    toast('Diktat gestoppt.');return;
+  }
+  _dictRec = new SpeechRec();
+  _dictRec.lang='de-DE';_dictRec.continuous=true;_dictRec.interimResults=false;
+  _dictRec.onresult=function(e){
+    const t=Array.from(e.results).slice(e.resultIndex).map(r=>r[0].transcript).join(' ');
+    const ta=document.getElementById('f-notizen');
+    ta.value=ta.value?(ta.value+' '+t):t;
+  };
+  _dictRec.onerror=function(e){
+    if(e.error!=='no-speech'){toast('Fehler: '+e.error);_dictRec=null;document.getElementById('dictate-btn').textContent='🎤 Diktieren';}
+  };
+  _dictRec.onend=function(){
+    if(_dictRec){try{_dictRec.start();}catch(ex){_dictRec=null;document.getElementById('dictate-btn').textContent='🎤 Diktieren';}}
+  };
+  try{
+    _dictRec.start();
+    document.getElementById('dictate-btn').textContent='⏹ Stopp';
+    toast('Sprechen… (tippt auf Stopp zum Beenden)');
+  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+}
 
 function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
