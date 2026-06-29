@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V34</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V35</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -371,6 +371,7 @@ textarea{resize:vertical;min-height:100px;}
 <div class="section" id="section-kosten">
   <div class="cost-card">
     <div class="cost-title">💰 Reisekosten</div>
+    <div id="fx-settings"></div>
     <div id="cost-list"></div>
     <div id="grand-total-box"></div>
   </div>
@@ -659,9 +660,37 @@ const DOT_T = {flight:'var(--flight)',bus:'var(--bus)',car:'var(--car)',ferry:'v
 
 let currentDay=0, entries=[], photos={}, photoComments={}, editMode=false, editPinBuffer='', prefillBooking=null, _lbIso='', _lbIdx=0, _captionKey='';
 let hotelPhotos={}, hotelReviews={}, dayExpenses={}, _hotelInput=null, _hotelBid='', _apiKey='', pinUnlocked=false, pinBuffer='', currentExpenseIso='';
-// Wechselkurse zu EUR (1 Fremdwährung = X EUR). Stand für die Reise – anpassbar.
-const FX={EUR:1, AUD:0.61, USD:0.92, GBP:1.17, NZD:0.56};
+// Wechselkurse zu EUR (1 Fremdwährung = X EUR). Über Admin änderbar, in Supabase gespeichert.
+let FX={EUR:1, AUD:0.61, USD:0.92, GBP:1.17, NZD:0.56};
 function toEUR(amount,cur){return amount*(FX[cur]||1);}
+async function sbLoadFX(){
+  try{
+    const {data,error}=await sb.from('kommentare').select('*').eq('ort','fxrates').limit(1);
+    if(error||!data||!data.length)return;
+    const saved=JSON.parse(data[0].nachricht);
+    FX=Object.assign(FX,saved);
+  }catch(e){console.error('FX laden:',e);}
+}
+async function sbSaveFX(){
+  try{
+    // existierende Zeile suchen
+    const {data}=await sb.from('kommentare').select('id').eq('ort','fxrates').limit(1);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:JSON.stringify(FX)}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:'fxrates',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString()});
+    }
+    return true;
+  }catch(e){toast('Fehler beim Speichern der Kurse.');return false;}
+}
+function saveFxRate(cur){
+  const inp=document.getElementById('fx-input-'+cur);
+  if(!inp)return;
+  const val=parseFloat(inp.value.replace(',','.'));
+  if(isNaN(val)||val<=0){toast('Ungültiger Kurs.');return;}
+  FX[cur]=val;
+  sbSaveFX().then(()=>{renderCosts();buildDaySlides();toast('✓ Kurs gespeichert: 1 '+cur+' = '+val+' €');});
+}
 function updateExpPreview(){
   const amt=parseFloat((document.getElementById('exp-amount').value||'').replace(',','.'));
   const cur=document.getElementById('exp-currency').value;
@@ -689,9 +718,10 @@ const DAYS=buildDays();
 async function initApp(){
   try{
     const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
   }catch(e){console.error('Eintraege laden:',e);}
   try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}
+  try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}
   try{buildDaySlides();}catch(e){console.error('buildDaySlides:',e);}
   setTimeout(()=>{try{loadCommentsForDay(DAYS[0].iso);}catch(e){}},300);
 }
@@ -1072,6 +1102,17 @@ function renderCosts(){
     html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
   }
   document.getElementById('cost-list').innerHTML=editMode?html:`<div style="background:#fef3c7;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:14px">🔒 Beträge nur im Admin-Modus sichtbar</div>`+html;
+  // Wechselkurs-Einstellungen (nur Admin)
+  const fxBox=document.getElementById('fx-settings');
+  if(fxBox){
+    if(editMode){
+      const curs=['AUD','USD','GBP','NZD'];
+      fxBox.innerHTML='<div style="background:var(--paper);border:1px solid rgba(28,26,22,.1);border-radius:10px;padding:12px 14px;margin-bottom:16px">'
+        +'<div style="font-size:.78rem;font-weight:600;margin-bottom:8px;color:var(--ink)">💱 Wechselkurse (1 Einheit = € )</div>'
+        +curs.map(c=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:42px;font-size:.85rem;font-weight:600">${c}</span><input id="fx-input-${c}" type="number" step="0.0001" min="0" value="${FX[c]}" style="flex:1;padding:6px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:6px;font-size:.85rem;background:#fff"><button onclick="saveFxRate('${c}')" style="padding:6px 12px;background:var(--sunset);border:none;border-radius:6px;color:#fff;font-size:.8rem;font-weight:600;cursor:pointer">Speichern</button></div>`).join('')
+        +'<div style="font-size:.7rem;color:var(--fog);margin-top:4px">Beispiel: 1 AUD = 0,61 € → trage 0.61 ein</div></div>';
+    }else{fxBox.innerHTML='';}
+  }
   document.getElementById('grand-total-box').innerHTML=`<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
 }
 function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
