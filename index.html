@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V27</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V28</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1343,11 +1343,36 @@ async function createPhotobook(){
     const ort=day.stay?day.stay.loc:'';
     const emoji=day.stay?day.stay.emoji:'📸';
     const titel=entry&&entry.titel?esc(entry.titel):'';
-    const text=entry&&entry.text?esc(entry.text).replace(/\n/g,'<br>'):'';
+    const rawText=entry&&entry.text?entry.text:'';
+    const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
+    const isLong=rawText.length>400;
     const textBlock=(titel||text)?('<div class="pb-textbox">'+(titel?'<div class="pb-title">'+titel+'</div>':'')+(text?'<div class="pb-text">'+text+'</div>':'')+'</div>'):'';
     const head=tn=>'<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">'+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';
-    // Bei mehr als 4 Fotos: 2 Seiten (Seite 1 Text+erste Fotos, Seite 2 restliche Fotos)
-    if(dayPhotos.length>4){
+    // Lange Texte: eigene gestaltete Textseite VOR den Fotos
+    if(isLong&&(titel||text)){
+      pages.push(
+        '<div class="pb-page pb-textpage">'
+        +'<div class="tp-frame">'
+        +'<div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div>'
+        +'<div class="tp-emoji">'+emoji+'</div>'
+        +'<div class="tp-date">'+formatDate(day.iso)+'</div>'
+        +(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')
+        +'<div class="tp-rule">✶ ✶ ✶</div>'
+        +(titel?'<div class="tp-title">'+titel+'</div>':'')
+        +'<div class="tp-text">'+text+'</div>'
+        +'</div></div>'
+      );
+      // Fotoseite(n) ohne Text
+      if(dayPhotos.length>4){
+        const first=dayPhotos.slice(0,4), rest=dayPhotos.slice(4);
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,day.iso)+'</div>');
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort)+' · Fortsetzung</div>'+photoLayout2(rest,day.iso,4)+'</div>');
+      }else if(dayPhotos.length){
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(dayPhotos,day.iso)+'</div>');
+      }
+    }
+    // Kurzer Text: bei den Fotos
+    else if(dayPhotos.length>4){
       const first=dayPhotos.slice(0,4), rest=dayPhotos.slice(4);
       pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,day.iso)+textBlock+'</div>');
       pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort)+' · Fortsetzung</div>'+photoLayout2(rest,day.iso,4)+'</div>');
@@ -1375,10 +1400,10 @@ async function createPhotobook(){
     +'</div>';
   // ── CSS ──
   const css='<style>'
-    +'@page{size:A4;margin:0;}'
+    +'@page{size:A4 landscape;margin:0;}'
     +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
     +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
-    +'.pb-page{position:relative;width:210mm;min-height:297mm;padding:16mm;page-break-after:always;overflow:hidden;}'
+    +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:14mm;page-break-after:always;overflow:hidden;}'
     +'.pb-page:last-child{page-break-after:auto;}'
     // Deckblatt
     +'.pb-cover{background:linear-gradient(160deg,#e8843f 0%,#d96b3a 45%,#c2533a 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
@@ -1412,31 +1437,43 @@ async function createPhotobook(){
     +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
     +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
     // Größen je nach Fotoanzahl
-    +'.poN1 figure{width:120mm;}.poN1 figure img{height:130mm;}'
-    +'.poN2 figure{width:100mm;}.poN2 figure img{height:72mm;}'
-    +'.poN3 figure{width:78mm;}.poN3 figure img{height:58mm;}'
-    +'.poN4 figure{width:72mm;}.poN4 figure img{height:54mm;}'
-    +'.poN5 figure{width:66mm;}.poN5 figure img{height:50mm;}'
-    +'.poN6 figure{width:62mm;}.poN6 figure img{height:47mm;}'
-    +'.poN7 figure{width:58mm;}.poN7 figure img{height:44mm;}'
-    +'.poN8 figure{width:56mm;}.poN8 figure img{height:42mm;}'
+    +'.poN1 figure{width:150mm;}.poN1 figure img{height:120mm;}'
+    +'.poN2 figure{width:115mm;}.poN2 figure img{height:78mm;}'
+    +'.poN3 figure{width:82mm;}.poN3 figure img{height:62mm;}'
+    +'.poN4 figure{width:80mm;}.poN4 figure img{height:58mm;}'
+    +'.poN5 figure{width:76mm;}.poN5 figure img{height:54mm;}'
+    +'.poN6 figure{width:72mm;}.poN6 figure img{height:50mm;}'
+    +'.poN7 figure{width:66mm;}.poN7 figure img{height:47mm;}'
+    +'.poN8 figure{width:62mm;}.poN8 figure img{height:45mm;}'
     // Textbox
     +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #e8843f;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
     +'.pb-title{font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#c2533a;margin-bottom:3mm;}'
     +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
     // Hotel-Seite
     +'.pb-hotel{background:linear-gradient(165deg,#fdf6ee 0%,#f6ebdd 100%);display:flex;flex-direction:column;align-items:center;text-align:center;}'
-    +'.ho-eyebrow{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#b89a76;margin-top:6mm;}'
-    +'.ho-emoji{font-size:50px;margin:4mm 0;}'
-    +'.ho-name{font-family:Georgia,serif;font-size:30px;color:#c2533a;font-weight:bold;line-height:1.2;max-width:150mm;}'
-    +'.ho-loc{font-size:15px;color:#999;margin-top:3mm;letter-spacing:.5px;}'
-    +'.ho-photo{margin:8mm 0;background:#fff;padding:3mm 3mm 8mm;border-radius:1mm;box-shadow:0 6px 20px rgba(0,0,0,.18);transform:rotate(var(--rot,-2deg));}'
-    +'.ho-photo img{display:block;width:130mm;height:90mm;object-fit:cover;border-radius:.5mm;}'
-    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:130mm;height:90mm;font-size:80px;transform:rotate(-2deg);}'
-    +'.ho-note{font-family:Georgia,serif;font-style:italic;font-size:16px;color:#7a6a55;max-width:140mm;margin:2mm 0 6mm;line-height:1.6;}'
-    +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;padding-bottom:4mm;}'
-    +'.ho-map-title{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#b89a76;margin-bottom:2mm;}'
-    +'.ausmap-svg{width:75mm;height:auto;}'
+    +'.ho-eyebrow{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#b89a76;margin-top:2mm;}'
+    +'.ho-emoji{font-size:38px;margin:2mm 0;}'
+    +'.ho-name{font-family:Georgia,serif;font-size:26px;color:#c2533a;font-weight:bold;line-height:1.2;max-width:200mm;}'
+    +'.ho-loc{font-size:14px;color:#999;margin-top:2mm;letter-spacing:.5px;}'
+    +'.ho-photo{margin:4mm 0;background:#fff;padding:2.5mm 2.5mm 6mm;border-radius:1mm;box-shadow:0 6px 20px rgba(0,0,0,.18);transform:rotate(var(--rot,-2deg));}'
+    +'.ho-photo img{display:block;width:120mm;height:62mm;object-fit:cover;border-radius:.5mm;}'
+    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:120mm;height:62mm;font-size:60px;transform:rotate(-2deg);}'
+    +'.ho-note{font-family:Georgia,serif;font-style:italic;font-size:15px;color:#7a6a55;max-width:180mm;margin:2mm 0 3mm;line-height:1.5;}'
+    +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6mm;padding-bottom:2mm;}'
+    +'.ho-map-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b89a76;}'
+    +'.ausmap-svg{width:58mm;height:auto;}'
+    // Gestaltete Textseite (Querformat)
+    +'.pb-textpage{background:linear-gradient(160deg,#fdf8f1 0%,#f5ead9 100%);display:flex;align-items:center;justify-content:center;}'
+    +'.tp-frame{position:relative;width:100%;height:182mm;border:2px solid #d9a86a;border-radius:3mm;padding:16mm 24mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.45);}'
+    +'.tp-frame:before{content:"";position:absolute;inset:4mm;border:1px solid #e4c79a;border-radius:2mm;pointer-events:none;}'
+    +'.tp-corner{position:absolute;font-size:20px;color:#d9a86a;}'
+    +'.tp-tl{top:6mm;left:8mm;}.tp-tr{top:6mm;right:8mm;}.tp-bl{bottom:6mm;left:8mm;}.tp-br{bottom:6mm;right:8mm;}'
+    +'.tp-emoji{font-size:40px;margin-bottom:4mm;}'
+    +'.tp-date{font-family:Georgia,serif;font-size:22px;color:#c2533a;font-weight:bold;}'
+    +'.tp-loc{font-size:13px;color:#a08; color:#999;margin-top:2mm;letter-spacing:.5px;}'
+    +'.tp-rule{color:#d9a86a;font-size:13px;letter-spacing:6px;margin:6mm 0;}'
+    +'.tp-title{font-family:Georgia,serif;font-size:22px;font-style:italic;color:#7a5a3a;margin-bottom:6mm;}'
+    +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
     +'</style>';
   const win=window.open('','_blank');
   if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
