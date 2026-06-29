@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V26</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V27</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1247,12 +1247,51 @@ function startDictationEntry(){
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
 }
 
+// Stations-Koordinaten auf der stilisierten Karte (viewBox 0..400 x 0..440)
+const MAPSTOPS=[
+  {bid:'b1',x:300,y:70,lbl:'Port Douglas'},
+  {bid:'b2',x:296,y:88,lbl:'Yungaburra'},
+  {bid:'b3',x:278,y:96,lbl:'Undara'},
+  {bid:'b4',x:312,y:120,lbl:'Townsville'},
+  {bid:'b5',x:318,y:114,lbl:'Magnetic Is.'},
+  {bid:'b6',x:330,y:150,lbl:'Airlie Beach'},
+  {bid:'b7',x:336,y:146,lbl:'Whitsundays'},
+  {bid:'b8',x:332,y:166,lbl:'Cape Hillsb.'},
+  {bid:'b9',x:322,y:172,lbl:'Eungella'},
+  {bid:'b10',x:348,y:300,lbl:'Brisbane'},
+  {bid:'b11',x:336,y:356,lbl:'Sydney'}
+];
+const AUS_PATH='M120,150 Q90,140 80,170 Q60,200 75,240 Q70,290 110,320 Q120,370 170,385 Q230,410 300,390 Q350,375 355,330 Q360,290 345,250 Q360,210 350,170 Q345,120 300,95 Q260,70 220,80 Q180,75 160,110 Q140,135 120,150 Z';
+function drawAusMap(upToBid){
+  const idx=MAPSTOPS.findIndex(s=>s.bid===upToBid);
+  const done=MAPSTOPS.slice(0,idx+1);
+  let pathLine='';
+  if(done.length>1){
+    pathLine='<polyline points="'+done.map(s=>s.x+','+s.y).join(' ')+'" fill="none" stroke="#c2533a" stroke-width="2.5" stroke-dasharray="5,4" stroke-linecap="round"/>';
+  }
+  const dots=MAPSTOPS.map((s,i)=>{
+    const isDone=i<=idx, isCurrent=i===idx;
+    const r=isCurrent?7:(isDone?4:3);
+    const fill=isCurrent?'#c2533a':(isDone?'#e8843f':'#d8cfc2');
+    const ring=isCurrent?'<circle cx="'+s.x+'" cy="'+s.y+'" r="11" fill="none" stroke="#c2533a" stroke-width="1.5" opacity="0.5"/>':'';
+    const lbl=isCurrent?'<text x="'+(s.x+14)+'" y="'+(s.y+4)+'" font-size="13" fill="#c2533a" font-weight="bold" font-family="Georgia,serif">'+s.lbl+'</text>':'';
+    return ring+'<circle cx="'+s.x+'" cy="'+s.y+'" r="'+r+'" fill="'+fill+'"/>'+lbl;
+  }).join('');
+  return '<svg viewBox="0 0 400 440" class="ausmap-svg"><path d="'+AUS_PATH+'" fill="#f0e9dc" stroke="#d8cfc2" stroke-width="2"/>'+pathLine+dots+'</svg>';
+}
+
 async function createPhotobook(){
   toast('📖 Fotobuch wird vorbereitet…');
   // Alle Fotos aller Tage laden
   for(const day of DAYS){
     if(!photos[day.iso]){
       try{photos[day.iso]=loadPhotoOrder(day.iso,await sbLoadPhotos(day.iso));}catch(e){photos[day.iso]=[];}
+    }
+  }
+  // Hotelfotos aller Unterkünfte laden
+  for(const b of BOOKINGS){
+    if(!hotelPhotos[b.id]){
+      try{hotelPhotos[b.id]=await sbLoadHotelPhotos(b.id);}catch(e){hotelPhotos[b.id]=[];}
     }
   }
   const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1264,28 +1303,57 @@ async function createPhotobook(){
     const img=(pi,cls)=>'<figure class="po-'+(cls||'')+'" style="--rot:'+rots[pi%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
     return '<div class="pomasonry poN'+n+'">'+pics.map((_,i)=>img(i)).join('')+'</div>';
   }
-  // ── Tagesseiten ──
+  // Fortsetzungsseite: gleiche Optik, aber Bildunterschrift-Index versetzt
+  function photoLayout2(pics,iso,offset){
+    const n=pics.length;
+    const rots=['-2deg','2.5deg','-3deg','1.5deg','-1.5deg','3deg','-2.5deg','2deg'];
+    const cap=pi=>{const c=photoComments[iso+'_'+(pi+offset)]||'';return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
+    const img=pi=>'<figure style="--rot:'+rots[pi%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
+    return '<div class="pomasonry poN'+n+'">'+pics.map((_,i)=>img(i)).join('')+'</div>';
+  }
+  // ── Seiten aufbauen: Hotel-Seiten + Tagesseiten ──
   const pages=[];
   let tagNr=0;
+  const seenHotels={};
   for(const day of DAYS){
+    // Hotel-Seite einmal pro Hotel (beim ersten Tag dieser Unterkunft)
+    if(day.stay && !seenHotels[day.stay.id]){
+      seenHotels[day.stay.id]=true;
+      const b=day.stay;
+      const hp=(hotelPhotos[b.id]||[])[0];
+      const hotelFoto=hp?'<div class="ho-photo" style="--rot:-2deg"><img src="'+hp+'"></div>':'<div class="ho-photo ho-nophoto">'+b.emoji+'</div>';
+      pages.push(
+        '<div class="pb-page pb-hotel">'
+        +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
+        +'<div class="ho-eyebrow">Unsere Unterkunft</div>'
+        +'<div class="ho-emoji">'+b.emoji+'</div>'
+        +'<h2 class="ho-name">'+esc(b.name)+'</h2>'
+        +'<div class="ho-loc">📍 '+esc(b.loc)+'</div>'
+        +hotelFoto
+        +(b.note?'<div class="ho-note">„'+esc(b.note)+'"</div>':'')
+        +'<div class="ho-map"><div class="ho-map-title">Unsere Route bisher</div>'+drawAusMap(b.id)+'</div>'
+        +'</div>'
+      );
+    }
+    // Tagesseite(n)
     const entry=entries.find(e=>e.datum===day.iso);
     let dayPhotos=(photos[day.iso]||[]).slice(0,8);
     if(!entry&&dayPhotos.length===0)continue;
     tagNr++;
     const ort=day.stay?day.stay.loc:'';
     const emoji=day.stay?day.stay.emoji:'📸';
-    const photoHTML=dayPhotos.length?photoLayout(dayPhotos,day.iso):'';
     const titel=entry&&entry.titel?esc(entry.titel):'';
     const text=entry&&entry.text?esc(entry.text).replace(/\n/g,'<br>'):'';
     const textBlock=(titel||text)?('<div class="pb-textbox">'+(titel?'<div class="pb-title">'+titel+'</div>':'')+(text?'<div class="pb-text">'+text+'</div>':'')+'</div>'):'';
-    pages.push(
-      '<div class="pb-page pb-day">'
-      +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
-      +'<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">'+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tagNr+'</div></header>'
-      +photoHTML
-      +textBlock
-      +'</div>'
-    );
+    const head=tn=>'<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">'+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';
+    // Bei mehr als 4 Fotos: 2 Seiten (Seite 1 Text+erste Fotos, Seite 2 restliche Fotos)
+    if(dayPhotos.length>4){
+      const first=dayPhotos.slice(0,4), rest=dayPhotos.slice(4);
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,day.iso)+textBlock+'</div>');
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort)+' · Fortsetzung</div>'+photoLayout2(rest,day.iso,4)+'</div>');
+    }else{
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+(dayPhotos.length?photoLayout(dayPhotos,day.iso):'')+textBlock+'</div>');
+    }
   }
   if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
   // ── Deckblatt ──
@@ -1326,8 +1394,9 @@ async function createPhotobook(){
     +'.pb-cover-dates{font-size:18px;letter-spacing:1px;margin-bottom:8mm;}'
     +'.pb-cover-route{font-size:12px;line-height:2;opacity:.92;max-width:150mm;margin:0 auto;}'
     +'.pb-cover-footer{position:absolute;bottom:14mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.8;z-index:2;}'
-    // Tagesseite
-    +'.pb-day{background:#fdfbf7;display:flex;flex-direction:column;}'
+    // Tagesseite mit Papier-Hintergrund
+    +'.pb-day{background:#fdfbf7;background-image:radial-gradient(#efe7d8 0.5px,transparent 0.5px),radial-gradient(#efe7d8 0.5px,#fdfbf7 0.5px);background-size:14px 14px;background-position:0 0,7px 7px;display:flex;flex-direction:column;}'
+    +'.pb-day-cont{font-family:Georgia,serif;font-style:italic;color:#c2533a;font-size:14px;text-align:center;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px dashed #d8cfc2;}'
     +'.pb-corner{position:absolute;width:22mm;height:22mm;}'
     +'.pb-corner-tl{top:8mm;left:8mm;border-top:2px solid #e8843f;border-left:2px solid #e8843f;}'
     +'.pb-corner-br{bottom:8mm;right:8mm;border-bottom:2px solid #e8843f;border-right:2px solid #e8843f;}'
@@ -1343,18 +1412,31 @@ async function createPhotobook(){
     +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
     +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
     // Größen je nach Fotoanzahl
-    +'.poN1 figure{width:150mm;}.poN1 figure img{height:170mm;}'
-    +'.poN2 figure{width:120mm;}.poN2 figure img{height:88mm;}'
-    +'.poN3 figure{width:88mm;}.poN3 figure img{height:66mm;}'
-    +'.poN4 figure{width:82mm;}.poN4 figure img{height:62mm;}'
-    +'.poN5 figure{width:78mm;}.poN5 figure img{height:58mm;}'
-    +'.poN6 figure{width:74mm;}.poN6 figure img{height:55mm;}'
-    +'.poN7 figure{width:70mm;}.poN7 figure img{height:52mm;}'
-    +'.poN8 figure{width:66mm;}.poN8 figure img{height:50mm;}'
+    +'.poN1 figure{width:120mm;}.poN1 figure img{height:130mm;}'
+    +'.poN2 figure{width:100mm;}.poN2 figure img{height:72mm;}'
+    +'.poN3 figure{width:78mm;}.poN3 figure img{height:58mm;}'
+    +'.poN4 figure{width:72mm;}.poN4 figure img{height:54mm;}'
+    +'.poN5 figure{width:66mm;}.poN5 figure img{height:50mm;}'
+    +'.poN6 figure{width:62mm;}.poN6 figure img{height:47mm;}'
+    +'.poN7 figure{width:58mm;}.poN7 figure img{height:44mm;}'
+    +'.poN8 figure{width:56mm;}.poN8 figure img{height:42mm;}'
     // Textbox
     +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #e8843f;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
     +'.pb-title{font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#c2533a;margin-bottom:3mm;}'
     +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
+    // Hotel-Seite
+    +'.pb-hotel{background:linear-gradient(165deg,#fdf6ee 0%,#f6ebdd 100%);display:flex;flex-direction:column;align-items:center;text-align:center;}'
+    +'.ho-eyebrow{font-size:13px;letter-spacing:4px;text-transform:uppercase;color:#b89a76;margin-top:6mm;}'
+    +'.ho-emoji{font-size:50px;margin:4mm 0;}'
+    +'.ho-name{font-family:Georgia,serif;font-size:30px;color:#c2533a;font-weight:bold;line-height:1.2;max-width:150mm;}'
+    +'.ho-loc{font-size:15px;color:#999;margin-top:3mm;letter-spacing:.5px;}'
+    +'.ho-photo{margin:8mm 0;background:#fff;padding:3mm 3mm 8mm;border-radius:1mm;box-shadow:0 6px 20px rgba(0,0,0,.18);transform:rotate(var(--rot,-2deg));}'
+    +'.ho-photo img{display:block;width:130mm;height:90mm;object-fit:cover;border-radius:.5mm;}'
+    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:130mm;height:90mm;font-size:80px;transform:rotate(-2deg);}'
+    +'.ho-note{font-family:Georgia,serif;font-style:italic;font-size:16px;color:#7a6a55;max-width:140mm;margin:2mm 0 6mm;line-height:1.6;}'
+    +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:column;align-items:center;padding-bottom:4mm;}'
+    +'.ho-map-title{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:#b89a76;margin-bottom:2mm;}'
+    +'.ausmap-svg{width:75mm;height:auto;}'
     +'</style>';
   const win=window.open('','_blank');
   if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
