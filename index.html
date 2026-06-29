@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V33</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V34</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1064,7 +1064,7 @@ function renderCosts(){
     const dl=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
     const dayT=list.reduce((s,e)=>s+toEUR(e.amount,e.cur||'EUR'),0);
     tagHtml+=`<div class="cost-row" style="font-weight:600"><div>${dl}</div><div class="${pc}">EUR ${fmt(dayT)}</div></div>`;
-    list.forEach(e=>{const cur=e.cur||'EUR';const amtStr=fmt(e.amount)+' '+cur;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div>${amtStr}</div></div>`;tag+=toEUR(e.amount,cur);});
+    list.forEach(e=>{const cur=e.cur||'EUR';const amtStr=fmt(e.amount)+' '+cur;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div class="${pc}">${amtStr}</div></div>`;tag+=toEUR(e.amount,cur);});
   });
   if(tag>0){
     html+="<div class='cost-section-title'>Tagesausgaben vor Ort</div>"+tagHtml;
