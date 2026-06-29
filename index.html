@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V13</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V14</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -704,7 +704,7 @@ function buildDayHTML(day,i){
     const caption=photoComments[day.iso+'_'+pi]||'';
     return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
-  const addBtn=editMode?`<div class="photo-add-cell" onclick="pickPhotos('${day.iso}')"><span class="photo-add-cell-icon">📷</span><span>Foto</span></div>`:'';
+  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
   const comments=`<div class="comments-section"><div class="comments-title">💬 Kommentare</div><div id="comment-list-${day.iso}"><div class="sb-loading">Lädt…</div></div><div class="comment-form"><input type="text" placeholder="Dein Name" id="cn-${day.iso}" maxlength="50"><textarea placeholder="Dein Kommentar…" id="ct-${day.iso}" rows="2"></textarea><button class="btn btn-reef btn-sm" onclick="submitComment('${day.iso}')">💬 Kommentar senden</button></div></div>`;
   // Hotel-Banner
@@ -769,22 +769,7 @@ function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').styl
 // ── ZUVERLÄSSIGER FOTO-PICKER (iOS-kompatibel) ────────────────────────────
 let _photoPickIso='';
 let _dayPhotoInput=null;
-function pickPhotos(iso){
-  _photoPickIso=iso;
-  if(!_dayPhotoInput){
-    _dayPhotoInput=document.createElement('input');
-    _dayPhotoInput.type='file';_dayPhotoInput.accept='image/*';_dayPhotoInput.multiple=true;
-    _dayPhotoInput.style.display='none';
-    _dayPhotoInput.onchange=function(){
-      var files=Array.from(_dayPhotoInput.files);
-      if(!files.length)return;
-      handlePhotos({target:_dayPhotoInput},_photoPickIso);
-    };
-    document.body.appendChild(_dayPhotoInput);
-  }
-  _dayPhotoInput.value='';
-  _dayPhotoInput.click();
-}
+
 
 async function handlePhotos(event,iso){
   const f=event.target.files;
@@ -812,7 +797,7 @@ function refreshPhotoGrid(iso){
     const caption=photoComments[iso+'_'+pi]||'';
     return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
-  const addBtn=editMode?`<div class="photo-add-cell" onclick="pickPhotos('${iso}')"><span class="photo-add-cell-icon">📷</span><span>Foto</span></div>`:'';
+  const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
   grid.innerHTML=items+addBtn;
 }
 async function delPhotoEl(btn){
