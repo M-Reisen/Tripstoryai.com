@@ -506,6 +506,7 @@ textarea{resize:vertical;min-height:100px;}
 
 
 
+<input type="file" id="global-photo-input" accept="image/*" multiple style="position:fixed;left:-9999px;top:-9999px;opacity:0;">
 <script>
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
@@ -728,15 +729,11 @@ function goToDay(idx){currentDay=idx;document.getElementById('swipe-track').styl
 
 
 // ── ZUVERLÄSSIGER FOTO-PICKER (iOS-kompatibel) ────────────────────────────
+let _photoPickIso='';
 function pickPhotos(iso){
-  const inp=document.createElement('input');
-  inp.type='file';inp.accept='image/*';inp.multiple=true;
-  inp.style.position='fixed';inp.style.left='-9999px';
-  document.body.appendChild(inp);
-  inp.onchange=function(){
-    handlePhotos({target:inp},iso);
-    setTimeout(function(){if(inp.parentNode)inp.parentNode.removeChild(inp);},1000);
-  };
+  _photoPickIso=iso;
+  const inp=document.getElementById('global-photo-input');
+  inp.value='';
   inp.click();
 }
 
@@ -1147,6 +1144,16 @@ function startDictationEntry(){
 function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
 
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+
+// Foto-Input fest binden (iOS-zuverlässig)
+(function(){
+  const gi=document.getElementById('global-photo-input');
+  if(gi){
+    gi.addEventListener('change',function(){
+      if(_photoPickIso)handlePhotos({target:gi},_photoPickIso);
+    });
+  }
+})();
 
 initApp();
 </script>
