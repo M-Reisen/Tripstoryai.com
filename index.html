@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V18</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V19</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -707,8 +707,9 @@ function buildDayHTML(day,i){
     return '';
   }).filter(Boolean).join('');
   const entry=entries.find(e=>e.datum===day.iso);
+  const _esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   const entryHTML=entry
-    ?`<div class="day-entry-text">${entry.text.substring(0,200)}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>`
+    ?`<div class="day-entry-text">${_esc(entry.text.substring(0,200))}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>`
     :`<div class="day-entry-empty">Noch kein Eintrag für diesen Tag.</div>${editMode?`<button class="btn btn-primary btn-sm" onclick="startEntryForDate('${day.iso}')">✍️ Eintrag schreiben</button>`:''}`;
   const dayPhotos=photos[day.iso]||[];
   const photoItems=dayPhotos.map((src,pi)=>{
@@ -859,9 +860,9 @@ function startEntryForDate(iso){document.getElementById('f-datum').value=iso;con
 
 function openModal(id){
   const e=entries.find(x=>x.id===id||x.datum===id);
-  if(!e){alert('Kein Eintrag gefunden für: '+id+' (entries: '+entries.length+')');return;}
+  if(!e)return;
   const md=document.getElementById('modal');
-  if(!md){alert('Modal-Element fehlt!');return;}
+  if(!md)return;
   document.getElementById('modal-date').textContent=formatDate(e.datum);
   document.getElementById('modal-loc').textContent=e.ort||'';
   document.getElementById('modal-title').textContent=e.titel;
