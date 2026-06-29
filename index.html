@@ -1039,6 +1039,12 @@ function startDictation(){
 
 // ── TAGESAUSGABEN ─────────────────────────────────────────────────────────
 function addExpEl(btn){addDayExpense(btn.getAttribute('data-iso'));}
+function delExpEl(btn){
+  if(!editMode)return;
+  var iso=btn.getAttribute('data-iso');var idx=parseInt(btn.getAttribute('data-idx'));
+  if(dayExpenses[iso]){dayExpenses[iso].splice(idx,1);if(!dayExpenses[iso].length)delete dayExpenses[iso];}
+  buildDaySlides();renderCosts();toast('Ausgabe gelöscht.');
+}
 function addDayExpense(iso){
   if(!editMode)return;
   currentExpenseIso=iso;
