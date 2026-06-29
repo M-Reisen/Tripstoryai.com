@@ -255,7 +255,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V14</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V15</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -507,6 +507,14 @@ textarea{resize:vertical;min-height:100px;}
 
 
 <script>
+// ── GLOBALER FEHLER-FÄNGER ──
+window.onerror=function(msg,src,line,col,err){
+  alert('JS-FEHLER: '+msg+'\nZeile: '+line);
+  return false;
+};
+window.addEventListener('unhandledrejection',function(e){
+  alert('PROMISE-FEHLER: '+(e.reason&&e.reason.message?e.reason.message:JSON.stringify(e.reason)));
+});
 // ── SUPABASE ──────────────────────────────────────────────────────────────
 const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
