@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V23</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V24</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -290,6 +290,10 @@ textarea{resize:vertical;min-height:100px;}
   <div class="days-dots" id="days-dots"></div>
   <div class="days-swipe-wrap" id="swipe-wrap">
     <div class="days-swipe-track" id="swipe-track"></div>
+  </div>
+  <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,.08)">
+    <button class="btn btn-reef" onclick="createPhotobook()" style="font-size:.95rem">📖 Fotobuch als PDF erstellen</button>
+    <div style="font-size:.72rem;color:var(--fog);margin-top:8px;line-height:1.5">Erstellt eine Druckansicht mit einer Seite pro Tag.<br>Dann: Teilen → Drucken → „Als PDF sichern".</div>
   </div>
 </div>
 
@@ -1241,6 +1245,55 @@ function startDictationEntry(){
     if(_dictTimeout)clearTimeout(_dictTimeout);
     _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+}
+
+async function createPhotobook(){
+  toast('📖 Fotobuch wird vorbereitet…');
+  // Alle Fotos aller Tage laden (falls noch nicht geladen)
+  for(const day of DAYS){
+    if(!photos[day.iso]){
+      try{photos[day.iso]=loadPhotoOrder(day.iso,await sbLoadPhotos(day.iso));}catch(e){photos[day.iso]=[];}
+    }
+  }
+  // Nur Tage mit Inhalt (Eintrag oder Fotos)
+  const pages=[];
+  for(const day of DAYS){
+    const entry=entries.find(e=>e.datum===day.iso);
+    const dayPhotos=photos[day.iso]||[];
+    if(!entry&&dayPhotos.length===0)continue;
+    const ort=day.stay?day.stay.loc:'';
+    let photoHTML='';
+    if(dayPhotos.length){
+      photoHTML='<div class="pb-photos">'+dayPhotos.map((src,pi)=>{
+        const cap=photoComments[day.iso+'_'+pi]||'';
+        return '<div class="pb-photo"><img src="'+src+'">'+(cap?'<div class="pb-cap">'+cap.replace(/</g,'&lt;')+'</div>':'')+'</div>';
+      }).join('')+'</div>';
+    }
+    const txt=entry?('<div class="pb-title">'+(entry.titel||'').replace(/</g,'&lt;')+'</div><div class="pb-text">'+(entry.text||'').replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>'):'';
+    pages.push('<div class="pb-page"><div class="pb-head"><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+ort+'</div>':'')+'</div>'+txt+photoHTML+'</div>');
+  }
+  if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
+  const css='<style>'
+    +'@page{size:A4;margin:14mm;}'
+    +'*{box-sizing:border-box;margin:0;padding:0;}'
+    +'body{font-family:Georgia,serif;color:#2b2620;}'
+    +'.pb-page{page-break-after:always;min-height:255mm;}'
+    +'.pb-page:last-child{page-break-after:auto;}'
+    +'.pb-head{border-bottom:3px solid #d98c4a;padding-bottom:8px;margin-bottom:14px;}'
+    +'.pb-date{font-size:22px;color:#d98c4a;font-weight:bold;}'
+    +'.pb-loc{font-size:14px;color:#777;margin-top:3px;}'
+    +'.pb-title{font-size:18px;font-weight:bold;margin-bottom:8px;}'
+    +'.pb-text{font-size:13px;line-height:1.7;margin-bottom:16px;text-align:justify;}'
+    +'.pb-photos{display:grid;grid-template-columns:1fr 1fr;gap:8px;}'
+    +'.pb-photo{break-inside:avoid;}'
+    +'.pb-photo img{width:100%;height:auto;border-radius:4px;display:block;}'
+    +'.pb-cap{font-size:10px;color:#666;font-style:italic;margin-top:3px;text-align:center;}'
+    +'</style>';
+  const win=window.open('','_blank');
+  if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>M-Reisen Fotobuch – Australien 2026</title>'+css+'</head><body>'+pages.join('')+'</body></html>');
+  win.document.close();
+  toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann drucken.');
 }
 
 function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
