@@ -158,6 +158,7 @@ textarea{resize:vertical;min-height:100px;}
 .ai-result{font-size:.86rem;line-height:1.7;color:var(--ink);white-space:pre-wrap;min-height:60px;}
 .ai-result.loading{color:var(--fog);font-style:italic;animation:pulse 1.4s ease-in-out infinite;}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes dictpulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
 .divider{height:1px;background:rgba(28,26,22,.1);margin:18px 0;}
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
 .activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:18px;}
@@ -258,7 +259,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V35</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V36</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -958,7 +959,7 @@ async function saveEntry(){
   if(idx>=0)setTimeout(()=>goToDay(idx),100);
   toast('✓ Eintrag gespeichert!');
 }
-function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';}
+function resetForm(){if(_dictRec)stopDictation();['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';}
 function startEntryForDate(iso){document.getElementById('f-datum').value=iso;const s=BOOKINGS.find(b=>{const st=new Date(b.datum+'T12:00:00');const e=new Date(st);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=st&&c<e;});if(s)document.getElementById('f-ort').value=s.loc.split(',')[0];showTab('neu');}
 
 function editEntry(iso){
@@ -1341,45 +1342,70 @@ function skipApiKey(){document.getElementById('apikey-overlay').style.display='n
 
 
 // ── DIKTIERFUNKTION FÜR TAGEBUCH ─────────────────────────────────────────
-let _dictRec = null, _dictTimeout = null;
+let _dictRec = null, _dictTimeout = null, _dictBase = '', _dictFinal = '';
 function startDictationEntry(){
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
   const btn=document.getElementById('dictate-btn');
-  // Wenn läuft: stoppen
+  // Wenn läuft: SOFORT stoppen
   if(_dictRec){
-    try{_dictRec.stop();}catch(e){}
-    _dictRec=null;
-    if(btn)btn.textContent='🎤 Diktieren';
-    toast('Diktat beendet.');
+    stopDictation();
     return;
   }
   // Starten
+  _dictBase=document.getElementById('f-notizen').value||'';
   _dictRec = new SpeechRec();
   _dictRec.lang='de-DE';
-  _dictRec.continuous=false;
-  _dictRec.interimResults=false;
+  _dictRec.continuous=true;
+  _dictRec.interimResults=true;
+  _dictFinal='';
   _dictRec.onresult=function(e){
-    const t=e.results[0][0].transcript;
+    let interim='', final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)final+=t+' ';else interim+=t;
+    }
+    if(final)_dictFinal+=final;
     const ta=document.getElementById('f-notizen');
-    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
+    if(ta){
+      const sep=_dictBase&&!_dictBase.endsWith(' ')?' ':'';
+      ta.value=_dictBase+sep+_dictFinal+interim;
+    }
+    // Inaktivitäts-Timer zurücksetzen: nach 4 Sek Stille automatisch stoppen
+    if(_dictTimeout)clearTimeout(_dictTimeout);
+    _dictTimeout=setTimeout(function(){if(_dictRec)stopDictation();},4000);
   };
   _dictRec.onerror=function(e){
-    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){toast('Mikrofon-Zugriff verweigert. Bitte in den Einstellungen erlauben.');stopDictation();return;}
+    if(e.error!=='no-speech'&&e.error!=='aborted')toast('Diktat-Fehler: '+e.error);
   };
   _dictRec.onend=function(){
-    // KEIN Auto-Neustart – sauber beenden
-    _dictRec=null;
-    if(btn)btn.textContent='🎤 Diktieren';
+    // Falls unerwartet beendet und wir noch "an" sind, sauber aufräumen
+    if(_dictRec){_dictRec=null;updateDictBtn(false);}
   };
   try{
     _dictRec.start();
-    if(btn)btn.textContent='⏹ Stopp';
-    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
-    // Sicherheits-Stopp nach 60 Sekunden
+    updateDictBtn(true);
+    toast('🔴 Aufnahme läuft – zum Beenden auf „⏹ Stopp" tippen.');
     if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
+    _dictTimeout=setTimeout(function(){if(_dictRec)stopDictation();},8000);
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+}
+function stopDictation(){
+  if(_dictTimeout){clearTimeout(_dictTimeout);_dictTimeout=null;}
+  if(_dictRec){
+    try{_dictRec.onend=null;_dictRec.stop();}catch(e){}
+    try{_dictRec.abort();}catch(e){}
+    _dictRec=null;
+  }
+  updateDictBtn(false);
+  toast('✓ Diktat beendet.');
+}
+function updateDictBtn(recording){
+  const btn=document.getElementById('dictate-btn');
+  if(!btn)return;
+  if(recording){btn.textContent='⏹ Stopp (Aufnahme läuft)';btn.style.background='#dc2626';btn.style.animation='dictpulse 1.2s infinite';}
+  else{btn.textContent='🎤 Diktieren';btn.style.background='';btn.style.animation='';}
 }
 
 // Stations-Koordinaten auf der stilisierten Karte (viewBox 0..400 x 0..440)
