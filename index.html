@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V30</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V31</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -665,8 +665,9 @@ const DAYS=buildDays();
 async function initApp(){
   try{
     const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
   }catch(e){console.error('Eintraege laden:',e);}
+  try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}
   try{buildDaySlides();}catch(e){console.error('buildDaySlides:',e);}
   setTimeout(()=>{try{loadCommentsForDay(DAYS[0].iso);}catch(e){}},300);
 }
@@ -1192,10 +1193,15 @@ function startDictation(){
 
 // ── TAGESAUSGABEN ─────────────────────────────────────────────────────────
 function addExpEl(btn){addDayExpense(btn.getAttribute('data-iso'));}
-function delExpEl(btn){
+async function delExpEl(btn){
   if(!editMode)return;
+  if(!confirm('Diese Ausgabe löschen?'))return;
   var iso=btn.getAttribute('data-iso');var idx=parseInt(btn.getAttribute('data-idx'));
-  if(dayExpenses[iso]){dayExpenses[iso].splice(idx,1);if(!dayExpenses[iso].length)delete dayExpenses[iso];}
+  if(dayExpenses[iso]&&dayExpenses[iso][idx]){
+    const exp=dayExpenses[iso][idx];
+    if(exp.id)await sbDeleteExpense(exp.id);
+    dayExpenses[iso].splice(idx,1);if(!dayExpenses[iso].length)delete dayExpenses[iso];
+  }
   buildDaySlides();renderCosts();toast('Ausgabe gelöscht.');
 }
 function addDayExpense(iso){
@@ -1206,15 +1212,42 @@ function addDayExpense(iso){
   document.getElementById('exp-label').value='';document.getElementById('exp-amount').value='';
   document.getElementById('expense-modal').style.display='flex';
 }
-function saveExpense(){
+async function sbSaveExpense(iso,cat,label,amount){
+  const {data,error}=await sb.from('kommentare').insert({ort:'ausgabe_'+iso,name:cat+'|'+label,nachricht:String(amount),created_at:new Date().toISOString()}).select();
+  if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
+  return data&&data[0]?data[0].id:null;
+}
+async function sbLoadExpenses(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort','ausgabe_%').order('created_at',{ascending:true});
+  if(error){console.error('Ausgaben laden:',error);return;}
+  dayExpenses={};
+  (data||[]).forEach(r=>{
+    const iso=r.ort.replace('ausgabe_','');
+    const parts=(r.name||'').split('|');
+    const cat=parts[0]||'💶';
+    const label=parts.slice(1).join('|')||'Ausgabe';
+    const amount=parseFloat(r.nachricht)||0;
+    if(!dayExpenses[iso])dayExpenses[iso]=[];
+    dayExpenses[iso].push({id:r.id,cat:cat,label:label,amount:amount});
+  });
+}
+async function sbDeleteExpense(id){
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  return !error;
+}
+
+async function saveExpense(){
   var iso=currentExpenseIso;
   var catText=document.getElementById('exp-cat').value;
   var label=document.getElementById('exp-label').value.trim();
   var amt=parseFloat(document.getElementById('exp-amount').value.replace(',','.'));
   if(!label){toast('Bitte Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
+  var cat=catText.split(' ')[0];
+  const id=await sbSaveExpense(iso,cat,label,amt);
+  if(id===null)return;
   if(!dayExpenses[iso])dayExpenses[iso]=[];
-  dayExpenses[iso].push({cat:catText.split(' ')[0],label:label,amount:amt});
+  dayExpenses[iso].push({id:id,cat:cat,label:label,amount:amt});
   document.getElementById('expense-modal').style.display='none';
   buildDaySlides();renderCosts();toast('Ausgabe gespeichert!');
 }
