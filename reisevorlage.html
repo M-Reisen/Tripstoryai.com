@@ -179,6 +179,17 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .fx-row input{flex:1;padding:6px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:7px;font-family:'Inter',sans-serif;font-size:.82rem;background:#fff;}
 .fx-save{background:var(--reef);color:#fff;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:.85rem;}
 
+/* HOTELBEWERTUNG */
+.hotel-review{margin-top:14px;border-top:1px solid rgba(28,26,22,.08);padding-top:12px;}
+.hotel-review-head{font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.hotel-stars{margin-bottom:6px;}
+.hotel-review-text{font-size:.86rem;line-height:1.7;color:#3a2d22;white-space:pre-wrap;}
+.hotel-review-empty{font-size:.82rem;color:var(--fog);font-style:italic;margin-bottom:8px;}
+.star-picker{display:flex;gap:6px;font-size:1.8rem;}
+.star-pick{cursor:pointer;color:#d8cfc2;transition:color .12s;line-height:1;}
+.star-pick.on{color:#e0b34f;}
+.star-pick:hover{color:#e0b34f;}
+
 @media(max-width:600px){
   .cost-card,.modal{padding:18px;}
   .hero{padding:34px 18px 30px;}
@@ -335,11 +346,58 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
     <div class="field">
       <label>Was habt ihr an diesem Tag erlebt?</label>
-      <textarea id="entry-text" style="min-height:160px" placeholder="Schreibe hier deinen Tagebucheintrag…"></textarea>
+      <textarea id="entry-text" style="min-height:160px" placeholder="Schreibe hier deinen Tagebucheintrag – oder Stichpunkte und lass die KI formulieren…"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--ocean);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
+      <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert</button>
     </div>
     <div class="modal-actions">
       <button class="cancel" onclick="deleteEntry()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
       <button class="save" onclick="saveEntry()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOTELBEWERTUNG-MODAL -->
+<div class="overlay" id="rev-modal" onclick="if(event.target===this)closeReviewModal()">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Hotelbewertung</div>
+        <div id="rev-hotel-name" style="font-size:.78rem;color:var(--fog);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeReviewModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Sterne</label>
+      <div id="rev-stars" class="star-picker"></div>
+    </div>
+    <div class="field">
+      <label>Beschreibung</label>
+      <textarea id="rev-text" style="min-height:120px" placeholder="Wie war die Unterkunft? Lage, Zimmer, Service…"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button id="rev-dictate-btn" class="btn btn-sm" style="background:var(--ocean);color:#fff" onclick="dictateReview()">🎤 Diktieren</button>
+      <button id="rev-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiPolishReview()">✨ Verschönern</button>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="deleteReview()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
+      <button class="save" onclick="saveReview()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- API-KEY-OVERLAY -->
+<div class="overlay" id="apikey-overlay" onclick="if(event.target===this)closeApiKey()">
+  <div class="modal" style="max-width:380px;">
+    <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">🔑</div>
+    <div class="modal-title" style="text-align:center;margin-bottom:6px;">API-Key für KI</div>
+    <div style="font-size:.78rem;color:var(--fog);margin-bottom:16px;text-align:center;line-height:1.5;">Wird nur lokal in deinem Browser gespeichert. Nötig für die KI-Funktionen.</div>
+    <input id="apikey-input" type="password" placeholder="sk-ant-api03-…" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:14px;">
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeApiKey()">Später</button>
+      <button class="save" onclick="saveApiKey()">Speichern</button>
     </div>
   </div>
 </div>
@@ -455,6 +513,10 @@ let photoMeta={};        // iso -> {order:[url,...], captions:{url:text}}
 let _expIso=null;        // aktueller Tag für Ausgabe
 let _capIso=null;        // aktueller Tag für Bildunterschrift
 let _capUrl=null;        // aktuelle Foto-URL für Bildunterschrift
+let hotelReviews={};     // iso -> {id, stars, text}
+let _revIso=null;        // aktueller Tag für Hotelbewertung
+let _apiKey='';          // Anthropic API-Key
+let _dictRec=null, _dictTimeout=null;  // Diktierfunktion
 let editMode=false;
 let pinBuffer='';
 let currentDay=0;
@@ -624,6 +686,37 @@ async function sbDeleteEntry(iso){
   const e=entries[iso];if(!e||!e.id)return;
   await sb.from('kommentare').delete().eq('id',e.id);
   delete entries[iso];
+}
+
+// ── SUPABASE: HOTELBEWERTUNGEN (pro Tag) ──────────────────────────────────────
+// ort=PFX+'review_<iso>', name=stars, nachricht=text
+async function sbLoadReviews(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'review_%');
+  if(error){console.error('Bewertungen laden:',error);return;}
+  hotelReviews={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'review_').length);
+    hotelReviews[iso]={id:r.id,stars:parseInt(r.name)||0,text:r.nachricht||''};
+  });
+}
+async function sbSaveReview(iso,stars,text){
+  const key=PFX+'review_'+iso;
+  const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+  if(data&&data.length){
+    const {error}=await sb.from('kommentare').update({name:String(stars),nachricht:text}).eq('id',data[0].id);
+    if(error){toast('Fehler beim Speichern.');return false;}
+    hotelReviews[iso]={id:data[0].id,stars:stars,text:text};
+  }else{
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:String(stars),nachricht:text,created_at:new Date().toISOString()}).select();
+    if(error){toast('Fehler beim Speichern.');return false;}
+    hotelReviews[iso]={id:ins&&ins[0]?ins[0].id:null,stars:stars,text:text};
+  }
+  return true;
+}
+async function sbDeleteReview(iso){
+  const r=hotelReviews[iso];if(!r||!r.id)return;
+  await sb.from('kommentare').delete().eq('id',r.id);
+  delete hotelReviews[iso];
 }
 
 // ── SUPABASE: WECHSELKURSE (pro Reise) ────────────────────────────────────────
@@ -823,6 +916,26 @@ function renderDayCard(days){
       +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
   }
 
+  // ── Hotelbewertung (nur wenn Tag eine Unterkunft hat) ──
+  let revHTML='';
+  if(stay){
+    const rev=hotelReviews[iso];
+    const stars=rev?rev.stars:0;
+    let starStr='';
+    for(let s=1;s<=5;s++)starStr+='<span style="color:'+(s<=stars?'#e0b34f':'#d8cfc2')+';font-size:1.1rem">★</span>';
+    if(rev&&(rev.text||rev.stars)){
+      revHTML='<div class="hotel-review"><div class="hotel-review-head">🏨 '+esc(stay.label.split('·')[0].trim())+'</div>'
+        +'<div class="hotel-stars">'+starStr+'</div>'
+        +(rev.text?'<div class="hotel-review-text">'+esc(rev.text)+'</div>':'')
+        +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:6px" onclick="openReview(\''+iso+'\')">✏️ Bearbeiten</button>':'')
+        +'</div>';
+    }else if(editMode){
+      revHTML='<div class="hotel-review"><div class="hotel-review-head">🏨 '+esc(stay.label.split('·')[0].trim())+'</div>'
+        +'<div class="hotel-review-empty">Noch keine Bewertung.</div>'
+        +'<button class="btn btn-primary btn-sm" onclick="openReview(\''+iso+'\')">⭐ Hotel bewerten</button></div>';
+    }
+  }
+
   // ── Tagesausgaben vor Ort ──
   const exps=dayExpenses[iso]||[];
   let expHTML='';
@@ -842,7 +955,7 @@ function renderDayCard(days){
     '<div class="day-card">'
     +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
     +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
-    +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
+    +`<div class="day-entry-area">${entryHTML}${revHTML}${expHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
     +'</div>';
 }
@@ -911,6 +1024,127 @@ async function saveCaption(){
   renderTage();toast('Bildunterschrift gespeichert!');
 }
 function closeCaptionModal(){document.getElementById('caption-modal').classList.remove('open');}
+
+// ── HOTELBEWERTUNG UI ─────────────────────────────────────────────────────────
+let _revStars=0;
+function openReview(iso){
+  if(!editMode)return;
+  _revIso=iso;
+  const rev=hotelReviews[iso]||{stars:0,text:''};
+  _revStars=rev.stars||0;
+  const stay=costs.filter(c=>c.cat==='Unterkunft'&&c.datum===iso)[0];
+  document.getElementById('rev-hotel-name').textContent=stay?stay.label.split('·')[0].trim():'Unterkunft';
+  setVal('rev-text',rev.text||'');
+  renderStarPicker();
+  document.getElementById('rev-modal').classList.add('open');
+}
+function renderStarPicker(){
+  let html='';
+  for(let s=1;s<=5;s++)html+='<span class="star-pick'+(s<=_revStars?' on':'')+'" onclick="setStars('+s+')">★</span>';
+  document.getElementById('rev-stars').innerHTML=html;
+}
+function setStars(s){_revStars=s;renderStarPicker();}
+async function saveReview(){
+  if(!_revIso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  const text=val('rev-text').trim();
+  const ok=await sbSaveReview(_revIso,_revStars,text);
+  if(!ok)return;
+  document.getElementById('rev-modal').classList.remove('open');
+  renderTage();toast('Bewertung gespeichert!');
+}
+async function deleteReview(){
+  if(!_revIso)return;
+  if(!confirm('Bewertung wirklich löschen?'))return;
+  await sbDeleteReview(_revIso);
+  document.getElementById('rev-modal').classList.remove('open');
+  renderTage();toast('Bewertung gelöscht.');
+}
+function closeReviewModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('rev-modal').classList.remove('open');}
+
+// ── DIKTIERFUNKTION (robust: interimResults) ──────────────────────────────────
+function startDictationFor(textareaId,btnId){
+  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
+  const btn=document.getElementById(btnId);
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';toast('Diktat beendet.');return;}
+  const ta=document.getElementById(textareaId);if(!ta){return;}
+  let baseText=ta.value?(ta.value.trim()+' '):'';
+  _dictRec=new SpeechRec();
+  _dictRec.lang='de-DE';_dictRec.continuous=true;_dictRec.interimResults=true;
+  _dictRec.onstart=function(){if(btn)btn.textContent='⏹ Stopp';toast('🎤 Mikrofon aktiv – jetzt sprechen…');};
+  _dictRec.onresult=function(e){
+    let finalT='',interimT='';
+    for(let i=0;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=t+' ';else interimT+=t;}
+    ta.value=(baseText+finalT+interimT).trim();
+  };
+  _dictRec.onerror=function(e){
+    if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('Mikrofonzugriff verweigert. Bitte erlauben.');
+    else if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
+  };
+  _dictRec.onend=function(){_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';};
+  try{
+    _dictRec.start();
+    if(_dictTimeout)clearTimeout(_dictTimeout);
+    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
+  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+}
+function dictateEntry(){startDictationFor('entry-text','entry-dictate-btn');}
+function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
+
+// ── API-KEY ───────────────────────────────────────────────────────────────────
+function loadApiKey(){try{var enc=localStorage.getItem('_mk_'+REISE);return enc?atob(enc):'';}catch(e){return'';}}
+function saveApiKey(){
+  var k=document.getElementById('apikey-input').value.trim();
+  if(!k||k.length<20){toast('Bitte gültigen Key eingeben.');return;}
+  _apiKey=k;
+  try{localStorage.setItem('_mk_'+REISE,btoa(k));}catch(e){}
+  document.getElementById('apikey-overlay').classList.remove('open');
+  document.getElementById('apikey-input').value='';
+  toast('API-Key gespeichert!');
+}
+function openApiKey(){document.getElementById('apikey-overlay').classList.add('open');}
+function closeApiKey(){document.getElementById('apikey-overlay').classList.remove('open');}
+function ensureApiKey(){
+  if(!_apiKey)_apiKey=loadApiKey();
+  if(!_apiKey){openApiKey();return false;}
+  return true;
+}
+
+// ── KI: Eintrag aus Stichpunkten / Text verschönern ───────────────────────────
+async function aiCall(prompt,maxTokens){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1000,messages:[{role:'user',content:prompt}]})
+  });
+  const d=await r.json();
+  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  return d.content?d.content.map(c=>c.text||'').join(''):'';
+}
+async function aiWriteEntry(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const raw=val('entry-text').trim();
+  if(!raw){toast('Bitte erst Stichpunkte eingeben.');return;}
+  const stay=_entryIso?costs.filter(c=>c.cat==='Unterkunft'&&c.datum===_entryIso)[0]:null;
+  const ort=stay?stay.label.split('·')[0].trim():(tripHead.sub||tripHead.title||'unsere Reise');
+  const btn=document.getElementById('entry-ai-btn');const orig=btn.textContent;btn.textContent='✨ KI schreibt…';btn.disabled=true;
+  const prompt='Du bist ein enthusiastischer Reiseblogger. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 120–180 Wörter). Wir-Form. Stil: warm, bildhaft, authentisch.\n\nOrt: '+ort+'\nStichpunkte:\n'+raw+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
+  try{const out=await aiCall(prompt,1000);if(out)setVal('entry-text',out);toast('✓ Eintrag formuliert!');}
+  catch(e){toast('Fehler: '+e.message);}
+  btn.textContent=orig;btn.disabled=false;
+}
+async function aiPolishReview(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const raw=val('rev-text').trim();
+  if(!raw){toast('Bitte erst Text eingeben.');return;}
+  const hotel=document.getElementById('rev-hotel-name').textContent;
+  const btn=document.getElementById('rev-ai-btn');const orig=btn.textContent;btn.textContent='✨…';btn.disabled=true;
+  const prompt='Verbessere diesen Hotelbewertungstext. Flüssiger und lebendiger. Inhalt beibehalten. Keine persönlichen Anreden. Nur den Text.\n\nHotel: '+hotel+'\nText: '+raw;
+  try{const out=await aiCall(prompt,400);if(out)setVal('rev-text',out);toast('✓ Text verbessert!');}
+  catch(e){toast('Fehler: '+e.message);}
+  btn.textContent=orig;btn.disabled=false;
+}
 function openLightbox(iso,idx){
   _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
   if(!_lbPhotos.length)return;
@@ -1316,7 +1550,9 @@ async function init(){
   try{await sbLoadCosts();}catch(e){console.error(e);}
   try{await sbLoadExpenses();}catch(e){console.error(e);}
   try{await sbLoadEntries();}catch(e){console.error(e);}
+  try{await sbLoadReviews();}catch(e){console.error(e);}
   try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
+  _apiKey=loadApiKey();
   renderHead();renderTage();
 }
 init();
