@@ -135,6 +135,28 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:10px 22px;border-radius:8px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
+/* FOTOS */
+.photo-strip{padding:14px 22px;border-bottom:1px solid rgba(28,26,22,.07);}
+.photo-strip-label{font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.photo-cell{position:relative;width:100%;padding-top:100%;border-radius:8px;overflow:hidden;background:#e8e0d4;}
+.photo-cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+.photo-del{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.88);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-add{position:relative;padding-top:100%;border:2px dashed rgba(28,26,22,.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:var(--fog);gap:2px;background:var(--paper);transition:all .15s;}
+.photo-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.photo-add>span{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
+.photo-add>span:first-child{position:static;transform:none;}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:700;flex-direction:column;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:94vw;max-height:78vh;object-fit:contain;border-radius:8px;}
+.lb-top{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 18px;color:#fff;}
+.lb-counter{font-size:.82rem;color:rgba(255,255,255,.7);}
+.lb-close{background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;opacity:.85;}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.3rem;cursor:pointer;}
+.lb-arrow.prev{left:12px;}.lb-arrow.next{right:12px;}
+
 @media(max-width:600px){
   .cost-card,.modal{padding:18px;}
   .hero{padding:34px 18px 30px;}
@@ -275,6 +297,38 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
   </div>
 </div>
 
+<!-- TAGEBUCHEINTRAG-MODAL -->
+<div class="overlay" id="entry-modal" onclick="if(event.target===this)closeEntryModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Tagebucheintrag</div>
+        <div id="entry-date-lbl" style="font-size:.78rem;color:var(--fog);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeEntryModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Was habt ihr an diesem Tag erlebt?</label>
+      <textarea id="entry-text" style="min-height:160px" placeholder="Schreibe hier deinen Tagebucheintrag…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="deleteEntry()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
+      <button class="save" onclick="saveEntry()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <div class="lb-top">
+    <span class="lb-counter" id="lb-counter"></span>
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+  </div>
+  <button class="lb-arrow prev" onclick="lbNav(-1)">‹</button>
+  <img id="lb-img" src="" alt="Foto">
+  <button class="lb-arrow next" onclick="lbNav(1)">›</button>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -309,10 +363,15 @@ const CAT_EMOJI={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟�
 
 let tripHead={title:'', sub:'', from:'', to:'', emoji:'🌍'};
 let costs=[];            // {id, cat, label, info, datum, amount, cur}
+let entries={};          // iso -> {id, titel, text}
+let photos={};           // iso -> [url,...] (undefined = noch nicht geladen)
 let editMode=false;
 let pinBuffer='';
 let currentDay=0;
 let _editId=null;
+let _entryIso=null;      // aktuell bearbeiteter Eintrag
+let _lbPhotos=[];        // Lightbox-Fotos
+let _lbIdx=0;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -382,6 +441,60 @@ async function sbLoadCosts(){
     else if(mp.length===3){if(isISODate(mp[2]))datum=mp[2];else info=mp[2];}
     return {id:r.id,cat:cat,label:label,info:info,datum:datum,amount:amount,cur:cur};
   });
+}
+
+// ── SUPABASE: FOTOS (Storage-Bucket 'Reisefotos', Pfad <reise>/<datum>/) ──────
+function photoFolder(iso){return REISE+'/'+iso;}
+async function sbLoadPhotos(iso){
+  const {data,error}=await sb.storage.from('Reisefotos').list(photoFolder(iso),{limit:100});
+  if(error||!data)return[];
+  return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl(photoFolder(iso)+'/'+f.name);
+    return u.publicUrl;
+  });
+}
+async function sbUploadPhoto(iso,file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path=photoFolder(iso)+'/'+Date.now()+'_'+Math.floor(Math.random()*10000)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg'});
+  if(error){console.error('Upload:',error);return null;}
+  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+  return data&&data.publicUrl?data.publicUrl:null;
+}
+async function sbDeletePhoto(url){
+  const path=url.split('/Reisefotos/')[1];
+  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
+
+// ── SUPABASE: TAGEBUCHEINTRÄGE (ein Eintrag pro Tag) ──────────────────────────
+// ort=PFX+'entry_<datum>', name=titel, nachricht=text
+async function sbLoadEntries(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'entry_%');
+  if(error){console.error('Einträge laden:',error);return;}
+  entries={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'entry_').length);
+    entries[iso]={id:r.id,titel:r.name||'',text:r.nachricht||''};
+  });
+}
+async function sbSaveEntry(iso,titel,text){
+  const key=PFX+'entry_'+iso;
+  const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+  if(data&&data.length){
+    const {error}=await sb.from('kommentare').update({name:titel,nachricht:text}).eq('id',data[0].id);
+    if(error){toast('Fehler beim Speichern.');return false;}
+    entries[iso]={id:data[0].id,titel:titel,text:text};
+  }else{
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:titel,nachricht:text,created_at:new Date().toISOString()}).select();
+    if(error){toast('Fehler beim Speichern.');return false;}
+    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,text:text};
+  }
+  return true;
+}
+async function sbDeleteEntry(iso){
+  const e=entries[iso];if(!e||!e.id)return;
+  await sb.from('kommentare').delete().eq('id',e.id);
+  delete entries[iso];
 }
 
 // ── REISEKOPF UI ──────────────────────────────────────────────────────────────
@@ -488,15 +601,115 @@ function renderDayCard(days){
   document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
   document.getElementById('btn-prev').disabled=currentDay===0;
   document.getElementById('btn-next').disabled=currentDay===days.length-1;
+
+  // ── Fotos ──
+  let photoHTML='';
+  if(photos[iso]===undefined){
+    photoHTML='<div style="font-size:.78rem;color:var(--fog);padding:4px 0">⏳ Fotos werden geladen…</div>';
+    // asynchron laden, danach neu rendern
+    sbLoadPhotos(iso).then(function(list){photos[iso]=list;if(buildDays()[currentDay]===iso)renderDayCard(days);}).catch(function(){photos[iso]=[];});
+  }else{
+    const arr=photos[iso]||[];
+    let cells=arr.map(function(url,pi){
+      return '<div class="photo-cell">'
+        +'<img src="'+url+'" onclick="openLightbox(\''+iso+'\','+pi+')" alt="Foto">'
+        +(editMode?'<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>':'')
+        +'</div>';
+    }).join('');
+    const addCell=editMode
+      ?'<label class="photo-add"><span style="font-size:1.4rem">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,\''+iso+'\')"></label>'
+      :'';
+    if(arr.length||editMode){
+      photoHTML='<div class="photo-grid">'+cells+addCell+'</div>';
+    }
+  }
+
+  // ── Tagebucheintrag ──
+  const entry=entries[iso];
+  let entryHTML;
+  if(entry&&entry.text){
+    entryHTML='<div class="day-entry-text">'+esc(entry.text)+'</div>'
+      +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18)" onclick="openEntry(\''+iso+'\')">✏️ Bearbeiten</button>':'');
+  }else{
+    entryHTML='<div class="day-entry-empty">Noch kein Tagebucheintrag für diesen Tag.</div>'
+      +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
+  }
+
   document.getElementById('day-card-wrap').innerHTML=
     '<div class="day-card">'
     +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
-    +'<div class="day-entry-area"><div class="day-entry-empty">Tagebucheinträge, Fotos & mehr folgen in einer späteren Version.</div></div>'
+    +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
+    +`<div class="day-entry-area">${entryHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
     +'</div>';
 }
 function slideDay(dir){const days=buildDays();const n=currentDay+dir;if(n<0||n>=days.length)return;currentDay=n;renderTage();}
 function goToDay(i){currentDay=i;renderTage();}
+
+// ── FOTOS UI ──────────────────────────────────────────────────────────────────
+async function handlePhotos(event,iso){
+  if(!editMode)return;
+  const files=Array.from(event.target.files);if(!files.length)return;
+  if(!Array.isArray(photos[iso]))photos[iso]=[];
+  toast('Lade '+files.length+' Foto(s) hoch…');
+  let ok=0;
+  for(const f of files){
+    const url=await sbUploadPhoto(iso,f);
+    if(url){photos[iso].push(url);ok++;}
+  }
+  renderTage();
+  toast(ok+' Foto(s) gespeichert!');
+}
+async function delPhoto(iso,idx){
+  if(!editMode)return;
+  if(!confirm('Foto löschen?'))return;
+  const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
+  await sbDeletePhoto(url);
+  arr.splice(idx,1);
+  renderTage();toast('Foto gelöscht.');
+}
+function openLightbox(iso,idx){
+  _lbPhotos=photos[iso]||[];_lbIdx=idx;
+  if(!_lbPhotos.length)return;
+  document.getElementById('lb-img').src=_lbPhotos[idx];
+  document.getElementById('lb-counter').textContent=(idx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lightbox').classList.add('open');
+}
+function lbNav(dir){
+  if(!_lbPhotos.length)return;
+  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
+  document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
+  document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_lbPhotos.length;
+}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+// ── TAGEBUCHEINTRAG UI ────────────────────────────────────────────────────────
+function openEntry(iso){
+  if(!editMode)return;
+  _entryIso=iso;
+  const e=entries[iso]||{titel:'',text:''};
+  const d=new Date(iso+'T12:00:00');
+  document.getElementById('entry-date-lbl').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  setVal('entry-text',e.text||'');
+  document.getElementById('entry-modal').classList.add('open');
+}
+async function saveEntry(){
+  const iso=_entryIso;if(!iso)return;
+  const text=val('entry-text').trim();
+  if(!text){toast('Bitte einen Text eingeben.');return;}
+  const ok=await sbSaveEntry(iso,'',text);
+  if(!ok)return;
+  document.getElementById('entry-modal').classList.remove('open');
+  renderTage();toast('Eintrag gespeichert!');
+}
+async function deleteEntry(){
+  const iso=_entryIso;if(!iso)return;
+  if(!confirm('Eintrag wirklich löschen?'))return;
+  await sbDeleteEntry(iso);
+  document.getElementById('entry-modal').classList.remove('open');
+  renderTage();toast('Eintrag gelöscht.');
+}
+function closeEntryModal(){document.getElementById('entry-modal').classList.remove('open');}
 
 // ── KOSTEN UI ─────────────────────────────────────────────────────────────────
 function renderCosts(){
@@ -637,6 +850,7 @@ async function init(){
   }
   try{await sbLoadHead();}catch(e){console.error(e);}
   try{await sbLoadCosts();}catch(e){console.error(e);}
+  try{await sbLoadEntries();}catch(e){console.error(e);}
   renderHead();renderTage();
 }
 init();
