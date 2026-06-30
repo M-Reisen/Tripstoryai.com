@@ -77,6 +77,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .day-card-loc{font-size:.8rem;color:var(--fog);margin-top:2px;}
 .day-entry-area{padding:18px 22px;}
 .day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:12px;}
+.entry-titel{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:6px;}
 .day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:12px;}
 .day-program{display:flex;flex-wrap:wrap;gap:6px;padding:12px 22px;background:rgba(28,26,22,.03);border-top:1px solid rgba(28,26,22,.06);}
 .program-badge{font-size:.75rem;padding:4px 11px;border-radius:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px;}
@@ -352,17 +353,26 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       </div>
       <button class="modal-close" onclick="closeEntryModal()">✕</button>
     </div>
+    <div class="field"><label>Ort</label><input type="text" id="entry-ort" placeholder="z.B. Port Douglas"></div>
+    <div class="field"><label>Titel <span class="opt">(optional)</span></label><input type="text" id="entry-titel" placeholder="z.B. Schnorcheln mit Schildkröten"></div>
+    <div class="field"><label>Kategorie</label><select id="entry-kat"></select></div>
     <div class="field">
-      <label>Was habt ihr an diesem Tag erlebt?</label>
-      <textarea id="entry-text" style="min-height:160px" placeholder="Schreibe hier deinen Tagebucheintrag – oder Stichpunkte und lass die KI formulieren…"></textarea>
+      <label>Stichpunkte / Notizen</label>
+      <textarea id="entry-notes" style="min-height:90px" placeholder="z.B.&#10;- Kängurus beim Sonnenaufgang&#10;- Schnorcheln mit Schildkröten&#10;- Abendessen: frischer Barramundi"></textarea>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--ocean);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
-      <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+      <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert den Eintrag</button>
+      <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--bush);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
+      <button class="btn btn-sm" style="background:var(--paper);color:var(--fog);border:1.5px solid rgba(28,26,22,.15)" onclick="openApiKey()">🔑 API-Key</button>
+    </div>
+    <div style="height:1px;background:rgba(28,26,22,.1);margin:14px 0"></div>
+    <div class="field">
+      <label>Finaler Text</label>
+      <textarea id="entry-text" style="min-height:130px" placeholder="KI-Text erscheint oben — oder direkt selbst schreiben."></textarea>
     </div>
     <div class="modal-actions">
       <button class="cancel" onclick="deleteEntry()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
-      <button class="save" onclick="saveEntry()">Speichern</button>
+      <button class="save" onclick="saveEntry()">💾 Speichern</button>
     </div>
   </div>
 </div>
@@ -511,6 +521,20 @@ const PLAN_CATS=[
 let FX={EUR:1, USD:0.92, GBP:1.17, CHF:1.06, JPY:0.0061, AUD:0.61};
 function toEUR(a,c){return a*(FX[c]||1);}
 const CAT_EMOJI={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'✨'};
+// Eintrag-Kategorien (wie Australien)
+const ENTRY_CATS=[
+  {v:'Strand',label:'🏖️ Strand & Meer'},
+  {v:'Natur',label:'🌿 Natur & Wildlife'},
+  {v:'Stadt',label:'🏙️ Stadt'},
+  {v:'Kultur',label:'🏛️ Kultur & Sehenswürdigkeiten'},
+  {v:'Berge',label:'⛰️ Berge & Wandern'},
+  {v:'Insel',label:'🏝️ Insel'},
+  {v:'Ausflug',label:'🎟️ Ausflug / Tour'},
+  {v:'Essen',label:'🍽️ Kulinarik'},
+  {v:'Reise',label:'✈️ Anreise / Transfer'},
+  {v:'Sonstiges',label:'✨ Sonstiges'}
+];
+const ENTRY_CAT_EMOJI={Strand:'🏖️',Natur:'🌿',Stadt:'🏙️',Kultur:'🏛️',Berge:'⛰️',Insel:'🏝️',Ausflug:'🎟️',Essen:'🍽️',Reise:'✈️',Sonstiges:'✨'};
 
 let tripHead={title:'', sub:'', from:'', to:'', emoji:'🌍'};
 let costs=[];            // {id, cat, label, info, datum, amount, cur}
@@ -673,20 +697,22 @@ async function sbLoadEntries(){
   entries={};
   (data||[]).forEach(function(r){
     const iso=r.ort.substring((PFX+'entry_').length);
-    entries[iso]={id:r.id,titel:r.name||'',text:r.nachricht||''};
+    const parts=(r.name||'').split('|');
+    entries[iso]={id:r.id,titel:parts[0]||'',kat:parts[1]||'Sonstiges',ort:parts[2]||'',text:r.nachricht||''};
   });
 }
-async function sbSaveEntry(iso,titel,text){
+async function sbSaveEntry(iso,titel,kat,ort,text){
   const key=PFX+'entry_'+iso;
+  const nameField=titel+'|'+kat+'|'+ort;
   const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
   if(data&&data.length){
-    const {error}=await sb.from('kommentare').update({name:titel,nachricht:text}).eq('id',data[0].id);
+    const {error}=await sb.from('kommentare').update({name:nameField,nachricht:text}).eq('id',data[0].id);
     if(error){toast('Fehler beim Speichern.');return false;}
-    entries[iso]={id:data[0].id,titel:titel,text:text};
+    entries[iso]={id:data[0].id,titel:titel,kat:kat,ort:ort,text:text};
   }else{
-    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:titel,nachricht:text,created_at:new Date().toISOString()}).select();
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:nameField,nachricht:text,created_at:new Date().toISOString()}).select();
     if(error){toast('Fehler beim Speichern.');return false;}
-    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,text:text};
+    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,kat:kat,ort:ort,text:text};
   }
   return true;
 }
@@ -917,7 +943,9 @@ function renderDayCard(days){
   const entry=entries[iso];
   let entryHTML;
   if(entry&&entry.text){
-    entryHTML='<div class="day-entry-text">'+esc(entry.text)+'</div>'
+    const emoji=ENTRY_CAT_EMOJI[entry.kat]||'';
+    const titelLine=entry.titel?'<div class="entry-titel">'+(emoji?emoji+' ':'')+esc(entry.titel)+'</div>':(emoji?'<div class="entry-titel">'+emoji+'</div>':'');
+    entryHTML=titelLine+'<div class="day-entry-text">'+esc(entry.text)+'</div>'
       +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18)" onclick="openEntry(\''+iso+'\')">✏️ Bearbeiten</button>':'');
   }else{
     entryHTML='<div class="day-entry-empty">Noch kein Tagebucheintrag für diesen Tag.</div>'
@@ -1150,12 +1178,13 @@ async function aiCall(prompt,maxTokens){
 }
 async function aiWriteEntry(){
   if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
-  const raw=val('entry-text').trim();
-  if(!raw){toast('Bitte erst Stichpunkte eingeben.');return;}
-  const stay=_entryIso?costs.filter(c=>c.cat==='Unterkunft'&&c.datum===_entryIso)[0]:null;
-  const ort=stay?stay.label.split('·')[0].trim():(tripHead.sub||tripHead.title||'unsere Reise');
+  const notes=val('entry-notes').trim();
+  if(!notes){toast('Bitte erst Stichpunkte eingeben.');return;}
+  const ort=val('entry-ort').trim()||(tripHead.sub||tripHead.title||'unsere Reise');
+  const titel=val('entry-titel').trim();
+  const kat=val('entry-kat');
   const btn=document.getElementById('entry-ai-btn');const orig=btn.textContent;btn.textContent='✨ KI schreibt…';btn.disabled=true;
-  const prompt='Du bist ein enthusiastischer Reiseblogger. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 120–180 Wörter). Wir-Form. Stil: warm, bildhaft, authentisch.\n\nOrt: '+ort+'\nStichpunkte:\n'+raw+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
+  const prompt='Du bist ein enthusiastischer Reiseblogger. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 120–180 Wörter). Wir-Form. Stil: warm, bildhaft, authentisch.\n\nOrt: '+ort+' | Kategorie: '+kat+(titel?' | Titel: '+titel:'')+'\nStichpunkte:\n'+notes+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
   try{const out=await aiCall(prompt,1000);if(out)setVal('entry-text',out);toast('✓ Eintrag formuliert!');}
   catch(e){toast('Fehler: '+e.message);}
   btn.textContent=orig;btn.disabled=false;
@@ -1192,29 +1221,44 @@ function closeLightbox(){document.getElementById('lightbox').classList.remove('o
 function openEntry(iso){
   if(!editMode)return;
   _entryIso=iso;
-  const e=entries[iso]||{titel:'',text:''};
+  const e=entries[iso]||{titel:'',kat:'Sonstiges',ort:'',text:''};
   const d=new Date(iso+'T12:00:00');
   document.getElementById('entry-date-lbl').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  // Ort vorbelegen: aus Eintrag, sonst aus Unterkunft des Tages
+  let ort=e.ort||'';
+  if(!ort){const stay=costs.filter(c=>c.cat==='Unterkunft'&&c.datum===iso)[0];if(stay)ort=stay.label.split('·')[0].trim();}
+  setVal('entry-ort',ort);
+  setVal('entry-titel',e.titel||'');
+  // Kategorie-Dropdown füllen
+  const sel=document.getElementById('entry-kat');
+  sel.innerHTML=ENTRY_CATS.map(c=>'<option value="'+c.v+'">'+c.label+'</option>').join('');
+  sel.value=e.kat||'Sonstiges';
+  setVal('entry-notes','');
   setVal('entry-text',e.text||'');
   document.getElementById('entry-modal').classList.add('open');
 }
 async function saveEntry(){
   const iso=_entryIso;if(!iso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  const titel=val('entry-titel').trim();
+  const kat=val('entry-kat');
+  const ort=val('entry-ort').trim();
   const text=val('entry-text').trim();
-  if(!text){toast('Bitte einen Text eingeben.');return;}
-  const ok=await sbSaveEntry(iso,'',text);
+  if(!text){toast('Bitte einen finalen Text eingeben (oder per KI formulieren).');return;}
+  const ok=await sbSaveEntry(iso,titel,kat,ort,text);
   if(!ok)return;
   document.getElementById('entry-modal').classList.remove('open');
   renderTage();toast('Eintrag gespeichert!');
 }
 async function deleteEntry(){
   const iso=_entryIso;if(!iso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
   if(!confirm('Eintrag wirklich löschen?'))return;
   await sbDeleteEntry(iso);
   document.getElementById('entry-modal').classList.remove('open');
   renderTage();toast('Eintrag gelöscht.');
 }
-function closeEntryModal(){document.getElementById('entry-modal').classList.remove('open');}
+function closeEntryModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('entry-modal').classList.remove('open');}
 
 // ── TAGESAUSGABEN UI ──────────────────────────────────────────────────────────
 function addDayExpense(iso){
@@ -1467,11 +1511,13 @@ async function createPhotobook(){
     const emoji=stay?'🏨':'📸';
     const rawText=entry&&entry.text?entry.text:'';
     const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
+    const eTitel=entry&&entry.titel?esc((ENTRY_CAT_EMOJI[entry.kat]?ENTRY_CAT_EMOJI[entry.kat]+' ':'')+entry.titel):'';
     const isLong=rawText.length>400;
-    const textBlock=text?('<div class="pb-textbox"><div class="pb-text">'+text+'</div></div>'):'';
+    const titelBlock=eTitel?'<div class="pb-etitel">'+eTitel+'</div>':'';
+    const textBlock=text?('<div class="pb-textbox">'+titelBlock+'<div class="pb-text">'+text+'</div></div>'):'';
     const head=function(tn){return '<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';};
     if(isLong&&text){
-      pages.push('<div class="pb-page pb-textpage"><div class="tp-frame"><div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div><div class="tp-emoji">'+emoji+'</div><div class="tp-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')+'<div class="tp-rule">✶ ✶ ✶</div><div class="tp-text">'+text+'</div></div></div>');
+      pages.push('<div class="pb-page pb-textpage"><div class="tp-frame"><div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div><div class="tp-emoji">'+emoji+'</div><div class="tp-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')+'<div class="tp-rule">✶ ✶ ✶</div>'+(eTitel?'<div class="tp-title">'+eTitel+'</div>':'')+'<div class="tp-text">'+text+'</div></div></div>');
       if(dayPhotos.length>4){
         const first=dayPhotos.slice(0,4),rest=dayPhotos.slice(4);
         pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,iso)+'</div>');
@@ -1544,6 +1590,8 @@ async function createPhotobook(){
     +'.poN7 figure{width:66mm;}.poN7 figure img{height:47mm;}'
     +'.poN8 figure{width:62mm;}.poN8 figure img{height:45mm;}'
     +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #1a6b8a;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
+    +'.pb-etitel{font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1a6b8a;margin-bottom:3mm;}'
+    +'.tp-title{font-family:Georgia,serif;font-size:20px;font-style:italic;color:#1a6b8a;margin-bottom:5mm;}'
     +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
     +'.pb-textpage{background:linear-gradient(160deg,#f1f7f9 0%,#e0eef2 100%);display:flex;align-items:center;justify-content:center;}'
     +'.tp-frame{position:relative;width:100%;height:182mm;border:2px solid #6aa6bd;border-radius:3mm;padding:16mm 24mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.5);}'
