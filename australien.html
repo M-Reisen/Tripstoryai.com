@@ -176,6 +176,12 @@ textarea{resize:vertical;min-height:100px;}
 .cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:12px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;}
 .cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,26,22,.06);font-size:.85rem;gap:12px;}
 .cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
+.cost-edit-btn,.cost-del-btn{background:none;border:none;cursor:pointer;font-size:.8rem;padding:2px 4px;border-radius:5px;line-height:1;opacity:.65;transition:opacity .15s,background .15s;}
+.cost-edit-btn:hover{opacity:1;background:rgba(28,26,22,.06);}
+.cost-del-btn{color:#dc2626;}
+.cost-del-btn:hover{opacity:1;background:#fef2f2;}
+.cost-add-btn{display:block;width:100%;text-align:left;background:none;border:1.5px dashed rgba(28,26,22,.2);border-radius:8px;padding:7px 12px;margin:8px 0 4px;font-size:.78rem;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.cost-add-btn:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
 .price-blur{filter:blur(5px);user-select:none;}
 .hotel-banner{width:100%;height:180px;overflow:hidden;border-bottom:1px solid rgba(28,26,22,.07);position:relative;}
 .hotel-banner-inner{display:flex;height:180px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
@@ -260,7 +266,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V42</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V43</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -515,6 +521,55 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
+<!-- PLANKOSTEN-MODAL (Vorab-Kosten erfassen/bearbeiten) -->
+<div id="plankost-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closePlanCostModal()">
+  <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:92vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div id="pk-modal-title" style="font-family:'Playfair Display',serif;font-size:1.1rem;">Position hinzufügen</div>
+      <button onclick="closePlanCostModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--fog);line-height:1;">✕</button>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Kategorie</label>
+      <select id="pk-cat" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+        <option value="Unterkunft">🏨 Unterkünfte</option>
+        <option value="Flug">✈️ Flüge</option>
+        <option value="Transport">🚗 Transport</option>
+        <option value="Ausflug">🎟️ Ausflüge</option>
+        <option value="Sonstiges">✨ Sonstiges</option>
+      </select>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Bezeichnung</label>
+      <input id="pk-label" type="text" placeholder="z.B. Hotel Brisbane" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Details <span style="text-transform:none;font-weight:400">(optional)</span></label>
+      <input id="pk-info" type="text" placeholder="z.B. 5.–6. Okt. · Ref. XY123" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+    </div>
+    <div style="margin-bottom:8px;display:flex;gap:10px;">
+      <div style="flex:1.4;">
+        <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Betrag</label>
+        <input id="pk-amount" type="number" step="0.01" min="0" placeholder="0.00" oninput="updatePkPreview()" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Währung</label>
+        <select id="pk-currency" onchange="updatePkPreview()" style="width:100%;padding:9px 8px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="AUD">🇦🇺 AUD</option>
+          <option value="USD">🇺🇸 USD</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="NZD">🇳🇿 NZD</option>
+        </select>
+      </div>
+    </div>
+    <div id="pk-preview" style="font-size:.78rem;color:var(--sunset);text-align:right;margin-bottom:16px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closePlanCostModal()" style="flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;cursor:pointer;color:var(--fog);">Abbrechen</button>
+      <button onclick="savePlanCost()" style="flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;">Speichern</button>
+    </div>
+  </div>
+</div>
+
 <!-- API Key Overlay -->
 <div id="apikey-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:600;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
@@ -720,10 +775,14 @@ const DAYS=buildDays();
 async function initApp(){
   try{
     const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
   }catch(e){console.error('Eintraege laden:',e);}
   try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}
   try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}
+  try{
+    const r=await sbLoadPlanCosts();
+    if(r==='empty'){await seedPlanCosts();}
+  }catch(e){console.error('Plankosten laden:',e);}
   try{buildDaySlides();}catch(e){console.error('buildDaySlides:',e);}
   setTimeout(()=>{try{loadCommentsForDay(DAYS[0].iso);}catch(e){}},300);
 }
@@ -1049,43 +1108,27 @@ function renderActivities(){
 function renderCosts(){
   const pc=editMode?'':'price-blur';
   let total=0,html='';
-  // ── Unterkünfte (einzeln) ──
-  html+="<div class='cost-section-title'>Unterkünfte</div>";
-  let uk=0;
-  BOOKINGS.forEach(b=>{uk+=b.price;total+=b.price;html+=`<div class="cost-row"><div><div>${b.emoji} ${b.name}</div><div style="font-size:.73rem;color:var(--fog)">${b.dateStr} · ${b.nights} Nacht${b.nights>1?'e':''}</div></div><div class="${pc}">EUR ${fmt(b.price)}</div></div>`;});
-  html+=`<div class="cost-group-total"><span>Summe Unterkünfte</span><span class="${pc}">EUR ${fmt(uk)}</span></div>`;
-  // ── Flüge (einzeln) ──
-  html+="<div class='cost-section-title'>Flüge</div>";
-  let fl=0;
-  [
-    {n:'Singapore Airlines SQ 327/203/222/328',d:'MUC–SIN–CNS / SYD–SIN–MUC · Ref. FSARTK',p:2352},
-    {n:'Qantas QF 1825 + QF 541',d:'Mackay–Brisbane–Sydney · Ref. EU3G36',p:505.94}
-  ].forEach(it=>{fl+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
-  html+=`<div class="cost-group-total"><span>Summe Flüge</span><span class="${pc}">EUR ${fmt(fl)}</span></div>`;
-  // ── Transport (einzeln) ──
-  html+="<div class='cost-section-title'>Transport</div>";
-  let tr=0;
-  [
-    {n:'SR Coaches · Cairns ↔ Port Douglas',d:'14.09. & 19.09. · Ref. BW5283642',p:153.25},
-    {n:'Mietwagen 1 · Avis Toyota Corolla',d:'19.–22. Sept. · Cairns → Townsville',p:321},
-    {n:'FlixBus · Townsville → Airlie Beach',d:'So. 27.09. · 13:50–17:50 Uhr',p:60},
-    {n:'Mietwagen 2 · ab Cape Hillsborough',d:'2.–5. Okt.',p:153},
-    {n:'Fähre · Townsville ↔ Magnetic Island',d:'23.09. & 27.09. · Ref. GYG7VKWWBAAG',p:55.70},
-    {n:'Fähre · Airlie Beach → Hamilton Island',d:'29.09. · Ref. 5635629',p:94.50},
-    {n:'Fähre · Hamilton Island → Airlie Beach',d:'02.10. · Ref. 5635630',p:94.50}
-  ].forEach(it=>{tr+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
-  html+=`<div class="cost-group-total"><span>Summe Transport</span><span class="${pc}">EUR ${fmt(tr)}</span></div>`;
-  // ── Ausflüge (einzeln) ──
-  html+="<div class='cost-section-title'>Ausflüge</div>";
-  let au=0;
-  [
-    {n:'🚤 Low Isles Glass Bottom Boat & Snorkeling',d:'16.09. · Port Douglas · 2 Erw.',p:323.60},
-    {n:'🌿 Daintree Tour mit Wildlife Cruise',d:'17.09. · Port Douglas · 2 Erw.',p:216.94},
-    {n:'🚂 Kuranda Scenic Train + Bus',d:'18.09. · Ref. #358349003 · 2 Erw.',p:208.94},
-    {n:'🌋 Archway Explorer Tour Lavahöhlen',d:'21.09. · Undara · Ref. RTJBH7Y',p:87.62},
-    {n:'⛵ Whitehaven Katamaran Tagestour',d:'28.09. · Airlie Beach · 2 Erw.',p:326.02}
-  ].forEach(it=>{au+=it.p;total+=it.p;html+=`<div class="cost-row"><div><div>${it.n}</div><div style="font-size:.73rem;color:var(--fog)">${it.d}</div></div><div class="${pc}">EUR ${fmt(it.p)}</div></div>`;});
-  html+=`<div class="cost-group-total"><span>Summe Ausflüge</span><span class="${pc}">EUR ${fmt(au)}</span></div>`;
+  // ── Plankosten nach Kategorie (editierbar) ──
+  PLAN_CATS.forEach(cat=>{
+    const items=planCosts.filter(p=>p.cat===cat.key);
+    // Kategorien ohne Einträge im Nicht-Admin-Modus überspringen; im Admin trotzdem zeigen (zum Hinzufügen)
+    if(!items.length && !editMode) return;
+    html+=`<div class='cost-section-title'>${cat.emoji} ${cat.label}</div>`;
+    let sum=0;
+    items.forEach(p=>{
+      const eur=toEUR(p.amount,p.cur||'EUR');
+      sum+=eur; total+=eur;
+      const amtStr=(p.cur&&p.cur!=='EUR')?`${fmt(p.amount)} ${p.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
+      const editBtns=editMode?`<button class="cost-edit-btn" data-id="${p.id}" onclick="editPlanCostEl(this)" title="Bearbeiten">✏️</button><button class="cost-del-btn" data-id="${p.id}" onclick="delPlanCostEl(this)" title="Löschen">✕</button>`:'';
+      html+=`<div class="cost-row"><div style="flex:1"><div>${p.label}</div>${p.info?`<div style="font-size:.73rem;color:var(--fog)">${p.info}</div>`:''}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${editBtns}</div></div>`;
+    });
+    if(editMode){
+      html+=`<button class="cost-add-btn" onclick="addPlanCost('${cat.key}')">+ ${cat.label.replace(/e$/,'')} hinzufügen</button>`;
+    }
+    if(items.length){
+      html+=`<div class="cost-group-total"><span>Summe ${cat.label}</span><span class="${pc}">EUR ${fmt(sum)}</span></div>`;
+    }
+  });
   // ── Tagesausgaben vor Ort (einzeln) ──
   let tag=0;
   const isos=Object.keys(dayExpenses).sort();
@@ -1099,7 +1142,7 @@ function renderCosts(){
     list.forEach(e=>{const cur=e.cur||'EUR';const amtStr=fmt(e.amount)+' '+cur;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${e.label}</div><div class="${pc}">${amtStr}</div></div>`;tag+=toEUR(e.amount,cur);});
   });
   if(tag>0){
-    html+="<div class='cost-section-title'>Tagesausgaben vor Ort</div>"+tagHtml;
+    html+="<div class='cost-section-title'>💶 Tagesausgaben vor Ort</div>"+tagHtml;
     total+=tag;
     html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
   }
@@ -1350,6 +1393,164 @@ async function sbDeleteExpense(id){
   const {error}=await sb.from('kommentare').delete().eq('id',id);
   return !error;
 }
+
+// ── PLANKOSTEN (Vorab-Kosten: Unterkunft, Flug, Transport, Ausflug) ─────────
+// Kategorien mit Emoji + Reihenfolge
+const PLAN_CATS=[
+  {key:'Unterkunft', emoji:'🏨', label:'Unterkünfte'},
+  {key:'Flug',       emoji:'✈️', label:'Flüge'},
+  {key:'Transport',  emoji:'🚗', label:'Transport'},
+  {key:'Ausflug',    emoji:'🎟️', label:'Ausflüge'},
+  {key:'Sonstiges',  emoji:'✨', label:'Sonstiges'}
+];
+// In-Memory-Liste der Plankosten: {id, cat, label, info, amount, cur}
+let planCosts=[];
+
+// Startwerte (werden EINMALIG in Supabase geschrieben, falls noch keine vorhanden)
+const PLAN_SEED=[
+  // Unterkünfte – aus BOOKINGS
+  ...BOOKINGS.map(b=>({cat:'Unterkunft', label:b.emoji+' '+b.name, info:b.dateStr+' · '+b.nights+' Nacht'+(b.nights>1?'e':''), amount:b.price, cur:'EUR'})),
+  // Flüge
+  {cat:'Flug', label:'Singapore Airlines SQ 327/203/222/328', info:'MUC–SIN–CNS / SYD–SIN–MUC · Ref. FSARTK', amount:2352, cur:'EUR'},
+  {cat:'Flug', label:'Qantas QF 1825 + QF 541', info:'Mackay–Brisbane–Sydney · Ref. EU3G36', amount:505.94, cur:'EUR'},
+  // Transport
+  {cat:'Transport', label:'SR Coaches · Cairns ↔ Port Douglas', info:'14.09. & 19.09. · Ref. BW5283642', amount:153.25, cur:'EUR'},
+  {cat:'Transport', label:'Mietwagen 1 · Avis Toyota Corolla', info:'19.–22. Sept. · Cairns → Townsville', amount:321, cur:'EUR'},
+  {cat:'Transport', label:'FlixBus · Townsville → Airlie Beach', info:'So. 27.09. · 13:50–17:50 Uhr', amount:60, cur:'EUR'},
+  {cat:'Transport', label:'Mietwagen 2 · ab Cape Hillsborough', info:'2.–5. Okt.', amount:153, cur:'EUR'},
+  {cat:'Transport', label:'Fähre · Townsville ↔ Magnetic Island', info:'23.09. & 27.09. · Ref. GYG7VKWWBAAG', amount:55.70, cur:'EUR'},
+  {cat:'Transport', label:'Fähre · Airlie Beach → Hamilton Island', info:'29.09. · Ref. 5635629', amount:94.50, cur:'EUR'},
+  {cat:'Transport', label:'Fähre · Hamilton Island → Airlie Beach', info:'02.10. · Ref. 5635630', amount:94.50, cur:'EUR'},
+  // Ausflüge
+  {cat:'Ausflug', label:'🚤 Low Isles Glass Bottom Boat & Snorkeling', info:'16.09. · Port Douglas · 2 Erw.', amount:323.60, cur:'EUR'},
+  {cat:'Ausflug', label:'🌿 Daintree Tour mit Wildlife Cruise', info:'17.09. · Port Douglas · 2 Erw.', amount:216.94, cur:'EUR'},
+  {cat:'Ausflug', label:'🚂 Kuranda Scenic Train + Bus', info:'18.09. · Ref. #358349003 · 2 Erw.', amount:208.94, cur:'EUR'},
+  {cat:'Ausflug', label:'🌋 Archway Explorer Tour Lavahöhlen', info:'21.09. · Undara · Ref. RTJBH7Y', amount:87.62, cur:'EUR'},
+  {cat:'Ausflug', label:'⛵ Whitehaven Katamaran Tagestour', info:'28.09. · Airlie Beach · 2 Erw.', amount:326.02, cur:'EUR'}
+];
+
+// Speichern: ort='plankost_<uid>', name='cat|label', nachricht='amount|cur|info'
+async function sbSavePlanCost(pc){
+  const uid='plankost_'+Date.now()+Math.floor(Math.random()*1000);
+  const {data,error}=await sb.from('kommentare').insert({
+    ort:uid, name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.info||''),
+    created_at:new Date().toISOString()
+  }).select();
+  if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
+  return data&&data[0]?data[0].id:null;
+}
+async function sbUpdatePlanCost(pc){
+  const {error}=await sb.from('kommentare').update({
+    name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.info||'')
+  }).eq('id',pc.id);
+  if(error){toast('Fehler beim Aktualisieren: '+(error.message||''));return false;}
+  return true;
+}
+async function sbDeletePlanCost(id){
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  return !error;
+}
+async function sbLoadPlanCosts(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort','plankost_%').order('created_at',{ascending:true});
+  if(error){console.error('Plankosten laden:',error);return false;}
+  if(!data||!data.length){
+    // Noch nichts in DB → Startwerte einmalig schreiben
+    return 'empty';
+  }
+  planCosts=data.map(r=>{
+    const np=(r.name||'').split('|');
+    const cat=np[0]||'Sonstiges';
+    const label=np.slice(1).join('|')||'Position';
+    const mp=(r.nachricht||'').split('|');
+    const amount=parseFloat(mp[0])||0;
+    const cur=mp[1]||'EUR';
+    const info=mp.slice(2).join('|')||'';
+    return {id:r.id, cat:cat, label:label, info:info, amount:amount, cur:cur};
+  });
+  return true;
+}
+async function seedPlanCosts(){
+  // Startwerte nacheinander schreiben und in planCosts übernehmen
+  for(const s of PLAN_SEED){
+    const id=await sbSavePlanCost(s);
+    if(id!==null) planCosts.push(Object.assign({id:id}, s));
+  }
+}
+
+// CRUD-UI für Plankosten
+let _editingPlanId=null;
+function addPlanCost(catKey){
+  if(!editMode)return;
+  _editingPlanId=null;
+  document.getElementById('pk-modal-title').textContent='Position hinzufügen';
+  document.getElementById('pk-cat').value=catKey||'Sonstiges';
+  document.getElementById('pk-label').value='';
+  document.getElementById('pk-info').value='';
+  document.getElementById('pk-amount').value='';
+  document.getElementById('pk-currency').value='EUR';
+  updatePkPreview();
+  document.getElementById('plankost-modal').style.display='flex';
+}
+function editPlanCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const p=planCosts.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  _editingPlanId=p.id;
+  document.getElementById('pk-modal-title').textContent='Position bearbeiten';
+  document.getElementById('pk-cat').value=p.cat;
+  document.getElementById('pk-label').value=p.label;
+  document.getElementById('pk-info').value=p.info||'';
+  document.getElementById('pk-amount').value=p.amount;
+  document.getElementById('pk-currency').value=p.cur||'EUR';
+  updatePkPreview();
+  document.getElementById('plankost-modal').style.display='flex';
+}
+async function delPlanCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const p=planCosts.find(x=>String(x.id)===String(id));
+  if(!p)return;
+  if(!confirm('Position „'+p.label+'" wirklich löschen?'))return;
+  const ok=await sbDeletePlanCost(p.id);
+  if(!ok){toast('Löschen fehlgeschlagen.');return;}
+  planCosts=planCosts.filter(x=>String(x.id)!==String(id));
+  renderCosts();toast('Position gelöscht.');
+}
+function updatePkPreview(){
+  const amt=parseFloat((document.getElementById('pk-amount').value||'').replace(',','.'));
+  const cur=document.getElementById('pk-currency').value;
+  const pv=document.getElementById('pk-preview');
+  if(!pv)return;
+  if(isNaN(amt)||amt<=0||cur==='EUR'){pv.textContent='';return;}
+  pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
+}
+async function savePlanCost(){
+  const cat=document.getElementById('pk-cat').value;
+  const label=document.getElementById('pk-label').value.trim();
+  const info=document.getElementById('pk-info').value.trim();
+  const amt=parseFloat((document.getElementById('pk-amount').value||'').replace(',','.'));
+  const cur=document.getElementById('pk-currency').value;
+  if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
+  if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
+  if(_editingPlanId){
+    const p={id:_editingPlanId, cat, label, info, amount:amt, cur};
+    const ok=await sbUpdatePlanCost(p);
+    if(!ok)return;
+    const i=planCosts.findIndex(x=>String(x.id)===String(_editingPlanId));
+    if(i>=0) planCosts[i]=p;
+    toast('Position aktualisiert!');
+  }else{
+    const draft={cat, label, info, amount:amt, cur};
+    const id=await sbSavePlanCost(draft);
+    if(id===null)return;
+    planCosts.push(Object.assign({id:id}, draft));
+    toast('Position hinzugefügt!');
+  }
+  document.getElementById('plankost-modal').style.display='none';
+  renderCosts();
+}
+function closePlanCostModal(){document.getElementById('plankost-modal').style.display='none';}
 
 async function saveExpense(){
   var iso=currentExpenseIso;
