@@ -1253,7 +1253,7 @@ async function polishReviewText(){
   }catch(e){ta.disabled=false;ta.value=orig;toast('Verbindungsfehler: '+e.message);}
 }
 // ── GEMEINSAME DIKTIERFUNKTION (Toggle, Timeout, sauberes onend) ────────────
-let _dictRec = null, _dictTimeout = null, _dictBtnId = null;
+let _dictRec = null, _dictTimeout = null, _dictBtnId = null, _dictBaseText = '';
 function startDictationFor(textareaId, btnId){
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
@@ -1266,19 +1266,35 @@ function startDictationFor(textareaId, btnId){
     toast('Diktat beendet.');
     return;
   }
+  const ta=document.getElementById(textareaId);
+  if(!ta){toast('Textfeld nicht gefunden.');return;}
+  // Basistext merken, damit laufende Zwischenergebnisse nicht angehängt, sondern ersetzt werden
+  _dictBaseText = ta.value ? (ta.value.trim()+' ') : '';
   // Starten
   _dictBtnId=btnId;
   _dictRec = new SpeechRec();
   _dictRec.lang='de-DE';
-  _dictRec.continuous=false;
-  _dictRec.interimResults=false;
+  _dictRec.continuous=true;
+  _dictRec.interimResults=true;
+  _dictRec.onstart=function(){
+    if(btn)btn.textContent='⏹ Stopp';
+    toast('🎤 Mikrofon aktiv – jetzt sprechen…');
+  };
   _dictRec.onresult=function(e){
-    const t=e.results[0][0].transcript;
-    const ta=document.getElementById(textareaId);
-    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
+    let finalT='', interimT='';
+    for(let i=0;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal) finalT+=t+' '; else interimT+=t;
+    }
+    const ta2=document.getElementById(textareaId);
+    if(ta2) ta2.value = (_dictBaseText+finalT+interimT).trim();
   };
   _dictRec.onerror=function(e){
-    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      toast('Mikrofonzugriff verweigert. Bitte in den Browser-/Website-Einstellungen erlauben.');
+    } else if(e.error!=='no-speech'){
+      toast('Diktat-Fehler: '+e.error);
+    }
   };
   _dictRec.onend=function(){
     // KEIN Auto-Neustart – sauber beenden
@@ -1287,8 +1303,6 @@ function startDictationFor(textareaId, btnId){
   };
   try{
     _dictRec.start();
-    if(btn)btn.textContent='⏹ Stopp';
-    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
     // Sicherheits-Stopp nach 60 Sekunden
     if(_dictTimeout)clearTimeout(_dictTimeout);
     _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
