@@ -266,7 +266,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V43</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V45</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -1146,7 +1146,7 @@ function renderCosts(){
     total+=tag;
     html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
   }
-  document.getElementById('cost-list').innerHTML=editMode?html:`<div style="background:#fef3c7;color:#92400e;padding:10px 14px;border-radius:8px;font-size:.82rem;margin-bottom:14px">🔒 Beträge nur im Admin-Modus sichtbar</div>`+html;
+  document.getElementById('cost-list').innerHTML=html;
   // Wechselkurs-Einstellungen (nur Admin)
   const fxBox=document.getElementById('fx-settings');
   if(fxBox){
@@ -1193,7 +1193,7 @@ function renderTips(){
 function toggleTip(i){const body=document.getElementById('tip-body-'+i),arrow=document.getElementById('tip-arrow-'+i);const open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';}
 
 function toggleEditMode(){
-  if(editMode){editMode=false;document.getElementById('edit-toggle-btn').textContent='🔑 Admin';document.getElementById('edit-toggle-btn').style.background='';document.getElementById('tab-neu').style.display='none';const at=document.querySelector('.tab-btn.active');if(at&&(at.id==='tab-neu'||at.id==='tab-kosten'))showTab('tage');buildDaySlides();toast('Admin-Modus beendet.');}
+  if(editMode){editMode=false;document.getElementById('edit-toggle-btn').textContent='🔑 Admin';document.getElementById('edit-toggle-btn').style.background='';document.getElementById('tab-neu').style.display='none';const at=document.querySelector('.tab-btn.active');if(at&&at.id==='tab-neu')showTab('tage');buildDaySlides();try{renderCosts();}catch(e){}toast('Admin-Modus beendet.');}
   else{editPinBuffer='';updateEpDots();document.getElementById('edit-pin-overlay').style.display='flex';}
 }
 function epIn(d){if(editPinBuffer.length>=4)return;editPinBuffer+=d;updateEpDots();if(editPinBuffer.length===4)setTimeout(checkEditPin,150);}
@@ -1201,7 +1201,7 @@ function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
 function updateEpDots(){for(var i=0;i<4;i++)document.getElementById('epd'+i).classList.toggle('filled',i<editPinBuffer.length);}
 function closeEditPin(){document.getElementById('edit-pin-overlay').style.display='none';editPinBuffer='';}
 function checkEditPin(){
-  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();toast('Admin-Modus aktiv!');
+  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();try{renderCosts();}catch(e){}toast('Admin-Modus aktiv!');
     // API-Key laden oder abfragen
     if(!_apiKey){var saved=loadApiKey();if(saved){_apiKey=saved;}else{setTimeout(()=>{document.getElementById('apikey-overlay').style.display='flex';},400);}}
   }
