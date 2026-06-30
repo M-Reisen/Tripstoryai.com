@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M-Reisen · Unsere Reisetagebücher</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ocean:#1a6b8a;--reef:#0d9488;--sand:#f0e6cc;--sunset:#e07b3f;
+  --bush:#5a7a40;--paper:#faf7f2;--ink:#1c1a16;--fog:#7a7167;
+  --white:#fff;--radius:16px;--shadow:0 4px 28px rgba(28,26,22,.10);
+  --planned:#b45309;--running:#0d9488;--done:#5a7a40;
+}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
+.header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo .mark{font-size:1.9rem;line-height:1;}
+.logo .txt{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--sand);}
+.logo .txt em{color:var(--sunset);font-style:italic;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
+.btn-ghost{background:transparent;color:var(--sand);border:1px solid rgba(255,255,255,.22);}
+.btn-ghost:hover{background:rgba(255,255,255,.09);}
+.btn-primary{background:var(--sunset);color:var(--white);}.btn-primary:hover{background:#c96a30;}
+.btn-sm{padding:6px 12px;font-size:.76rem;}
+
+/* HERO — Nachthimmel, „Logbuch" */
+.hero{position:relative;overflow:hidden;background:radial-gradient(120% 130% at 50% -10%,#16314a 0%,#0d1f33 45%,#0a1626 100%);padding:64px 24px 56px;text-align:center;color:var(--sand);}
+.hero-stars{position:absolute;inset:0;pointer-events:none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 24%,rgba(255,255,220,.8),transparent),
+    radial-gradient(1px 1px at 32% 12%,rgba(255,255,220,.5),transparent),
+    radial-gradient(1.5px 1.5px at 54% 30%,rgba(255,255,220,.65),transparent),
+    radial-gradient(1px 1px at 72% 16%,rgba(255,255,220,.5),transparent),
+    radial-gradient(2px 2px at 84% 36%,rgba(255,240,200,.7),transparent),
+    radial-gradient(1px 1px at 22% 52%,rgba(255,255,220,.4),transparent),
+    radial-gradient(1px 1px at 65% 60%,rgba(255,255,220,.45),transparent);
+}
+.hero-eyebrow{font-family:'Caveat',cursive;font-size:1.3rem;color:var(--sunset);margin-bottom:8px;position:relative;}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2.1rem,7vw,3.6rem);font-weight:400;line-height:1.12;margin-bottom:16px;position:relative;}
+.hero h1 em{color:var(--sunset);font-style:italic;}
+.hero-sub{font-size:.95rem;color:rgba(240,230,204,.6);max-width:520px;margin:0 auto 30px;line-height:1.6;position:relative;}
+.hero-stats{display:flex;justify-content:center;gap:34px;flex-wrap:wrap;position:relative;}
+.hero-stat .num{font-family:'Playfair Display',serif;font-size:1.9rem;color:var(--sunset);display:block;line-height:1;}
+.hero-stat .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:rgba(240,230,204,.5);margin-top:6px;}
+
+/* MAIN */
+main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:24px;flex-wrap:wrap;}
+.section-title{font-family:'Playfair Display',serif;font-size:1.5rem;}
+.section-title small{display:block;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:400;color:var(--fog);margin-top:3px;}
+
+/* FILTER */
+.filters{display:flex;gap:7px;flex-wrap:wrap;}
+.filter-chip{font-size:.78rem;font-weight:500;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(28,26,22,.14);background:var(--white);color:var(--fog);cursor:pointer;transition:all .16s;}
+.filter-chip.active{background:var(--ink);color:var(--sand);border-color:var(--ink);}
+.filter-chip:hover:not(.active){border-color:var(--sunset);color:var(--sunset);}
+
+/* GRID */
+.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:22px;}
+
+/* TRIP CARD — Postkarte/Gepäckanhänger */
+.trip-card{position:relative;background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);text-decoration:none;color:inherit;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s;}
+.trip-card:hover{transform:translateY(-4px);box-shadow:0 14px 40px rgba(28,26,22,.18);}
+.trip-card.placeholder{cursor:default;}
+.trip-card.placeholder:hover{transform:none;box-shadow:var(--shadow);}
+.trip-cover{position:relative;height:170px;overflow:hidden;display:flex;align-items:flex-end;}
+.trip-cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.trip-cover-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,22,38,.05) 0%,rgba(10,22,38,.55) 100%);}
+.trip-cover-emoji{position:absolute;top:14px;left:16px;font-size:2rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));z-index:2;}
+.trip-cover-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;}
+.trip-cover-fallback .big{font-size:3.4rem;opacity:.9;filter:drop-shadow(0 3px 8px rgba(0,0,0,.3));}
+
+/* Stempel-Status */
+.stamp{position:absolute;top:13px;right:13px;z-index:3;font-family:'Caveat',cursive;font-weight:700;font-size:.9rem;letter-spacing:.02em;padding:5px 12px;border-radius:6px;border:2px solid;transform:rotate(5deg);text-transform:uppercase;background:rgba(255,255,255,.14);backdrop-filter:blur(2px);}
+.stamp-planned{color:#fcd9b0;border-color:#fcd9b0;}
+.stamp-running{color:#9ff0e6;border-color:#9ff0e6;}
+.stamp-done{color:#cfe3b3;border-color:#cfe3b3;}
+
+.trip-body{padding:16px 18px 18px;flex:1;display:flex;flex-direction:column;}
+.trip-dates{font-family:'Caveat',cursive;font-size:1.05rem;color:var(--sunset);margin-bottom:2px;}
+.trip-name{font-family:'Playfair Display',serif;font-size:1.22rem;font-weight:700;line-height:1.22;margin-bottom:4px;}
+.trip-loc{font-size:.8rem;color:var(--fog);margin-bottom:10px;}
+.trip-loc::before{content:'📍 ';}
+.trip-note{font-size:.83rem;line-height:1.55;color:#4a3d30;margin-bottom:14px;flex:1;}
+.trip-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto;}
+.trip-open{font-size:.82rem;font-weight:600;color:var(--ocean);display:inline-flex;align-items:center;gap:5px;}
+.trip-admin-btns{display:none;gap:6px;}
+.trip-admin-btns.show{display:flex;}
+.icon-btn{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:all .15s;}
+.icon-btn:hover{border-color:var(--sunset);}
+.icon-btn.del:hover{border-color:#dc2626;background:#fef2f2;}
+
+/* ADD CARD */
+.add-card{border:2px dashed rgba(28,26,22,.2);border-radius:var(--radius);background:transparent;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--fog);transition:all .18s;font-family:'Inter',sans-serif;}
+.add-card:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.add-card .plus{font-size:2.6rem;line-height:1;}
+.add-card .lbl{font-size:.9rem;font-weight:500;}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px;color:var(--fog);}
+.empty .big{font-size:3rem;margin-bottom:14px;}
+
+/* PIN OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.pin-box{background:#fff;border-radius:18px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.pin-box .ic{font-size:1.9rem;margin-bottom:10px;}
+.pin-box h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:4px;}
+.pin-box p{font-size:.8rem;color:var(--fog);margin-bottom:18px;}
+.pin-dots{display:flex;justify-content:center;gap:11px;margin-bottom:18px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);transition:all .16s;}
+.pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
+.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:11px;padding:14px;font-size:1.15rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.pin-key:hover{background:var(--sunset);color:#fff;border-color:var(--sunset);}
+.pin-err{color:#dc2626;font-size:.77rem;margin-top:10px;min-height:16px;}
+
+/* FORM MODAL */
+.modal-box{background:#fff;border-radius:18px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.modal-box .mb-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;}
+.modal-box .mb-title{font-family:'Playfair Display',serif;font-size:1.3rem;}
+.modal-box .mb-body{padding:18px 24px 24px;}
+.mb-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--fog);line-height:1;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid rgba(28,26,22,.15);border-radius:9px;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:#fff;}
+.field textarea{resize:vertical;min-height:64px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.help{font-size:.72rem;color:var(--fog);margin-top:4px;line-height:1.4;}
+.status-pick{display:flex;gap:8px;}
+.status-opt{flex:1;text-align:center;padding:9px 6px;border:1.5px solid rgba(28,26,22,.15);border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;background:var(--paper);}
+.status-opt.sel{color:#fff;border-color:transparent;}
+.status-opt.sel[data-s="geplant"]{background:var(--planned);}
+.status-opt.sel[data-s="laeuft"]{background:var(--running);}
+.status-opt.sel[data-s="fertig"]{background:var(--done);}
+.modal-actions{display:flex;gap:10px;margin-top:8px;}
+.modal-actions .btn-cancel{flex:1;padding:11px;border:1.5px solid rgba(28,26,22,.18);border-radius:9px;background:none;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;}
+.modal-actions .btn-save{flex:2;padding:11px;background:var(--sunset);border:none;border-radius:9px;color:#fff;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:11px 22px;border-radius:9px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+footer{text-align:center;padding:30px 20px 40px;color:var(--fog);font-size:.76rem;}
+footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
+
+@media(max-width:560px){
+  .hero{padding:46px 18px 40px;}
+  .hero-stats{gap:24px;}
+  main{padding:30px 18px 70px;}
+  .field-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <span class="mark">🧳</span>
+      <span class="txt"><em>M</em>-Reisen</span>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-stars"></div>
+  <div class="hero-eyebrow">Unser Reisetagebuch-Regal</div>
+  <h1>Wohin als <em>Nächstes</em>?</h1>
+  <div class="hero-sub">Jede Reise bekommt ihr eigenes Tagebuch — mit Fotos, Tagesberichten und Erinnerungen. Hier sammeln sich alle an einem Ort.</div>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="num" id="stat-total">0</span><span class="lbl">Reisen</span></div>
+    <div class="hero-stat"><span class="num" id="stat-countries">0</span><span class="lbl">Länder</span></div>
+    <div class="hero-stat"><span class="num" id="stat-done">0</span><span class="lbl">Erlebt</span></div>
+  </div>
+</div>
+
+<main>
+  <div class="section-head">
+    <div class="section-title">Reisen<small>Tippe auf eine Reise, um das Tagebuch zu öffnen.</small></div>
+    <div class="filters" id="filters">
+      <button class="filter-chip active" data-f="alle" onclick="setFilter('alle')">Alle</button>
+      <button class="filter-chip" data-f="geplant" onclick="setFilter('geplant')">Geplant</button>
+      <button class="filter-chip" data-f="laeuft" onclick="setFilter('laeuft')">Läuft</button>
+      <button class="filter-chip" data-f="fertig" onclick="setFilter('fertig')">Erlebt</button>
+    </div>
+  </div>
+  <div class="trips-grid" id="trips-grid"></div>
+</main>
+
+<footer>
+  Mit Liebe gemacht für unsere Abenteuer · <span class="v">M-Reisen V1</span>
+</footer>
+
+<!-- PIN OVERLAY -->
+<div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
+  <div class="pin-box">
+    <div class="ic">🔑</div>
+    <h3>Admin-Modus</h3>
+    <p>PIN eingeben, um Reisen zu verwalten</p>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinIn('1')">1</button><button class="pin-key" onclick="pinIn('2')">2</button><button class="pin-key" onclick="pinIn('3')">3</button>
+      <button class="pin-key" onclick="pinIn('4')">4</button><button class="pin-key" onclick="pinIn('5')">5</button><button class="pin-key" onclick="pinIn('6')">6</button>
+      <button class="pin-key" onclick="pinIn('7')">7</button><button class="pin-key" onclick="pinIn('8')">8</button><button class="pin-key" onclick="pinIn('9')">9</button>
+      <button class="pin-key" style="font-size:.85rem;color:var(--fog)" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinIn('0')">0</button>
+      <button class="pin-key" style="font-size:.78rem;color:var(--fog)" onclick="closePin()">✕</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
+
+<!-- TRIP FORM MODAL -->
+<div class="overlay" id="trip-modal" onclick="if(event.target===this)closeTripModal()">
+  <div class="modal-box">
+    <div class="mb-head">
+      <div class="mb-title" id="tm-title">Neue Reise</div>
+      <button class="mb-close" onclick="closeTripModal()">✕</button>
+    </div>
+    <div class="mb-body">
+      <input type="hidden" id="t-id">
+      <div class="field">
+        <label>Name der Reise</label>
+        <input type="text" id="t-name" placeholder="z.B. Australien 2026">
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Emoji</label><input type="text" id="t-emoji" placeholder="🦘" maxlength="4"></div>
+        <div class="field"><label>Ort / Region</label><input type="text" id="t-loc" placeholder="Queensland, Australien"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Von</label><input type="date" id="t-from"></div>
+        <div class="field"><label>Bis</label><input type="date" id="t-to"></div>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <div class="status-pick" id="status-pick">
+          <div class="status-opt" data-s="geplant" onclick="pickStatus('geplant')">Geplant</div>
+          <div class="status-opt" data-s="laeuft" onclick="pickStatus('laeuft')">Läuft</div>
+          <div class="status-opt" data-s="fertig" onclick="pickStatus('fertig')">Erlebt</div>
+        </div>
+        <div class="help">Wird automatisch aus dem Datum gesetzt — du kannst es aber überschreiben.</div>
+      </div>
+      <div class="field">
+        <label>Kurzbeschreibung</label>
+        <textarea id="t-note" placeholder="Ein Satz, der Lust auf die Reise macht…"></textarea>
+      </div>
+      <div class="field">
+        <label>Link zum Tagebuch</label>
+        <input type="text" id="t-url" placeholder="index.html">
+        <div class="help">Dateiname oder URL des Tagebuchs für diese Reise (z.B. <strong>index.html</strong>).</div>
+      </div>
+      <div class="field">
+        <label>Titelbild-Link (optional)</label>
+        <input type="text" id="t-img" placeholder="https://…">
+        <div class="help">Leer lassen für einen Emoji-Hintergrund.</div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="closeTripModal()">Abbrechen</button>
+        <button class="btn-save" onclick="saveTrip()">Reise speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── KONFIG ───────────────────────────────────────────────────────────────
+var CORRECT_PIN = '2026';
+var STORAGE_KEY = 'mreisen_trips_v1';
+
+// Standard-Reise (Australien) — erscheint, solange nichts gespeichert ist
+var DEFAULT_TRIPS = [
+  {
+    id: 'australien-2026',
+    name: 'Das große Australien-Abenteuer',
+    emoji: '🦘',
+    loc: 'Queensland & Great Barrier Reef',
+    from: '2026-09-13',
+    to: '2026-10-10',
+    status: '',           // '' = automatisch aus Datum
+    note: 'Von Port Douglas über die Whitsundays bis Sydney — 27 Tage Riff, Regenwald und Outback.',
+    url: 'index.html',
+    img: ''
+  }
+];
+
+// ── STATE ────────────────────────────────────────────────────────────────
+var trips = [];
+var adminMode = false;
+var activeFilter = 'alle';
+var pinBuffer = '';
+var editingId = null;
+var pickedStatus = '';
+
+// ── PERSISTENZ ───────────────────────────────────────────────────────────
+function loadTrips(){
+  try{
+    var raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ trips = JSON.parse(raw); return; }
+  }catch(e){}
+  trips = DEFAULT_TRIPS.slice();
+}
+function saveTrips(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(trips)); }catch(e){ toast('Konnte nicht speichern.'); }
+}
+
+// ── STATUS-LOGIK ─────────────────────────────────────────────────────────
+function todayISO(){ return new Date().toISOString().split('T')[0]; }
+function effectiveStatus(t){
+  if(t.status) return t.status;        // manuell gesetzt
+  var now = todayISO();
+  if(t.to && t.to < now) return 'fertig';
+  if(t.from && t.from <= now && (!t.to || t.to >= now)) return 'laeuft';
+  return 'geplant';
+}
+var STATUS_LABEL = { geplant:'Geplant', laeuft:'Läuft', fertig:'Erlebt' };
+var STATUS_STAMP = { geplant:'stamp-planned', laeuft:'stamp-running', fertig:'stamp-done' };
+
+// ── DATUM FORMATIEREN ────────────────────────────────────────────────────
+function fmtRange(from,to){
+  if(!from) return '';
+  var opt = {day:'numeric',month:'short'};
+  var f = new Date(from+'T12:00:00');
+  if(!to){ return f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}); }
+  var t = new Date(to+'T12:00:00');
+  var sameYear = f.getFullYear()===t.getFullYear();
+  var fStr = f.toLocaleDateString('de-DE', sameYear?opt:{day:'numeric',month:'short',year:'numeric'});
+  var tStr = t.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+  return fStr+' – '+tStr;
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────
+function render(){
+  var grid = document.getElementById('trips-grid');
+  var visible = trips.filter(function(t){
+    if(activeFilter==='alle') return true;
+    return effectiveStatus(t)===activeFilter;
+  });
+
+  // sortieren: laufende zuerst, dann geplante (nächstes Datum), dann erlebte (neueste)
+  visible.sort(function(a,b){
+    var order = {laeuft:0, geplant:1, fertig:2};
+    var sa = effectiveStatus(a), sb = effectiveStatus(b);
+    if(order[sa]!==order[sb]) return order[sa]-order[sb];
+    var fa = a.from||'', fb = b.from||'';
+    return sa==='fertig' ? (fb<fa?-1:fb>fa?1:0) : (fa<fb?-1:fa>fb?1:0);
+  });
+
+  var html = '';
+  if(visible.length===0 && !adminMode){
+    html = '<div class="empty" style="grid-column:1/-1"><div class="big">🗺️</div><div>Noch keine Reisen in dieser Ansicht.</div></div>';
+  } else {
+    html = visible.map(cardHTML).join('');
+  }
+  if(adminMode){
+    html += '<div class="add-card" onclick="openNewTrip()"><div class="plus">+</div><div class="lbl">Reise hinzufügen</div></div>';
+  }
+  grid.innerHTML = html;
+  updateStats();
+}
+
+function cardHTML(t){
+  var st = effectiveStatus(t);
+  var cover = t.img
+    ? '<img src="'+escapeAttr(t.img)+'" alt=""><div class="trip-cover-grad"></div>'
+    : '<div class="trip-cover-fallback" style="background:'+coverGradient(st)+'"><span class="big">'+(t.emoji||'🌍')+'</span></div>';
+  var emojiBadge = t.img ? '<span class="trip-cover-emoji">'+(t.emoji||'🌍')+'</span>' : '';
+  var admin = adminMode
+    ? '<div class="trip-admin-btns show">'
+      +'<button class="icon-btn" title="Bearbeiten" onclick="editTrip(event,\''+t.id+'\')">✏️</button>'
+      +'<button class="icon-btn del" title="Löschen" onclick="delTrip(event,\''+t.id+'\')">🗑️</button>'
+      +'</div>'
+    : '<span class="trip-open">Tagebuch öffnen →</span>';
+
+  var inner =
+    '<div class="trip-cover">'+cover+emojiBadge
+      +'<span class="stamp '+STATUS_STAMP[st]+'">'+STATUS_LABEL[st]+'</span>'
+    +'</div>'
+    +'<div class="trip-body">'
+      +(t.from?'<div class="trip-dates">'+fmtRange(t.from,t.to)+'</div>':'')
+      +'<div class="trip-name">'+escapeHTML(t.name||'Unbenannte Reise')+'</div>'
+      +(t.loc?'<div class="trip-loc">'+escapeHTML(t.loc)+'</div>':'')
+      +(t.note?'<div class="trip-note">'+escapeHTML(t.note)+'</div>':'<div class="trip-note"></div>')
+      +'<div class="trip-foot">'+admin+'</div>'
+    +'</div>';
+
+  // Im Admin-Modus nicht navigieren (Klick = nichts), sonst Link
+  if(adminMode){
+    return '<div class="trip-card placeholder">'+inner+'</div>';
+  }
+  var href = t.url ? escapeAttr(t.url) : '#';
+  return '<a class="trip-card" href="'+href+'">'+inner+'</a>';
+}
+
+function coverGradient(st){
+  if(st==='laeuft') return 'linear-gradient(140deg,#0d6e63,#0a3d4a)';
+  if(st==='fertig') return 'linear-gradient(140deg,#4a6534,#2a3d1a)';
+  return 'linear-gradient(140deg,#b4651f,#7a3d10)';  // geplant
+}
+
+function updateStats(){
+  document.getElementById('stat-total').textContent = trips.length;
+  document.getElementById('stat-done').textContent = trips.filter(function(t){return effectiveStatus(t)==='fertig';}).length;
+  // Länder grob: letztes Wort/Region hinter Komma zählen
+  var countries = {};
+  trips.forEach(function(t){
+    if(!t.loc) return;
+    var parts = t.loc.split(',');
+    var c = parts[parts.length-1].trim();
+    if(c) countries[c.toLowerCase()] = true;
+  });
+  document.getElementById('stat-countries').textContent = Object.keys(countries).length;
+}
+
+// ── FILTER ───────────────────────────────────────────────────────────────
+function setFilter(f){
+  activeFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(function(c){
+    c.classList.toggle('active', c.getAttribute('data-f')===f);
+  });
+  render();
+}
+
+// ── ADMIN / PIN ──────────────────────────────────────────────────────────
+function toggleAdmin(){
+  if(adminMode){
+    adminMode = false;
+    document.getElementById('admin-btn').textContent = '🔑 Admin';
+    document.getElementById('admin-btn').classList.remove('btn-primary');
+    document.getElementById('admin-btn').classList.add('btn-ghost');
+    render();
+    toast('Admin-Modus beendet.');
+  } else {
+    pinBuffer=''; updatePinDots();
+    document.getElementById('pin-err').textContent='';
+    document.getElementById('pin-overlay').classList.add('open');
+  }
+}
+function pinIn(d){
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=d; updatePinDots();
+  if(pinBuffer.length===4) setTimeout(checkPin,150);
+}
+function pinDel(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots(){
+  for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled', i<pinBuffer.length);
+}
+function closePin(){ document.getElementById('pin-overlay').classList.remove('open'); pinBuffer=''; updatePinDots(); }
+function checkPin(){
+  if(pinBuffer===CORRECT_PIN){
+    closePin();
+    adminMode = true;
+    var b = document.getElementById('admin-btn');
+    b.textContent = 'Admin aktiv';
+    b.classList.remove('btn-ghost'); b.classList.add('btn-primary');
+    render();
+    toast('Admin-Modus aktiv!');
+  } else {
+    document.getElementById('pin-err').textContent='Falsche PIN.';
+    pinBuffer=''; updatePinDots();
+    setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
+  }
+}
+
+// ── TRIP-FORMULAR ────────────────────────────────────────────────────────
+function openNewTrip(){
+  editingId = null;
+  document.getElementById('tm-title').textContent = 'Neue Reise';
+  setField('t-id',''); setField('t-name',''); setField('t-emoji','');
+  setField('t-loc',''); setField('t-from',''); setField('t-to','');
+  setField('t-note',''); setField('t-url','index.html'); setField('t-img','');
+  pickStatus('');
+  document.getElementById('trip-modal').classList.add('open');
+}
+function editTrip(ev,id){
+  ev.preventDefault(); ev.stopPropagation();
+  var t = trips.find(function(x){return x.id===id;});
+  if(!t) return;
+  editingId = id;
+  document.getElementById('tm-title').textContent = 'Reise bearbeiten';
+  setField('t-id',t.id); setField('t-name',t.name||''); setField('t-emoji',t.emoji||'');
+  setField('t-loc',t.loc||''); setField('t-from',t.from||''); setField('t-to',t.to||'');
+  setField('t-note',t.note||''); setField('t-url',t.url||''); setField('t-img',t.img||'');
+  pickStatus(t.status||'');
+  document.getElementById('trip-modal').classList.add('open');
+}
+function delTrip(ev,id){
+  ev.preventDefault(); ev.stopPropagation();
+  var t = trips.find(function(x){return x.id===id;});
+  if(!t) return;
+  if(!confirm('Reise „'+(t.name||'')+'" wirklich löschen?')) return;
+  trips = trips.filter(function(x){return x.id!==id;});
+  saveTrips(); render();
+  toast('Reise gelöscht.');
+}
+function closeTripModal(){ document.getElementById('trip-modal').classList.remove('open'); }
+
+function pickStatus(s){
+  pickedStatus = s;
+  document.querySelectorAll('.status-opt').forEach(function(o){
+    o.classList.toggle('sel', o.getAttribute('data-s')===s);
+  });
+}
+
+function saveTrip(){
+  var name = val('t-name').trim();
+  if(!name){ toast('Bitte einen Namen eingeben.'); return; }
+  var from = val('t-from'), to = val('t-to');
+  if(from && to && to < from){ toast('„Bis" liegt vor „Von".'); return; }
+  var url = val('t-url').trim();
+
+  var data = {
+    id: editingId || slugify(name) + '-' + Date.now().toString(36),
+    name: name,
+    emoji: val('t-emoji').trim() || '🌍',
+    loc: val('t-loc').trim(),
+    from: from,
+    to: to,
+    status: pickedStatus,   // '' = automatisch
+    note: val('t-note').trim(),
+    url: url,
+    img: val('t-img').trim()
+  };
+
+  if(editingId){
+    var i = trips.findIndex(function(x){return x.id===editingId;});
+    if(i>=0) trips[i] = data;
+  } else {
+    trips.push(data);
+  }
+  saveTrips();
+  closeTripModal();
+  render();
+  toast(editingId ? 'Reise aktualisiert!' : 'Reise hinzugefügt!');
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────
+function setField(id,v){ var el=document.getElementById(id); if(el) el.value=v; }
+function val(id){ var el=document.getElementById(id); return el?el.value:''; }
+function slugify(s){
+  return s.toLowerCase()
+    .replace(/[äàá]/g,'a').replace(/[öòó]/g,'o').replace(/[üùú]/g,'u').replace(/ß/g,'ss')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,40) || 'reise';
+}
+function escapeHTML(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escapeAttr(s){
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2600);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+loadTrips();
+render();
+</script>
+</body>
+</html>
