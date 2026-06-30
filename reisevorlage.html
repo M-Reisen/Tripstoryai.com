@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Reisetagebuch · M-Reisen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ocean:#1a6b8a;--reef:#0d9488;--sand:#f0e6cc;--sunset:#e07b3f;
+  --bush:#5a7a40;--paper:#faf7f2;--ink:#1c1a16;--fog:#7a7167;
+  --white:#fff;--radius:14px;--shadow:0 4px 28px rgba(28,26,22,.10);
+  --flight:#7c3aed;--bus:#16a34a;--car:#b45309;--tour:#be185d;--ferry:#0369a1;
+}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
+.header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo .mark{font-size:1.9rem;line-height:1;}
+.logo .txt{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand);}
+.logo .txt em{color:var(--sunset);font-style:italic;}
+.header-actions{display:flex;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;text-decoration:none;}
+.btn-primary{background:var(--sunset);color:var(--white);}.btn-primary:hover{background:#c96a30;}
+.btn-ghost{background:transparent;color:var(--sand);border:1px solid rgba(255,255,255,.22);}.btn-ghost:hover{background:rgba(255,255,255,.09);}
+.btn-reef{background:var(--reef);color:var(--white);}
+.btn-bush{background:var(--bush);color:var(--white);}
+.btn-sm{padding:6px 12px;font-size:.76rem;}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;background:radial-gradient(120% 130% at 50% -10%,#16314a 0%,#0d1f33 45%,#0a1626 100%);padding:48px 24px 40px;text-align:center;color:var(--sand);}
+.hero-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1.5px 1.5px at 15% 20%,rgba(255,255,200,.7),transparent),radial-gradient(1px 1px at 60% 10%,rgba(255,255,200,.5),transparent),radial-gradient(1.5px 1.5px at 80% 30%,rgba(255,255,200,.6),transparent),radial-gradient(1px 1px at 30% 70%,rgba(255,255,200,.4),transparent);}
+.hero-eyebrow{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--sunset);margin-bottom:8px;position:relative;}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,6vw,3.2rem);font-weight:400;line-height:1.12;margin-bottom:10px;position:relative;}
+.hero h1 em{color:var(--sunset);font-style:italic;}
+.hero-dates{font-family:'Caveat',cursive;font-size:1.25rem;color:rgba(240,230,204,.7);margin-bottom:6px;position:relative;}
+.hero-sub{font-size:.85rem;color:rgba(240,230,204,.5);margin-bottom:22px;position:relative;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.5;}
+.hero-stats{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;position:relative;}
+.hero-stat .num{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--sunset);display:block;line-height:1;}
+.hero-stat .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,230,204,.5);margin-top:5px;}
+.hero-edit-btn{position:relative;margin-top:18px;}
+
+/* TABS */
+.tabs{max-width:1140px;margin:0 auto;padding:0 24px;display:flex;gap:4px;border-bottom:2px solid rgba(28,26,22,.1);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;color:var(--fog);background:none;border:none;padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;border-radius:6px 6px 0 0;white-space:nowrap;}
+.tab-btn.active{color:var(--sunset);border-bottom-color:var(--sunset);}
+.tab-btn:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.04);}
+
+main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* EMPTY STATES */
+.empty{text-align:center;padding:50px 20px;color:var(--fog);}
+.empty .big{font-size:2.8rem;margin-bottom:12px;}
+.empty .lbl{font-size:.95rem;margin-bottom:6px;color:var(--ink);font-family:'Playfair Display',serif;}
+.empty .sub{font-size:.83rem;line-height:1.5;max-width:340px;margin:0 auto 16px;}
+
+/* TAG FÜR TAG */
+.days-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;}
+.days-nav-title{font-family:'Playfair Display',serif;font-size:1.15rem;text-align:center;flex:1;}
+.days-nav-title small{display:block;font-family:'Inter',sans-serif;font-size:.75rem;color:var(--fog);font-weight:400;margin-top:2px;}
+.nav-arrow{background:var(--white);border:1.5px solid rgba(28,26,22,.15);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:all .18s;box-shadow:var(--shadow);}
+.nav-arrow:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
+.nav-arrow:disabled{opacity:.3;cursor:default;}
+.days-dots{display:flex;justify-content:center;gap:5px;margin-bottom:18px;flex-wrap:wrap;}
+.day-dot{width:8px;height:8px;border-radius:50%;background:rgba(28,26,22,.15);cursor:pointer;transition:all .18s;}
+.day-dot.active{background:var(--sunset);transform:scale(1.3);}
+.day-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.day-card-header{padding:18px 22px 14px;border-bottom:1px solid rgba(28,26,22,.07);}
+.day-card-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
+.day-card-loc{font-size:.8rem;color:var(--fog);margin-top:2px;}
+.day-entry-area{padding:18px 22px;}
+.day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:12px;}
+.day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:12px;}
+.day-program{display:flex;flex-wrap:wrap;gap:6px;padding:12px 22px;background:rgba(28,26,22,.03);border-top:1px solid rgba(28,26,22,.06);}
+.program-badge{font-size:.75rem;padding:4px 11px;border-radius:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px;}
+.badge-Unterkunft{background:#dbeafe;color:#1d4ed8;}
+.badge-Flug{background:#ede9fe;color:#5b21b6;}
+.badge-Transport{background:#fef3c7;color:#92400e;}
+.badge-Ausflug{background:#fce7f3;color:#9d174d;}
+.badge-Sonstiges{background:#e8f0e0;color:#3d5a26;}
+
+/* COST */
+.cost-card{background:var(--white);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);max-width:720px;margin:0 auto;}
+.cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:14px;}
+.cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:14px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;display:flex;align-items:center;gap:6px;}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,26,22,.06);font-size:.85rem;gap:12px;}
+.cost-row .info{font-size:.73rem;color:var(--fog);margin-top:1px;}
+.cost-row .date-chip{display:inline-block;font-size:.68rem;background:#e8f0e0;color:#3d5a26;padding:1px 7px;border-radius:8px;margin-top:3px;}
+.cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
+.cost-edit-btn,.cost-del-btn{background:none;border:none;cursor:pointer;font-size:.8rem;padding:2px 4px;border-radius:5px;line-height:1;opacity:.65;transition:opacity .15s,background .15s;}
+.cost-edit-btn:hover{opacity:1;background:rgba(28,26,22,.06);}
+.cost-del-btn{color:#dc2626;}
+.cost-del-btn:hover{opacity:1;background:#fef2f2;}
+.cost-add-btn{display:block;width:100%;text-align:left;background:none;border:1.5px dashed rgba(28,26,22,.2);border-radius:8px;padding:7px 12px;margin:8px 0 4px;font-size:.78rem;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.cost-add-btn:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.price-blur{filter:blur(5px);user-select:none;}
+.grand-total{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);}
+
+/* MODALS (generic overlay) */
+.overlay{display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:24px 22px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:92vh;overflow-y:auto;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.15rem;}
+.modal-close{background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--fog);line-height:1;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.field label .opt{text-transform:none;font-weight:400;}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:#fff;}
+.field textarea{resize:vertical;min-height:70px;}
+.field-row{display:flex;gap:10px;}
+.field-row>div{flex:1;}
+.preview-line{font-size:.78rem;color:var(--sunset);text-align:right;min-height:16px;margin-bottom:8px;}
+.modal-actions{display:flex;gap:10px;margin-top:6px;}
+.modal-actions .cancel{flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;cursor:pointer;color:var(--fog);font-family:'Inter',sans-serif;}
+.modal-actions .save{flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* PIN */
+.pin-dots{display:flex;justify-content:center;gap:11px;margin:14px 0 16px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);transition:all .16s;}
+.pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
+.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.pin-key:hover{background:var(--sunset);color:#fff;border-color:var(--sunset);}
+.pin-err{color:#dc2626;font-size:.77rem;margin-top:10px;min-height:16px;text-align:center;}
+
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:10px 22px;border-radius:8px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+@media(max-width:600px){
+  .cost-card,.modal{padding:18px;}
+  .hero{padding:34px 18px 30px;}
+  .header-inner{padding:11px 16px;}
+  .field-row{flex-direction:column;gap:12px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="index.html">
+      <span class="mark">🧳</span>
+      <span class="txt"><em>M</em>-Reisen</span>
+    </a>
+    <div class="header-actions">
+      <a class="btn btn-ghost btn-sm" href="index.html">← Übersicht</a>
+      <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-stars"></div>
+  <div class="hero-eyebrow" id="hero-eyebrow">Neues Reisetagebuch</div>
+  <h1 id="hero-title">Deine <em>Reise</em></h1>
+  <div class="hero-dates" id="hero-dates"></div>
+  <div class="hero-sub" id="hero-sub">Lege im Admin-Modus die Eckdaten an und erfasse deine Kosten mit Datum — daraus entsteht automatisch der Tagesplan.</div>
+  <div class="hero-stats" id="hero-stats"></div>
+  <div class="hero-edit-btn" id="hero-edit-wrap" style="display:none">
+    <button class="btn btn-primary btn-sm" onclick="openTripHead()">✏️ Reise-Eckdaten bearbeiten</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">📅 Tag für Tag</button>
+  <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
+</div>
+
+<main>
+  <!-- TAG FÜR TAG -->
+  <div class="section active" id="section-tage">
+    <div id="tage-content"></div>
+  </div>
+
+  <!-- KOSTEN -->
+  <div class="section" id="section-kosten">
+    <div class="cost-card">
+      <div class="cost-title">💰 Reisekosten</div>
+      <div id="cost-list"></div>
+      <div id="grand-total-box"></div>
+    </div>
+  </div>
+</main>
+
+<!-- PIN -->
+<div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <div style="font-size:1.8rem;margin-bottom:8px">🔑</div>
+    <div class="modal-title" style="margin-bottom:4px">Admin-Modus</div>
+    <div style="font-size:.8rem;color:var(--fog)">PIN eingeben</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinIn('1')">1</button><button class="pin-key" onclick="pinIn('2')">2</button><button class="pin-key" onclick="pinIn('3')">3</button>
+      <button class="pin-key" onclick="pinIn('4')">4</button><button class="pin-key" onclick="pinIn('5')">5</button><button class="pin-key" onclick="pinIn('6')">6</button>
+      <button class="pin-key" onclick="pinIn('7')">7</button><button class="pin-key" onclick="pinIn('8')">8</button><button class="pin-key" onclick="pinIn('9')">9</button>
+      <button class="pin-key" style="font-size:.85rem;color:var(--fog)" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinIn('0')">0</button>
+      <button class="pin-key" style="font-size:.78rem;color:var(--fog)" onclick="closePin()">✕</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
+
+<!-- REISEKOPF-MODAL -->
+<div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Reise-Eckdaten</div>
+      <button class="modal-close" onclick="closeTripHead()">✕</button>
+    </div>
+    <div class="field"><label>Reisetitel</label><input type="text" id="h-title" placeholder="z.B. Japan im Frühling"></div>
+    <div class="field"><label>Untertitel / Region <span class="opt">(optional)</span></label><input type="text" id="h-sub" placeholder="z.B. Tokio · Kyoto · Osaka"></div>
+    <div class="field-row">
+      <div class="field"><label>Von</label><input type="date" id="h-from"></div>
+      <div class="field"><label>Bis</label><input type="date" id="h-to"></div>
+    </div>
+    <div class="field"><label>Emoji <span class="opt">(optional)</span></label><input type="text" id="h-emoji" placeholder="🌸" maxlength="4"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeTripHead()">Abbrechen</button>
+      <button class="save" onclick="saveTripHead()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- KOSTEN-MODAL -->
+<div class="overlay" id="cost-modal" onclick="if(event.target===this)closeCostModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="cm-title">Position hinzufügen</div>
+      <button class="modal-close" onclick="closeCostModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <select id="c-cat">
+        <option value="Unterkunft">🏨 Unterkünfte</option>
+        <option value="Flug">✈️ Flüge</option>
+        <option value="Transport">🚗 Transport</option>
+        <option value="Ausflug">🎟️ Ausflüge</option>
+        <option value="Sonstiges">✨ Sonstiges</option>
+      </select>
+    </div>
+    <div class="field"><label>Datum <span class="opt">(optional · erscheint im Tagesplan)</span></label><input type="date" id="c-datum"></div>
+    <div class="field"><label>Bezeichnung</label><input type="text" id="c-label" placeholder="z.B. Hotel Tokio"></div>
+    <div class="field"><label>Details <span class="opt">(optional)</span></label><input type="text" id="c-info" placeholder="z.B. 3 Nächte · Ref. XY"></div>
+    <div class="field-row">
+      <div class="field"><label>Betrag</label><input type="number" step="0.01" min="0" id="c-amount" placeholder="0.00" oninput="updateCostPreview()"></div>
+      <div class="field"><label>Währung</label>
+        <select id="c-currency" onchange="updateCostPreview()">
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="USD">🇺🇸 USD</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="CHF">🇨🇭 CHF</option>
+          <option value="JPY">🇯🇵 JPY</option>
+          <option value="AUD">🇦🇺 AUD</option>
+        </select>
+      </div>
+    </div>
+    <div class="preview-line" id="c-preview"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeCostModal()">Abbrechen</button>
+      <button class="save" onclick="saveCost()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── REISE-SCHLÜSSEL aus URL (?reise=xxx) ────────────────────────────────────
+function getReiseKey(){
+  var p=new URLSearchParams(window.location.search);
+  var k=(p.get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  return k; // '' = keine Reise angegeben
+}
+var REISE=getReiseKey();
+// Präfix für alle Supabase-Schlüssel dieser Reise.
+// Leerer Reise-Key → 'demo_' (Vorlage ohne Reise sollte nicht mit echten Daten kollidieren)
+var PFX=(REISE||'demo')+'_';
+
+// ── SUPABASE ────────────────────────────────────────────────────────────────
+const SUPABASE_URL='https://celihvrblqqivtlvzbjp.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+const CORRECT_PIN='2026';
+const PLAN_CATS=[
+  {key:'Unterkunft', emoji:'🏨', label:'Unterkünfte'},
+  {key:'Flug',       emoji:'✈️', label:'Flüge'},
+  {key:'Transport',  emoji:'🚗', label:'Transport'},
+  {key:'Ausflug',    emoji:'🎟️', label:'Ausflüge'},
+  {key:'Sonstiges',  emoji:'✨', label:'Sonstiges'}
+];
+const FX={EUR:1, USD:0.92, GBP:1.17, CHF:1.06, JPY:0.0061, AUD:0.61};
+function toEUR(a,c){return a*(FX[c]||1);}
+const CAT_EMOJI={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'✨'};
+
+let tripHead={title:'', sub:'', from:'', to:'', emoji:'🌍'};
+let costs=[];            // {id, cat, label, info, datum, amount, cur}
+let editMode=false;
+let pinBuffer='';
+let currentDay=0;
+let _editId=null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function isISODate(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'');}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+function val(id){var e=document.getElementById(id);return e?e.value:'';}
+function setVal(id,v){var e=document.getElementById(id);if(e)e.value=v;}
+
+// ── SUPABASE: REISEKOPF ───────────────────────────────────────────────────────
+// Gespeichert als ort=PFX+'triphead', nachricht=JSON
+async function sbLoadHead(){
+  try{
+    const {data,error}=await sb.from('kommentare').select('*').eq('ort',PFX+'triphead').limit(1);
+    if(error||!data||!data.length)return;
+    const j=JSON.parse(data[0].nachricht||'{}');
+    tripHead=Object.assign(tripHead,j);
+  }catch(e){console.error('Head laden:',e);}
+}
+async function sbSaveHead(){
+  try{
+    const {data}=await sb.from('kommentare').select('id').eq('ort',PFX+'triphead').limit(1);
+    const payload=JSON.stringify(tripHead);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:PFX+'triphead',name:'Reisekopf',nachricht:payload,created_at:new Date().toISOString()});
+    }
+    return true;
+  }catch(e){toast('Fehler beim Speichern der Eckdaten.');return false;}
+}
+
+// ── SUPABASE: KOSTEN ──────────────────────────────────────────────────────────
+// ort=PFX+'kost_<uid>', name='cat|label', nachricht='amount|cur|datum|info'
+async function sbSaveCost(c){
+  const uid=PFX+'kost_'+Date.now()+Math.floor(Math.random()*1000);
+  const {data,error}=await sb.from('kommentare').insert({
+    ort:uid, name:c.cat+'|'+c.label, nachricht:c.amount+'|'+c.cur+'|'+(c.datum||'')+'|'+(c.info||''),
+    created_at:new Date().toISOString()
+  }).select();
+  if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
+  return data&&data[0]?data[0].id:null;
+}
+async function sbUpdateCost(c){
+  const {error}=await sb.from('kommentare').update({
+    name:c.cat+'|'+c.label, nachricht:c.amount+'|'+c.cur+'|'+(c.datum||'')+'|'+(c.info||'')
+  }).eq('id',c.id);
+  if(error){toast('Fehler beim Aktualisieren: '+(error.message||''));return false;}
+  return true;
+}
+async function sbDeleteCost(id){
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  return !error;
+}
+async function sbLoadCosts(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'kost_%').order('created_at',{ascending:true});
+  if(error){console.error('Kosten laden:',error);return;}
+  costs=(data||[]).map(function(r){
+    const np=(r.name||'').split('|');
+    const cat=np[0]||'Sonstiges';
+    const label=np.slice(1).join('|')||'Position';
+    const mp=(r.nachricht||'').split('|');
+    const amount=parseFloat(mp[0])||0;
+    const cur=mp[1]||'EUR';
+    let datum='',info='';
+    if(mp.length>=4){datum=isISODate(mp[2])?mp[2]:'';info=mp.slice(3).join('|');if(!datum&&mp[2])info=mp.slice(2).join('|');}
+    else if(mp.length===3){if(isISODate(mp[2]))datum=mp[2];else info=mp[2];}
+    return {id:r.id,cat:cat,label:label,info:info,datum:datum,amount:amount,cur:cur};
+  });
+}
+
+// ── REISEKOPF UI ──────────────────────────────────────────────────────────────
+function renderHead(){
+  document.getElementById('hero-title').innerHTML = tripHead.title
+    ? (tripHead.emoji?tripHead.emoji+' ':'')+esc(tripHead.title)
+    : 'Deine <em>Reise</em>';
+  document.getElementById('hero-eyebrow').textContent = tripHead.sub || 'Reisetagebuch';
+  // Datum
+  let dateStr='';
+  if(tripHead.from){
+    const f=new Date(tripHead.from+'T12:00:00');
+    if(tripHead.to){
+      const t=new Date(tripHead.to+'T12:00:00');
+      dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+t.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    }else{
+      dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    }
+  }
+  document.getElementById('hero-dates').textContent=dateStr;
+  // Sub-Hinweis ausblenden sobald Titel da ist
+  document.getElementById('hero-sub').style.display = tripHead.title ? 'none' : 'block';
+  // Stats
+  const days=buildDays();
+  const stations=new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label)).size;
+  const total=costs.reduce((s,c)=>s+toEUR(c.amount,c.cur),0);
+  let stats='';
+  if(days.length){stats+=`<div class="hero-stat"><span class="num">${days.length}</span><span class="lbl">Tage</span></div>`;}
+  if(stations){stats+=`<div class="hero-stat"><span class="num">${stations}</span><span class="lbl">Unterkünfte</span></div>`;}
+  if(costs.length){stats+=`<div class="hero-stat"><span class="num">${costs.length}</span><span class="lbl">Positionen</span></div>`;}
+  document.getElementById('hero-stats').innerHTML=stats;
+  document.getElementById('hero-edit-wrap').style.display=editMode?'block':'none';
+}
+function openTripHead(){
+  setVal('h-title',tripHead.title);setVal('h-sub',tripHead.sub);
+  setVal('h-from',tripHead.from);setVal('h-to',tripHead.to);setVal('h-emoji',tripHead.emoji==='🌍'?'':tripHead.emoji);
+  document.getElementById('head-modal').classList.add('open');
+}
+function closeTripHead(){document.getElementById('head-modal').classList.remove('open');}
+async function saveTripHead(){
+  const title=val('h-title').trim();
+  if(!title){toast('Bitte einen Titel eingeben.');return;}
+  const from=val('h-from'),to=val('h-to');
+  if(from&&to&&to<from){toast('„Bis" liegt vor „Von".');return;}
+  tripHead={title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'};
+  await sbSaveHead();
+  closeTripHead();
+  renderHead();buildDaySlides();
+  toast('Eckdaten gespeichert!');
+}
+
+// ── TAGE: aus Reisezeitraum ODER aus datierten Kosten ─────────────────────────
+function buildDays(){
+  // Primär: Reisezeitraum aus tripHead. Fallback: min/max der datierten Kosten.
+  let from=tripHead.from, to=tripHead.to;
+  const dated=costs.filter(c=>c.datum).map(c=>c.datum).sort();
+  if(!from && dated.length) from=dated[0];
+  if(!to && dated.length) to=dated[dated.length-1];
+  if(!from) return [];
+  if(!to) to=from;
+  const days=[];
+  const start=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
+  if(end<start) return [];
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+function renderTage(){
+  const days=buildDays();
+  const c=document.getElementById('tage-content');
+  if(!days.length){
+    c.innerHTML='<div class="empty"><div class="big">🗺️</div><div class="lbl">Noch kein Tagesplan</div>'
+      +'<div class="sub">Lege im Admin-Modus die Reise-Eckdaten an oder erfasse Kosten mit einem Datum — daraus entsteht hier automatisch der Tagesplan.</div>'
+      +(editMode?'<button class="btn btn-primary btn-sm" onclick="openTripHead()">✏️ Eckdaten anlegen</button>':'')+'</div>';
+    return;
+  }
+  if(currentDay>=days.length)currentDay=days.length-1;
+  if(currentDay<0)currentDay=0;
+  c.innerHTML=
+    '<div class="days-nav">'
+    +'<button class="nav-arrow" id="btn-prev" onclick="slideDay(-1)">←</button>'
+    +'<div class="days-nav-title" id="day-nav-title"></div>'
+    +'<button class="nav-arrow" id="btn-next" onclick="slideDay(1)">→</button>'
+    +'</div>'
+    +'<div class="days-dots" id="days-dots"></div>'
+    +'<div id="day-card-wrap"></div>';
+  // dots
+  let dots='';
+  days.forEach(function(iso,i){dots+=`<div class="day-dot${i===currentDay?' active':''}" onclick="goToDay(${i})"></div>`;});
+  document.getElementById('days-dots').innerHTML=dots;
+  renderDayCard(days);
+}
+function renderDayCard(days){
+  const iso=days[currentDay];
+  const d=new Date(iso+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Programmpunkte = datierte Kosten dieses Tages
+  const dayCosts=costs.filter(c=>c.datum===iso);
+  const stay=dayCosts.find(c=>c.cat==='Unterkunft');
+  const loc=stay?stay.label:(dayCosts.length?'Programm':'–');
+  const badges=dayCosts.map(c=>`<span class="program-badge badge-${c.cat}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
+  document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
+  document.getElementById('btn-prev').disabled=currentDay===0;
+  document.getElementById('btn-next').disabled=currentDay===days.length-1;
+  document.getElementById('day-card-wrap').innerHTML=
+    '<div class="day-card">'
+    +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
+    +'<div class="day-entry-area"><div class="day-entry-empty">Tagebucheinträge, Fotos & mehr folgen in einer späteren Version.</div></div>'
+    +(badges?`<div class="day-program">${badges}</div>`:'')
+    +'</div>';
+}
+function slideDay(dir){const days=buildDays();const n=currentDay+dir;if(n<0||n>=days.length)return;currentDay=n;renderTage();}
+function goToDay(i){currentDay=i;renderTage();}
+
+// ── KOSTEN UI ─────────────────────────────────────────────────────────────────
+function renderCosts(){
+  const pc=editMode?'':'price-blur';
+  let total=0,html='';
+  PLAN_CATS.forEach(function(cat){
+    const items=costs.filter(c=>c.cat===cat.key);
+    if(!items.length && !editMode) return;
+    html+=`<div class="cost-section-title">${cat.emoji} ${cat.label}</div>`;
+    let sum=0;
+    items.forEach(function(c){
+      const eur=toEUR(c.amount,c.cur);sum+=eur;total+=eur;
+      const amtStr=(c.cur!=='EUR')?`${fmt(c.amount)} ${c.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
+      const dateChip=c.datum?`<div class="date-chip">📅 ${new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</div>`:'';
+      const btns=editMode?`<button class="cost-edit-btn" data-id="${c.id}" onclick="editCostEl(this)">✏️</button><button class="cost-del-btn" data-id="${c.id}" onclick="delCostEl(this)">✕</button>`:'';
+      html+=`<div class="cost-row"><div style="flex:1"><div>${esc(c.label)}</div>${c.info?`<div class="info">${esc(c.info)}</div>`:''}${dateChip}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${btns}</div></div>`;
+    });
+    if(editMode)html+=`<button class="cost-add-btn" onclick="addCost('${cat.key}')">+ Position in ${cat.label} hinzufügen</button>`;
+    if(items.length)html+=`<div class="cost-group-total"><span>Summe ${cat.label}</span><span class="${pc}">EUR ${fmt(sum)}</span></div>`;
+  });
+  if(!costs.length && !editMode){
+    html='<div class="empty"><div class="big">💰</div><div class="lbl">Noch keine Kosten erfasst</div><div class="sub">Aktiviere den Admin-Modus, um Positionen hinzuzufügen.</div></div>';
+    document.getElementById('cost-list').innerHTML=html;
+    document.getElementById('grand-total-box').innerHTML='';
+    return;
+  }
+  document.getElementById('cost-list').innerHTML=html;
+  document.getElementById('grand-total-box').innerHTML=`<div class="grand-total"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
+}
+function addCost(catKey){
+  if(!editMode)return;
+  _editId=null;
+  document.getElementById('cm-title').textContent='Position hinzufügen';
+  setVal('c-cat',catKey||'Sonstiges');setVal('c-datum','');setVal('c-label','');
+  setVal('c-info','');setVal('c-amount','');setVal('c-currency','EUR');
+  updateCostPreview();
+  document.getElementById('cost-modal').classList.add('open');
+}
+function editCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const c=costs.find(x=>String(x.id)===String(id));if(!c)return;
+  _editId=c.id;
+  document.getElementById('cm-title').textContent='Position bearbeiten';
+  setVal('c-cat',c.cat);setVal('c-datum',c.datum||'');setVal('c-label',c.label);
+  setVal('c-info',c.info||'');setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
+  updateCostPreview();
+  document.getElementById('cost-modal').classList.add('open');
+}
+async function delCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const c=costs.find(x=>String(x.id)===String(id));if(!c)return;
+  if(!confirm('Position „'+c.label+'" wirklich löschen?'))return;
+  const ok=await sbDeleteCost(c.id);
+  if(!ok){toast('Löschen fehlgeschlagen.');return;}
+  costs=costs.filter(x=>String(x.id)!==String(id));
+  renderCosts();renderHead();buildDaySlides();toast('Position gelöscht.');
+}
+function updateCostPreview(){
+  const amt=parseFloat((val('c-amount')||'').replace(',','.'));
+  const cur=val('c-currency');const pv=document.getElementById('c-preview');
+  if(isNaN(amt)||amt<=0||cur==='EUR'){pv.textContent='';return;}
+  pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
+}
+async function saveCost(){
+  const cat=val('c-cat'),label=val('c-label').trim(),info=val('c-info').trim();
+  const datum=val('c-datum')||'';
+  const amt=parseFloat((val('c-amount')||'').replace(',','.'));
+  const cur=val('c-currency');
+  if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
+  if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
+  if(_editId){
+    const c={id:_editId,cat,label,info,datum,amount:amt,cur};
+    const ok=await sbUpdateCost(c);if(!ok)return;
+    const i=costs.findIndex(x=>String(x.id)===String(_editId));if(i>=0)costs[i]=c;
+    toast('Position aktualisiert!');
+  }else{
+    const draft={cat,label,info,datum,amount:amt,cur};
+    const id=await sbSaveCost(draft);if(id===null)return;
+    costs.push(Object.assign({id:id},draft));
+    toast('Position hinzugefügt!');
+  }
+  document.getElementById('cost-modal').classList.remove('open');
+  renderCosts();renderHead();buildDaySlides();
+}
+function closeCostModal(){document.getElementById('cost-modal').classList.remove('open');}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(tab){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('section-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='kosten')renderCosts();
+  if(tab==='tage')renderTage();
+}
+function buildDaySlides(){renderTage();}
+
+// ── ADMIN / PIN ─────────────────────────────────────────────────────────────
+function toggleAdmin(){
+  if(editMode){
+    editMode=false;
+    document.getElementById('admin-btn').textContent='🔑 Admin';
+    document.getElementById('admin-btn').style.background='';
+    renderHead();renderCosts();renderTage();
+    toast('Admin-Modus beendet.');
+  }else{
+    pinBuffer='';updatePinDots();
+    document.getElementById('pin-err').textContent='';
+    document.getElementById('pin-overlay').classList.add('open');
+  }
+}
+function pinIn(d){if(pinBuffer.length>=4)return;pinBuffer+=d;updatePinDots();if(pinBuffer.length===4)setTimeout(checkPin,150);}
+function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
+function updatePinDots(){for(var i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);}
+function closePin(){document.getElementById('pin-overlay').classList.remove('open');pinBuffer='';updatePinDots();}
+function checkPin(){
+  if(pinBuffer===CORRECT_PIN){
+    closePin();editMode=true;
+    document.getElementById('admin-btn').textContent='Admin aktiv';
+    document.getElementById('admin-btn').style.background='var(--sunset)';
+    renderHead();renderCosts();renderTage();
+    toast('Admin-Modus aktiv!');
+  }else{
+    document.getElementById('pin-err').textContent='Falsche PIN.';
+    pinBuffer='';updatePinDots();
+    setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+async function init(){
+  if(!REISE){
+    document.getElementById('hero-eyebrow').textContent='Hinweis';
+    document.getElementById('hero-title').innerHTML='Keine Reise ausgewählt';
+    document.getElementById('hero-sub').innerHTML='Diese Seite wird über die Startseite mit einer Reise geöffnet. Bitte kehre zur <a href="index.html" style="color:var(--sunset)">Übersicht</a> zurück und wähle oder erstelle eine Reise.';
+  }
+  try{await sbLoadHead();}catch(e){console.error(e);}
+  try{await sbLoadCosts();}catch(e){console.error(e);}
+  renderHead();renderTage();
+}
+init();
+</script>
+</body>
+</html>
