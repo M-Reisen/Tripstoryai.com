@@ -256,9 +256,9 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
         <textarea id="t-note" placeholder="Ein Satz, der Lust auf die Reise macht…"></textarea>
       </div>
       <div class="field">
-        <label>Link zum Tagebuch</label>
-        <input type="text" id="t-url" placeholder="z.B. australien.html">
-        <div class="help">Dateiname oder URL des Tagebuchs für diese Reise (z.B. <strong>australien.html</strong>).</div>
+        <label>Link zum Tagebuch <span style="text-transform:none;font-weight:400">(optional)</span></label>
+        <input type="text" id="t-url" placeholder="leer lassen für ein neues Tagebuch">
+        <div class="help">Leer lassen, um automatisch ein neues, eigenes Tagebuch anzulegen. Nur für bestehende Tagebücher einen Dateinamen eintragen (z.B. <strong>australien.html</strong>).</div>
       </div>
       <div class="field">
         <label>Titelbild-Link (optional)</label>
@@ -521,8 +521,12 @@ function saveTrip(){
   if(from && to && to < from){ toast('„Bis" liegt vor „Von".'); return; }
   var url = val('t-url').trim();
 
+  var tripId = editingId || slugify(name) + '-' + Date.now().toString(36);
+  // Wenn kein eigenes Tagebuch-Link angegeben: automatisch die Vorlage mit Reise-Schlüssel
+  if(!url){ url = 'reisevorlage.html?reise=' + tripId; }
+
   var data = {
-    id: editingId || slugify(name) + '-' + Date.now().toString(36),
+    id: tripId,
     name: name,
     emoji: val('t-emoji').trim() || '🌍',
     loc: val('t-loc').trim(),
