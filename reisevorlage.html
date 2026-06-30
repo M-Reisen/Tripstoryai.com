@@ -190,6 +190,14 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .star-pick.on{color:#e0b34f;}
 .star-pick:hover{color:#e0b34f;}
 
+/* HOTEL-BANNER (Tageskopf wie Australien) */
+.hotel-banner{width:100%;height:150px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.25;}
+.hotel-banner-loc{font-size:.74rem;color:rgba(255,255,255,.8);text-align:center;position:relative;z-index:1;}
+.hotel-banner-loc::before{content:'📍 ';}
+.hotel-banner-nights{font-size:.68rem;background:rgba(255,255,255,.22);color:#fff;padding:2px 10px;border-radius:10px;margin-top:3px;position:relative;z-index:1;}
+.hotel-banner-emoji-bg{font-size:3.6rem;opacity:.22;position:absolute;bottom:-6px;right:12px;z-index:0;line-height:1;}
+
 @media(max-width:600px){
   .cost-card,.modal{padding:18px;}
   .hero{padding:34px 18px 30px;}
@@ -916,21 +924,31 @@ function renderDayCard(days){
       +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
   }
 
-  // ── Hotelbewertung (nur wenn Tag eine Unterkunft hat) ──
-  let revHTML='';
+  // ── Hotel-Banner (Tageskopf) + Bewertung (nur wenn Tag eine Unterkunft hat) ──
+  let bannerHTML='', revHTML='';
   if(stay){
+    const hotelName=stay.label.split('·')[0].trim();
+    // Nächte aus info ableiten falls vorhanden, sonst nichts
+    const nightsMatch=(stay.info||'').match(/(\d+)\s*N(a|ä)cht/i);
+    const nightsBadge=nightsMatch?`<div class="hotel-banner-nights">${nightsMatch[1]} Nächte</div>`:'';
+    const bannerBg=stayColor(iso);
+    bannerHTML='<div class="hotel-banner" style="background:'+bannerBg+'">'
+      +'<div class="hotel-banner-emoji-bg">🏨</div>'
+      +'<div class="hotel-banner-name">'+esc(hotelName)+'</div>'
+      +(stay.info?'<div class="hotel-banner-loc">'+esc(stay.info.split('·')[0].trim())+'</div>':'')
+      +nightsBadge
+      +'</div>';
     const rev=hotelReviews[iso];
     const stars=rev?rev.stars:0;
     let starStr='';
-    for(let s=1;s<=5;s++)starStr+='<span style="color:'+(s<=stars?'#e0b34f':'#d8cfc2')+';font-size:1.1rem">★</span>';
+    for(let s=1;s<=5;s++)starStr+='<span style="color:'+(s<=stars?'#e0b34f':'#d8cfc2')+';font-size:1.3rem">★</span>';
     if(rev&&(rev.text||rev.stars)){
-      revHTML='<div class="hotel-review"><div class="hotel-review-head">🏨 '+esc(stay.label.split('·')[0].trim())+'</div>'
-        +'<div class="hotel-stars">'+starStr+'</div>'
+      revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
         +(rev.text?'<div class="hotel-review-text">'+esc(rev.text)+'</div>':'')
         +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:6px" onclick="openReview(\''+iso+'\')">✏️ Bearbeiten</button>':'')
         +'</div>';
     }else if(editMode){
-      revHTML='<div class="hotel-review"><div class="hotel-review-head">🏨 '+esc(stay.label.split('·')[0].trim())+'</div>'
+      revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
         +'<div class="hotel-review-empty">Noch keine Bewertung.</div>'
         +'<button class="btn btn-primary btn-sm" onclick="openReview(\''+iso+'\')">⭐ Hotel bewerten</button></div>';
     }
@@ -953,11 +971,19 @@ function renderDayCard(days){
 
   document.getElementById('day-card-wrap').innerHTML=
     '<div class="day-card">'
+    +bannerHTML
+    +revHTML
     +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
     +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
-    +`<div class="day-entry-area">${entryHTML}${revHTML}${expHTML}</div>`
+    +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
     +'</div>';
+}
+function stayColor(iso){
+  // Stabile Farbe je Tag aus einer kleinen Palette
+  const pal=['linear-gradient(140deg,#4a6534,#2a3d1a)','linear-gradient(140deg,#1a6b8a,#0d3a52)','linear-gradient(140deg,#0d6e63,#0a3d4a)','linear-gradient(140deg,#b4651f,#7a3d10)','linear-gradient(140deg,#6b3a8a,#3d1a52)'];
+  let h=0;for(let i=0;i<iso.length;i++)h=(h*31+iso.charCodeAt(i))&0xffff;
+  return pal[h%pal.length];
 }
 function slideDay(dir){const days=buildDays();const n=currentDay+dir;if(n<0||n>=days.length)return;currentDay=n;renderTage();}
 function goToDay(i){currentDay=i;renderTage();}
