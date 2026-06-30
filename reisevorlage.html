@@ -360,11 +360,12 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       <label>Stichpunkte / Notizen</label>
       <textarea id="entry-notes" style="min-height:90px" placeholder="z.B.&#10;- Kängurus beim Sonnenaufgang&#10;- Schnorcheln mit Schildkröten&#10;- Abendessen: frischer Barramundi"></textarea>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert den Eintrag</button>
       <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--bush);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
       <button class="btn btn-sm" style="background:var(--paper);color:var(--fog);border:1.5px solid rgba(28,26,22,.15)" onclick="openApiKey()">🔑 API-Key</button>
     </div>
+    <div style="font-size:.72rem;color:var(--fog);margin-bottom:6px">🎤 Diktieren & ✨ KI arbeiten mit den Stichpunkten oben.</div>
     <div style="height:1px;background:rgba(28,26,22,.1);margin:14px 0"></div>
     <div class="field">
       <label>Finaler Text</label>
@@ -1143,7 +1144,7 @@ function startDictationFor(textareaId,btnId){
     _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
   }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
 }
-function dictateEntry(){startDictationFor('entry-text','entry-dictate-btn');}
+function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn');}
 function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
 
 // ── API-KEY ───────────────────────────────────────────────────────────────────
