@@ -400,8 +400,9 @@ function cardHTML(t){
   if(adminMode){
     return '<div class="trip-card placeholder">'+inner+'</div>';
   }
-  var href = t.url ? escapeAttr(t.url) : '#';
-  return '<a class="trip-card" href="'+href+'">'+inner+'</a>';
+  // Link bestimmen: eigener Link, sonst automatisch die Vorlage mit Reise-Schlüssel
+  var href = t.url && t.url.trim() ? t.url.trim() : ('reisevorlage.html?reise=' + t.id);
+  return '<a class="trip-card" href="'+escapeAttr(href)+'">'+inner+'</a>';
 }
 
 function coverGradient(st){

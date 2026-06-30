@@ -83,6 +83,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .badge-car-s{background:#fef3c7;color:#92400e;}
 .badge-ferry-s{background:#e0f2fe;color:#075985;}
 .badge-tour-s{background:#fce7f3;color:#9d174d;}
+.badge-plan-s{background:#e8f0e0;color:#3d5a26;border:1px dashed #9bb87e;}
 .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;flex-direction:column;}
 .lightbox.open{display:flex;}
 .lightbox-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;flex-shrink:0;}
@@ -266,7 +267,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V45</div>
+  <div class="hero-eyebrow">Queensland & Great Barrier Reef · V46</div>
   <h1>Das große<br><em>Australien</em>-Abenteuer</h1>
   <div class="hero-dates">13. September – 10. Oktober 2026</div>
   <div class="hero-sub">Port Douglas · Yungaburra · Undara · Townsville · Magnetic Island · Airlie Beach · Whitsundays · Cape Hillsborough · Eungella · Brisbane · Sydney</div>
@@ -537,6 +538,10 @@ textarea{resize:vertical;min-height:100px;}
         <option value="Ausflug">🎟️ Ausflüge</option>
         <option value="Sonstiges">✨ Sonstiges</option>
       </select>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Datum <span style="text-transform:none;font-weight:400">(optional · erscheint im Tagesplan)</span></label>
+      <input id="pk-datum" type="date" min="2026-09-13" max="2026-10-10" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;background:var(--paper);">
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Bezeichnung</label>
@@ -830,6 +835,15 @@ function buildDayHTML(day,i){
     if(t.type==='tour'){const a=ACTIVITIES.find(x=>x.id===t.ref);return a?`<span class="day-transport-badge badge-tour-s">${a.emoji} ${a.name.split('·')[0].trim()}</span>`:'';}
     return '';
   }).filter(Boolean).join('');
+  const _escBadge=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  // Datierte Plankosten dieses Tages als zusätzliche Programm-Badges
+  const planEmoji={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'✨'};
+  const planBadges=(planCosts||[]).filter(p=>p.datum===day.iso).map(p=>{
+    const em=planEmoji[p.cat]||'•';
+    const lbl=(p.label||'').split('·')[0].trim();
+    return `<span class="day-transport-badge badge-plan-s">${em} ${_escBadge(lbl)}</span>`;
+  }).join('');
+  const allBadges=badges+planBadges;
   const entry=entries.find(e=>e.datum===day.iso);
   const _esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   const entryHTML=entry
@@ -861,7 +875,7 @@ function buildDayHTML(day,i){
     const revAct=editMode?`<div class="hotel-review-actions"><button class="btn btn-reef btn-sm" data-bid="${stayItem.id}" data-hotel="${stayItem.name}" data-stars="${rev.stars}" onclick="genReviewEl(this)">✍️ Bewertung</button>${rev.text?`<button class="btn btn-ghost btn-sm" style="color:var(--fog)" data-bid="${stayItem.id}" onclick="clearReviewEl(this)">Löschen</button>`:''}</div>`:'';
     hotelBannerHTML+=`<div class="hotel-review"><div class="hotel-review-stars">${starsHTML}</div>${revTxt}${revAct}</div>`;
   }
-  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${badges?`<div class="day-transport">${badges}</div>`:''}${comments}${(()=>{
+  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
     const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const amtStr=e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;return `<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>${amtStr}</b></span></div>`;}).join('');
@@ -1429,11 +1443,12 @@ const PLAN_SEED=[
   {cat:'Ausflug', label:'⛵ Whitehaven Katamaran Tagestour', info:'28.09. · Airlie Beach · 2 Erw.', amount:326.02, cur:'EUR'}
 ];
 
-// Speichern: ort='plankost_<uid>', name='cat|label', nachricht='amount|cur|info'
+// Speichern: ort='plankost_<uid>', name='cat|label', nachricht='amount|cur|datum|info'
+// datum ist '' oder 'YYYY-MM-DD' (enthält nie ein Pipe, daher als festes 3. Feld sicher)
 async function sbSavePlanCost(pc){
   const uid='plankost_'+Date.now()+Math.floor(Math.random()*1000);
   const {data,error}=await sb.from('kommentare').insert({
-    ort:uid, name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.info||''),
+    ort:uid, name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.datum||'')+'|'+(pc.info||''),
     created_at:new Date().toISOString()
   }).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
@@ -1441,7 +1456,7 @@ async function sbSavePlanCost(pc){
 }
 async function sbUpdatePlanCost(pc){
   const {error}=await sb.from('kommentare').update({
-    name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.info||'')
+    name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.datum||'')+'|'+(pc.info||'')
   }).eq('id',pc.id);
   if(error){toast('Fehler beim Aktualisieren: '+(error.message||''));return false;}
   return true;
@@ -1464,11 +1479,22 @@ async function sbLoadPlanCosts(){
     const mp=(r.nachricht||'').split('|');
     const amount=parseFloat(mp[0])||0;
     const cur=mp[1]||'EUR';
-    const info=mp.slice(2).join('|')||'';
-    return {id:r.id, cat:cat, label:label, info:info, amount:amount, cur:cur};
+    // Altformat (amount|cur|info) erkennen: wenn 3. Feld KEIN gültiges Datum ist, war es info.
+    let datum='', info='';
+    if(mp.length>=4){
+      // Neuformat: amount|cur|datum|info
+      datum=isISODate(mp[2])?mp[2]:'';
+      info=mp.slice(3).join('|');
+      if(!datum && mp[2]) info=mp.slice(2).join('|'); // 3. Feld war doch info (kein Datum)
+    } else if(mp.length===3){
+      // Könnte Altformat (info) ODER Neuformat ohne info (datum) sein
+      if(isISODate(mp[2])) datum=mp[2]; else info=mp[2];
+    }
+    return {id:r.id, cat:cat, label:label, info:info, datum:datum, amount:amount, cur:cur};
   });
   return true;
 }
+function isISODate(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'');}
 async function seedPlanCosts(){
   // Startwerte nacheinander schreiben und in planCosts übernehmen
   for(const s of PLAN_SEED){
@@ -1488,6 +1514,7 @@ function addPlanCost(catKey){
   document.getElementById('pk-info').value='';
   document.getElementById('pk-amount').value='';
   document.getElementById('pk-currency').value='EUR';
+  document.getElementById('pk-datum').value='';
   updatePkPreview();
   document.getElementById('plankost-modal').style.display='flex';
 }
@@ -1503,6 +1530,7 @@ function editPlanCostEl(btn){
   document.getElementById('pk-info').value=p.info||'';
   document.getElementById('pk-amount').value=p.amount;
   document.getElementById('pk-currency').value=p.cur||'EUR';
+  document.getElementById('pk-datum').value=p.datum||'';
   updatePkPreview();
   document.getElementById('plankost-modal').style.display='flex';
 }
@@ -1515,7 +1543,7 @@ async function delPlanCostEl(btn){
   const ok=await sbDeletePlanCost(p.id);
   if(!ok){toast('Löschen fehlgeschlagen.');return;}
   planCosts=planCosts.filter(x=>String(x.id)!==String(id));
-  renderCosts();toast('Position gelöscht.');
+  renderCosts();try{buildDaySlides();}catch(e){}toast('Position gelöscht.');
 }
 function updatePkPreview(){
   const amt=parseFloat((document.getElementById('pk-amount').value||'').replace(',','.'));
@@ -1531,17 +1559,18 @@ async function savePlanCost(){
   const info=document.getElementById('pk-info').value.trim();
   const amt=parseFloat((document.getElementById('pk-amount').value||'').replace(',','.'));
   const cur=document.getElementById('pk-currency').value;
+  const datum=document.getElementById('pk-datum').value||'';
   if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
   if(_editingPlanId){
-    const p={id:_editingPlanId, cat, label, info, amount:amt, cur};
+    const p={id:_editingPlanId, cat, label, info, datum, amount:amt, cur};
     const ok=await sbUpdatePlanCost(p);
     if(!ok)return;
     const i=planCosts.findIndex(x=>String(x.id)===String(_editingPlanId));
     if(i>=0) planCosts[i]=p;
     toast('Position aktualisiert!');
   }else{
-    const draft={cat, label, info, amount:amt, cur};
+    const draft={cat, label, info, datum, amount:amt, cur};
     const id=await sbSavePlanCost(draft);
     if(id===null)return;
     planCosts.push(Object.assign({id:id}, draft));
@@ -1549,6 +1578,7 @@ async function savePlanCost(){
   }
   document.getElementById('plankost-modal').style.display='none';
   renderCosts();
+  try{buildDaySlides();}catch(e){}
 }
 function closePlanCostModal(){document.getElementById('plankost-modal').style.display='none';}
 
