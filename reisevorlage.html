@@ -413,7 +413,8 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">🔑</div>
     <div class="modal-title" style="text-align:center;margin-bottom:6px;">API-Key für KI</div>
     <div style="font-size:.78rem;color:var(--fog);margin-bottom:16px;text-align:center;line-height:1.5;">Wird nur lokal in deinem Browser gespeichert. Nötig für die KI-Funktionen.</div>
-    <input id="apikey-input" type="password" placeholder="sk-ant-api03-…" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:14px;">
+    <input id="apikey-input" type="password" placeholder="sk-ant-api03-…" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:8px;">
+    <div id="apikey-hint" style="font-size:.74rem;color:var(--fog);margin-bottom:14px;text-align:center;"></div>
     <div class="modal-actions">
       <button class="cancel" onclick="closeApiKey()">Später</button>
       <button class="save" onclick="saveApiKey()">Speichern</button>
@@ -1148,17 +1149,31 @@ function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn');}
 function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
 
 // ── API-KEY ───────────────────────────────────────────────────────────────────
-function loadApiKey(){try{var enc=localStorage.getItem('_mk_'+REISE);return enc?atob(enc):'';}catch(e){return'';}}
+function loadApiKey(){
+  try{
+    // Zuerst globalen Key, dann (Fallback) alten reise-spezifischen Key
+    var enc=localStorage.getItem('_mk_global')||localStorage.getItem('_mk_'+REISE);
+    return enc?atob(enc):'';
+  }catch(e){return'';}
+}
 function saveApiKey(){
   var k=document.getElementById('apikey-input').value.trim();
   if(!k||k.length<20){toast('Bitte gültigen Key eingeben.');return;}
   _apiKey=k;
-  try{localStorage.setItem('_mk_'+REISE,btoa(k));}catch(e){}
+  try{localStorage.setItem('_mk_global',btoa(k));}catch(e){}
   document.getElementById('apikey-overlay').classList.remove('open');
   document.getElementById('apikey-input').value='';
   toast('API-Key gespeichert!');
 }
-function openApiKey(){document.getElementById('apikey-overlay').classList.add('open');}
+function openApiKey(){
+  if(!_apiKey)_apiKey=loadApiKey();
+  var hint=document.getElementById('apikey-hint');
+  if(hint){
+    if(_apiKey){hint.textContent='✓ Ein Key ist gespeichert. Nur eingeben, um ihn zu ersetzen.';hint.style.color='var(--reef)';}
+    else{hint.textContent='Noch kein Key gespeichert.';hint.style.color='var(--fog)';}
+  }
+  document.getElementById('apikey-overlay').classList.add('open');
+}
 function closeApiKey(){document.getElementById('apikey-overlay').classList.remove('open');}
 function ensureApiKey(){
   if(!_apiKey)_apiKey=loadApiKey();
