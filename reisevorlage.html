@@ -191,6 +191,18 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .star-pick.on{color:#e0b34f;}
 .star-pick:hover{color:#e0b34f;}
 
+/* AUSFLÜGE */
+.ausflug-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.ausflug-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.ausflug-stripe{height:5px;background:var(--tour);}
+.ausflug-body{padding:16px 18px;}
+.ausflug-date{font-family:'Caveat',cursive;font-size:1rem;color:var(--tour);margin-bottom:3px;}
+.ausflug-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;line-height:1.3;margin-bottom:6px;}
+.ausflug-info{font-size:.83rem;line-height:1.55;color:#4a3d30;margin-bottom:6px;}
+.ausflug-meta{font-size:.76rem;color:var(--fog);margin-bottom:8px;}
+.ausflug-price{font-weight:600;font-size:.9rem;color:var(--ink);}
+.ausflug-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(28,26,22,.08);}
+
 /* HOTEL-BANNER (Tageskopf wie Australien) */
 .hotel-banner{width:100%;height:150px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
 .hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.25;}
@@ -236,6 +248,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">📅 Tag für Tag</button>
+  <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">🎟️ Ausflüge</button>
   <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
 </div>
 
@@ -246,6 +259,15 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       <button class="btn btn-reef btn-sm" onclick="createPhotobook()">📖 Fotobuch als PDF</button>
     </div>
     <div id="tage-content"></div>
+  </div>
+
+  <!-- AUSFLÜGE -->
+  <div class="section" id="section-ausfluege">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem">🎟️ Ausflüge & Touren</div>
+      <button id="ausflug-add-btn" class="btn btn-sm" style="background:var(--tour);color:#fff;display:none" onclick="addCost('Ausflug')">+ Ausflug</button>
+    </div>
+    <div id="ausfluege-grid"></div>
   </div>
 
   <!-- KOSTEN -->
@@ -311,7 +333,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
     <div class="field">
       <label>Kategorie</label>
-      <select id="c-cat">
+      <select id="c-cat" onchange="toggleAusflugFields()">
         <option value="Unterkunft">🏨 Unterkünfte</option>
         <option value="Flug">✈️ Flüge</option>
         <option value="Transport">🚗 Transport</option>
@@ -322,6 +344,13 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     <div class="field"><label>Datum <span class="opt">(optional · erscheint im Tagesplan)</span></label><input type="date" id="c-datum"></div>
     <div class="field"><label>Bezeichnung</label><input type="text" id="c-label" placeholder="z.B. Hotel Tokio"></div>
     <div class="field"><label>Details <span class="opt">(optional)</span></label><input type="text" id="c-info" placeholder="z.B. 3 Nächte · Ref. XY"></div>
+    <div id="c-ausflug-fields" style="display:none">
+      <div class="field-row">
+        <div class="field"><label>Uhrzeit <span class="opt">(optional)</span></label><input type="text" id="c-time" placeholder="z.B. 13:15"></div>
+        <div class="field"><label>Personen <span class="opt">(optional)</span></label><input type="text" id="c-pax" placeholder="z.B. 2"></div>
+      </div>
+      <div class="field"><label>Referenz-Nr. <span class="opt">(optional)</span></label><input type="text" id="c-ref" placeholder="z.B. #358349003"></div>
+    </div>
     <div class="field-row">
       <div class="field"><label>Betrag</label><input type="number" step="0.01" min="0" id="c-amount" placeholder="0.00" oninput="updateCostPreview()"></div>
       <div class="field"><label>Währung</label>
@@ -1362,7 +1391,7 @@ function renderCosts(){
       const amtStr=(c.cur!=='EUR')?`${fmt(c.amount)} ${c.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
       const dateChip=c.datum?`<div class="date-chip">📅 ${new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</div>`:'';
       const btns=editMode?`<button class="cost-edit-btn" data-id="${c.id}" onclick="editCostEl(this)">✏️</button><button class="cost-del-btn" data-id="${c.id}" onclick="delCostEl(this)">✕</button>`:'';
-      html+=`<div class="cost-row"><div style="flex:1"><div>${esc(c.label)}</div>${c.info?`<div class="info">${esc(c.info)}</div>`:''}${dateChip}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${btns}</div></div>`;
+      html+=`<div class="cost-row"><div style="flex:1"><div>${esc(c.label)}</div>${infoDisplay(c)?`<div class="info">${esc(infoDisplay(c))}</div>`:''}${dateChip}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${btns}</div></div>`;
     });
     if(editMode)html+=`<button class="cost-add-btn" onclick="addCost('${cat.key}')">+ Position in ${cat.label} hinzufügen</button>`;
     if(items.length)html+=`<div class="cost-group-total"><span>Summe ${cat.label}</span><span class="${pc}">EUR ${fmt(sum)}</span></div>`;
@@ -1392,12 +1421,36 @@ function renderCosts(){
   document.getElementById('cost-list').innerHTML=html;
   document.getElementById('grand-total-box').innerHTML=`<div class="grand-total"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
 }
+function toggleAusflugFields(){
+  document.getElementById('c-ausflug-fields').style.display=(val('c-cat')==='Ausflug')?'block':'none';
+}
+// Ausflug-Extras in info kodiert: "sichtbarerText‖time‖pax‖ref"
+function parseInfo(raw){
+  const p=String(raw||'').split('‖');
+  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||''};
+}
+function buildInfo(text,time,pax,ref){
+  if(time||pax||ref)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'');
+  return text||'';
+}
+// Lesbare Info-Anzeige (sichtbarer Text + Ausflug-Extras als Chips-Text)
+function infoDisplay(c){
+  const pi=parseInfo(c.info);
+  let bits=[];
+  if(pi.text)bits.push(pi.text);
+  if(pi.time)bits.push('🕐 '+pi.time);
+  if(pi.pax)bits.push('👥 '+pi.pax);
+  if(pi.ref)bits.push('# '+pi.ref.replace(/^#\s*/,''));
+  return bits.join(' · ');
+}
 function addCost(catKey){
   if(!editMode)return;
   _editId=null;
   document.getElementById('cm-title').textContent='Position hinzufügen';
   setVal('c-cat',catKey||'Sonstiges');setVal('c-datum','');setVal('c-label','');
   setVal('c-info','');setVal('c-amount','');setVal('c-currency','EUR');
+  setVal('c-time','');setVal('c-pax','');setVal('c-ref','');
+  toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
 }
@@ -1408,7 +1461,10 @@ function editCostEl(btn){
   _editId=c.id;
   document.getElementById('cm-title').textContent='Position bearbeiten';
   setVal('c-cat',c.cat);setVal('c-datum',c.datum||'');setVal('c-label',c.label);
-  setVal('c-info',c.info||'');setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
+  setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
+  const pi=parseInfo(c.info);
+  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);
+  toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
 }
@@ -1420,7 +1476,7 @@ async function delCostEl(btn){
   const ok=await sbDeleteCost(c.id);
   if(!ok){toast('Löschen fehlgeschlagen.');return;}
   costs=costs.filter(x=>String(x.id)!==String(id));
-  renderCosts();renderHead();buildDaySlides();toast('Position gelöscht.');
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();toast('Position gelöscht.');
 }
 function updateCostPreview(){
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
@@ -1429,10 +1485,13 @@ function updateCostPreview(){
   pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
 }
 async function saveCost(){
-  const cat=val('c-cat'),label=val('c-label').trim(),info=val('c-info').trim();
+  const cat=val('c-cat'),label=val('c-label').trim();
   const datum=val('c-datum')||'';
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
   const cur=val('c-currency');
+  const info=(cat==='Ausflug')
+    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim())
+    : val('c-info').trim();
   if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
   if(_editId){
@@ -1447,9 +1506,43 @@ async function saveCost(){
     toast('Position hinzugefügt!');
   }
   document.getElementById('cost-modal').classList.remove('open');
-  renderCosts();renderHead();buildDaySlides();
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();
 }
 function closeCostModal(){document.getElementById('cost-modal').classList.remove('open');}
+
+// ── AUSFLÜGE (= Kostenpositionen Kategorie 'Ausflug') ─────────────────────────
+function renderAusfluege(){
+  const grid=document.getElementById('ausfluege-grid');
+  if(!grid)return;
+  const addBtn=document.getElementById('ausflug-add-btn');
+  if(addBtn)addBtn.style.display=editMode?'inline-flex':'none';
+  const items=costs.filter(c=>c.cat==='Ausflug');
+  // nach Datum sortieren (ohne Datum ans Ende)
+  items.sort((a,b)=>{const x=a.datum||'9999';const y=b.datum||'9999';return x<y?-1:x>y?1:0;});
+  if(!items.length){
+    grid.innerHTML='<div class="empty"><div class="big">🎟️</div><div class="lbl">Noch keine Ausflüge</div><div class="sub">Erfasse einen Ausflug hier oder bei den Kosten (Kategorie „Ausflug") – er erscheint automatisch an beiden Stellen.</div>'+(editMode?'<button class="btn btn-sm" style="background:var(--tour);color:#fff" onclick="addCost(\'Ausflug\')">+ Ausflug hinzufügen</button>':'')+'</div>';
+    return;
+  }
+  grid.innerHTML='<div class="ausflug-cards">'+items.map(function(c){
+    const pi=parseInfo(c.info);
+    const eur=toEUR(c.amount,c.cur);
+    const dateStr=c.datum?new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}):'Datum offen';
+    const amtStr=(c.cur!=='EUR')?fmt(c.amount)+' '+c.cur+' ≈ EUR '+fmt(eur):'EUR '+fmt(eur);
+    let meta=[];
+    if(pi.time)meta.push('🕐 '+esc(pi.time));
+    if(pi.pax)meta.push('👥 '+esc(pi.pax)+' Pers.');
+    if(pi.ref)meta.push('# '+esc(pi.ref.replace(/^#\s*/,'')));
+    const btns=editMode?'<div class="ausflug-actions"><button class="cost-edit-btn" data-id="'+c.id+'" onclick="editCostEl(this)">✏️ Bearbeiten</button><button class="cost-del-btn" data-id="'+c.id+'" onclick="delCostEl(this)">✕</button></div>':'';
+    return '<div class="ausflug-card"><div class="ausflug-stripe"></div><div class="ausflug-body">'
+      +'<div class="ausflug-date">'+dateStr+'</div>'
+      +'<div class="ausflug-title">🎟️ '+esc(c.label)+'</div>'
+      +(pi.text?'<div class="ausflug-info">'+esc(pi.text)+'</div>':'')
+      +(meta.length?'<div class="ausflug-meta">'+meta.join(' · ')+'</div>':'')
+      +'<div class="ausflug-price '+(editMode?'':'price-blur')+'">'+amtStr+'</div>'
+      +btns
+      +'</div></div>';
+  }).join('')+'</div>';
+}
 
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function showTab(tab){
@@ -1459,6 +1552,7 @@ function showTab(tab){
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='kosten')renderCosts();
   if(tab==='tage')renderTage();
+  if(tab==='ausfluege')renderAusfluege();
 }
 function buildDaySlides(){renderTage();}
 
@@ -1468,7 +1562,7 @@ function toggleAdmin(){
     editMode=false;
     document.getElementById('admin-btn').textContent='🔑 Admin';
     document.getElementById('admin-btn').style.background='';
-    renderHead();renderCosts();renderTage();
+    renderHead();renderCosts();renderTage();renderAusfluege();
     toast('Admin-Modus beendet.');
   }else{
     pinBuffer='';updatePinDots();
@@ -1485,7 +1579,7 @@ function checkPin(){
     closePin();editMode=true;
     document.getElementById('admin-btn').textContent='Admin aktiv';
     document.getElementById('admin-btn').style.background='var(--sunset)';
-    renderHead();renderCosts();renderTage();
+    renderHead();renderCosts();renderTage();renderAusfluege();
     toast('Admin-Modus aktiv!');
   }else{
     document.getElementById('pin-err').textContent='Falsche PIN.';
