@@ -142,6 +142,10 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .photo-cell{position:relative;width:100%;padding-top:100%;border-radius:8px;overflow:hidden;background:#e8e0d4;}
 .photo-cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
 .photo-del{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.88);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-move{position:absolute;bottom:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-move-l{left:5px;}.photo-move-r{left:33px;}
+.photo-cap-btn{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.62rem;cursor:pointer;z-index:2;}
+.photo-cap{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;z-index:1;}
 .photo-add{position:relative;padding-top:100%;border:2px dashed rgba(28,26,22,.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:var(--fog);gap:2px;background:var(--paper);transition:all .15s;}
 .photo-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
 .photo-add>span{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -386,6 +390,25 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
   <button class="lb-arrow prev" onclick="lbNav(-1)">‹</button>
   <img id="lb-img" src="" alt="Foto">
   <button class="lb-arrow next" onclick="lbNav(1)">›</button>
+  <div id="lb-caption" style="position:absolute;bottom:24px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:.85rem;padding:0 24px;"></div>
+</div>
+
+<!-- BILDUNTERSCHRIFT-MODAL -->
+<div class="overlay" id="caption-modal" onclick="if(event.target===this)closeCaptionModal()">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <div class="modal-title">Bildunterschrift</div>
+      <button class="modal-close" onclick="closeCaptionModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Beschreibung des Fotos</label>
+      <input id="caption-input" type="text" placeholder="z.B. Sonnenaufgang am Strand…">
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeCaptionModal()">Abbrechen</button>
+      <button class="save" onclick="saveCaption()">Speichern</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -425,7 +448,10 @@ let costs=[];            // {id, cat, label, info, datum, amount, cur}
 let dayExpenses={};      // iso -> [{id,cat,label,amount,cur},...]
 let entries={};          // iso -> {id, titel, text}
 let photos={};           // iso -> [url,...] (undefined = noch nicht geladen)
+let photoMeta={};        // iso -> {order:[url,...], captions:{url:text}}
 let _expIso=null;        // aktueller Tag für Ausgabe
+let _capIso=null;        // aktueller Tag für Bildunterschrift
+let _capUrl=null;        // aktuelle Foto-URL für Bildunterschrift
 let editMode=false;
 let pinBuffer='';
 let currentDay=0;
@@ -433,6 +459,7 @@ let _editId=null;
 let _entryIso=null;      // aktuell bearbeiteter Eintrag
 let _lbPhotos=[];        // Lightbox-Fotos
 let _lbIdx=0;
+let _lbIso=null;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
@@ -525,6 +552,44 @@ async function sbUploadPhoto(iso,file){
 async function sbDeletePhoto(url){
   const path=url.split('/Reisefotos/')[1];
   if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
+
+// ── FOTO-META: Reihenfolge + Bildunterschriften (pro Tag, in Supabase) ────────
+// ort=PFX+'photometa_<iso>', nachricht=JSON {order:[...], captions:{url:text}}
+async function sbLoadPhotoMeta(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'photometa_%');
+  if(error){console.error('PhotoMeta laden:',error);return;}
+  photoMeta={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'photometa_').length);
+    try{photoMeta[iso]=JSON.parse(r.nachricht||'{}');}catch(e){photoMeta[iso]={};}
+    if(!photoMeta[iso].order)photoMeta[iso].order=[];
+    if(!photoMeta[iso].captions)photoMeta[iso].captions={};
+  });
+}
+async function sbSavePhotoMeta(iso){
+  const key=PFX+'photometa_'+iso;
+  const payload=JSON.stringify(photoMeta[iso]||{order:[],captions:{}});
+  try{
+    const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:key,name:'PhotoMeta',nachricht:payload,created_at:new Date().toISOString()});
+    }
+  }catch(e){console.error('PhotoMeta speichern:',e);}
+}
+// Fotos in gespeicherter Reihenfolge zurückgeben (neue ans Ende)
+function orderedPhotos(iso,loaded){
+  const meta=photoMeta[iso];
+  if(!meta||!meta.order||!meta.order.length)return loaded;
+  const inOrder=meta.order.filter(u=>loaded.includes(u));
+  const newOnes=loaded.filter(u=>!inOrder.includes(u));
+  return inOrder.concat(newOnes);
+}
+function captionFor(iso,url){
+  const meta=photoMeta[iso];
+  return (meta&&meta.captions&&meta.captions[url])||'';
 }
 
 // ── SUPABASE: TAGEBUCHEINTRÄGE (ein Eintrag pro Tag) ──────────────────────────
@@ -718,15 +783,23 @@ function renderDayCard(days){
   let photoHTML='';
   if(photos[iso]===undefined){
     photoHTML='<div style="font-size:.78rem;color:var(--fog);padding:4px 0">⏳ Fotos werden geladen…</div>';
-    // asynchron laden, danach neu rendern
-    sbLoadPhotos(iso).then(function(list){photos[iso]=list;if(buildDays()[currentDay]===iso)renderDayCard(days);}).catch(function(){photos[iso]=[];});
+    // asynchron laden, in gespeicherte Reihenfolge bringen, danach neu rendern
+    sbLoadPhotos(iso).then(function(list){photos[iso]=orderedPhotos(iso,list);if(buildDays()[currentDay]===iso)renderDayCard(days);}).catch(function(){photos[iso]=[];});
   }else{
     const arr=photos[iso]||[];
     let cells=arr.map(function(url,pi){
-      return '<div class="photo-cell">'
-        +'<img src="'+url+'" onclick="openLightbox(\''+iso+'\','+pi+')" alt="Foto">'
-        +(editMode?'<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>':'')
-        +'</div>';
+      const cap=captionFor(iso,url);
+      let html='<div class="photo-cell">'
+        +'<img src="'+url+'" onclick="openLightbox(\''+iso+'\','+pi+')" alt="Foto">';
+      if(editMode){
+        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
+        if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
+        if(pi<arr.length-1)html+='<button class="photo-move photo-move-r" onclick="movePhoto(\''+iso+'\','+pi+',1)">▶</button>';
+        html+='<button class="photo-cap-btn" onclick="openCaption(\''+iso+'\','+pi+')">✏️</button>';
+      }
+      if(cap)html+='<div class="photo-cap">'+esc(cap)+'</div>';
+      html+='</div>';
+      return html;
     }).join('');
     const addCell=editMode
       ?'<label class="photo-add"><span style="font-size:1.4rem">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,\''+iso+'\')"></label>'
@@ -784,6 +857,9 @@ async function handlePhotos(event,iso){
     const url=await sbUploadPhoto(iso,f);
     if(url){photos[iso].push(url);ok++;}
   }
+  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
+  photoMeta[iso].order=photos[iso].slice();
+  await sbSavePhotoMeta(iso);
   renderTage();
   toast(ok+' Foto(s) gespeichert!');
 }
@@ -793,13 +869,51 @@ async function delPhoto(iso,idx){
   const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
   await sbDeletePhoto(url);
   arr.splice(idx,1);
+  // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
+  if(photoMeta[iso]){
+    if(photoMeta[iso].order)photoMeta[iso].order=arr.slice();
+    if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
+    await sbSavePhotoMeta(iso);
+  }
   renderTage();toast('Foto gelöscht.');
 }
+async function movePhoto(iso,idx,dir){
+  if(!editMode)return;
+  const arr=photos[iso]||[];const ni=idx+dir;
+  if(ni<0||ni>=arr.length)return;
+  const tmp=arr[idx];arr[idx]=arr[ni];arr[ni]=tmp;
+  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
+  photoMeta[iso].order=arr.slice();
+  await sbSavePhotoMeta(iso);
+  renderTage();
+}
+function openCaption(iso,idx){
+  if(!editMode)return;
+  const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
+  _capIso=iso;_capUrl=url;
+  setVal('caption-input',captionFor(iso,url));
+  document.getElementById('caption-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('caption-input').focus();},200);
+}
+async function saveCaption(){
+  if(!_capIso||!_capUrl)return;
+  const v=val('caption-input').trim();
+  if(!photoMeta[_capIso])photoMeta[_capIso]={order:[],captions:{}};
+  if(!photoMeta[_capIso].captions)photoMeta[_capIso].captions={};
+  if(v)photoMeta[_capIso].captions[_capUrl]=v;else delete photoMeta[_capIso].captions[_capUrl];
+  await sbSavePhotoMeta(_capIso);
+  document.getElementById('caption-modal').classList.remove('open');
+  // Falls Lightbox offen: Caption dort aktualisieren
+  const lbCap=document.getElementById('lb-caption');if(lbCap)lbCap.textContent=v;
+  renderTage();toast('Bildunterschrift gespeichert!');
+}
+function closeCaptionModal(){document.getElementById('caption-modal').classList.remove('open');}
 function openLightbox(iso,idx){
-  _lbPhotos=photos[iso]||[];_lbIdx=idx;
+  _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
   if(!_lbPhotos.length)return;
   document.getElementById('lb-img').src=_lbPhotos[idx];
   document.getElementById('lb-counter').textContent=(idx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[idx]);
   document.getElementById('lightbox').classList.add('open');
 }
 function lbNav(dir){
@@ -807,6 +921,7 @@ function lbNav(dir){
   _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
   document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
   document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(_lbIso,_lbPhotos[_lbIdx]);
 }
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
 
@@ -1068,6 +1183,7 @@ async function init(){
   try{await sbLoadCosts();}catch(e){console.error(e);}
   try{await sbLoadExpenses();}catch(e){console.error(e);}
   try{await sbLoadEntries();}catch(e){console.error(e);}
+  try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
   renderHead();renderTage();
 }
 init();
