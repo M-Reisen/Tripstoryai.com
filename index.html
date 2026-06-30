@@ -464,7 +464,7 @@ textarea{resize:vertical;min-height:100px;}
     <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:6px;">Bewertungstext</label>
     <textarea id="rev-text" rows="5" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.86rem;background:var(--paper);resize:vertical;" placeholder="Bewertung eingeben..."></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button onclick="startDictation()" style="padding:8px 14px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">🎤 Diktieren</button>
+      <button onclick="startDictation()" id="rev-dictate-btn" style="padding:8px 14px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">🎤 Diktieren</button>
       <button onclick="polishReviewText()" style="padding:8px 14px;background:var(--reef);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">✨ Verbessern</button>
       <button onclick="saveReview()" style="flex:1;padding:8px 14px;background:var(--sunset);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">✓ Speichern</button>
     </div>
@@ -1221,6 +1221,7 @@ function genReviewEl(btn){
   document.getElementById('rev-modal').style.display='flex';
 }
 function saveReview(){
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
   var bid=document.getElementById('rev-bid').value;if(!bid){closeRevModal();return;}
   var text=document.getElementById('rev-text').value.trim();
   if(!hotelReviews[bid])hotelReviews[bid]={stars:0,text:''};
@@ -1228,7 +1229,10 @@ function saveReview(){
   document.getElementById('rev-modal').style.display='none';
   buildDaySlides();toast(text?'Bewertung gespeichert!':'Gespeichert.');
 }
-function closeRevModal(){document.getElementById('rev-modal').style.display='none';}
+function closeRevModal(){
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  document.getElementById('rev-modal').style.display='none';
+}
 async function polishReviewText(){
   var ta=document.getElementById('rev-text');
   var raw=ta.value.trim();
@@ -1248,14 +1252,50 @@ async function polishReviewText(){
     else{ta.value=orig;toast('Keine Antwort erhalten.');}
   }catch(e){ta.disabled=false;ta.value=orig;toast('Verbindungsfehler: '+e.message);}
 }
-function startDictation(){
-  var SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRec){toast('Diktierfunktion nicht verfügbar.');return;}
-  var rec=new SpeechRec();rec.lang='de-DE';rec.continuous=false;rec.interimResults=false;
-  rec.onresult=function(e){var t=e.results[0][0].transcript;var ta=document.getElementById('rev-text');ta.value=ta.value?ta.value+' '+t:t;toast('+'+t.substring(0,25));};
-  rec.onerror=function(e){toast('Fehler: '+e.error);};
-  try{rec.start();toast('Sprechen...');}catch(e){toast('Fehler: '+e.message);}
+// ── GEMEINSAME DIKTIERFUNKTION (Toggle, Timeout, sauberes onend) ────────────
+let _dictRec = null, _dictTimeout = null, _dictBtnId = null;
+function startDictationFor(textareaId, btnId){
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
+  const btn=document.getElementById(btnId);
+  // Wenn läuft: stoppen
+  if(_dictRec){
+    try{_dictRec.stop();}catch(e){}
+    _dictRec=null;
+    if(btn)btn.textContent='🎤 Diktieren';
+    toast('Diktat beendet.');
+    return;
+  }
+  // Starten
+  _dictBtnId=btnId;
+  _dictRec = new SpeechRec();
+  _dictRec.lang='de-DE';
+  _dictRec.continuous=false;
+  _dictRec.interimResults=false;
+  _dictRec.onresult=function(e){
+    const t=e.results[0][0].transcript;
+    const ta=document.getElementById(textareaId);
+    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
+  };
+  _dictRec.onerror=function(e){
+    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
+  };
+  _dictRec.onend=function(){
+    // KEIN Auto-Neustart – sauber beenden
+    _dictRec=null;
+    if(btn)btn.textContent='🎤 Diktieren';
+  };
+  try{
+    _dictRec.start();
+    if(btn)btn.textContent='⏹ Stopp';
+    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
+    // Sicherheits-Stopp nach 60 Sekunden
+    if(_dictTimeout)clearTimeout(_dictTimeout);
+    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
+  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
 }
+function startDictation(){ startDictationFor('rev-text','rev-dictate-btn'); }
+function startDictationEntry(){ startDictationFor('f-notizen','dictate-btn'); }
 
 // ── TAGESAUSGABEN ─────────────────────────────────────────────────────────
 function addExpEl(btn){addDayExpense(btn.getAttribute('data-iso'));}
@@ -1340,48 +1380,6 @@ function saveApiKey(){
 }
 function skipApiKey(){document.getElementById('apikey-overlay').style.display='none';}
 
-
-// ── DIKTIERFUNKTION FÜR TAGEBUCH ─────────────────────────────────────────
-let _dictRec = null, _dictTimeout = null;
-function startDictationEntry(){
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
-  const btn=document.getElementById('dictate-btn');
-  // Wenn läuft: stoppen
-  if(_dictRec){
-    try{_dictRec.stop();}catch(e){}
-    _dictRec=null;
-    if(btn)btn.textContent='🎤 Diktieren';
-    toast('Diktat beendet.');
-    return;
-  }
-  // Starten
-  _dictRec = new SpeechRec();
-  _dictRec.lang='de-DE';
-  _dictRec.continuous=false;
-  _dictRec.interimResults=false;
-  _dictRec.onresult=function(e){
-    const t=e.results[0][0].transcript;
-    const ta=document.getElementById('f-notizen');
-    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
-  };
-  _dictRec.onerror=function(e){
-    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
-  };
-  _dictRec.onend=function(){
-    // KEIN Auto-Neustart – sauber beenden
-    _dictRec=null;
-    if(btn)btn.textContent='🎤 Diktieren';
-  };
-  try{
-    _dictRec.start();
-    if(btn)btn.textContent='⏹ Stopp';
-    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
-    // Sicherheits-Stopp nach 60 Sekunden
-    if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
-  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
-}
 
 // Stations-Koordinaten auf der stilisierten Karte (viewBox 0..400 x 0..440)
 const MAPSTOPS=[
