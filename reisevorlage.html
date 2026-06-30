@@ -222,6 +222,9 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 <main>
   <!-- TAG FÜR TAG -->
   <div class="section active" id="section-tage">
+    <div style="text-align:right;margin-bottom:14px">
+      <button class="btn btn-reef btn-sm" onclick="createPhotobook()">📖 Fotobuch als PDF</button>
+    </div>
     <div id="tage-content"></div>
   </div>
 
@@ -1170,6 +1173,136 @@ function checkPin(){
     setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
   }
 }
+
+// ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
+async function createPhotobook(){
+  toast('📖 Fotobuch wird vorbereitet…');
+  const days=buildDays();
+  if(!days.length){toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
+  // Alle Fotos aller Tage laden (in gespeicherter Reihenfolge)
+  for(const iso of days){
+    if(photos[iso]===undefined){
+      try{photos[iso]=orderedPhotos(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
+    }
+  }
+  const rots=['-2.5deg','2deg','-1.5deg','3deg','-3deg','1.5deg','-2deg','2.5deg'];
+  function photoLayout(pics,iso,offset){
+    offset=offset||0;
+    const n=pics.length;
+    const cap=function(pi){const c=captionFor(iso,pics[pi]);return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
+    const img=function(pi){return '<figure style="--rot:'+rots[(pi+offset)%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';};
+    return '<div class="pomasonry poN'+n+'">'+pics.map(function(_,i){return img(i);}).join('')+'</div>';
+  }
+  // ── Seiten ──
+  const pages=[];
+  let tagNr=0;
+  for(const iso of days){
+    const entry=entries[iso];
+    let dayPhotos=(photos[iso]||[]).slice(0,8);
+    if((!entry||!entry.text)&&dayPhotos.length===0)continue;
+    tagNr++;
+    const dayCosts=costs.filter(c=>c.datum===iso);
+    const stay=dayCosts.find(c=>c.cat==='Unterkunft');
+    const ort=stay?stay.label:'';
+    const emoji=stay?'🏨':'📸';
+    const rawText=entry&&entry.text?entry.text:'';
+    const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
+    const isLong=rawText.length>400;
+    const textBlock=text?('<div class="pb-textbox"><div class="pb-text">'+text+'</div></div>'):'';
+    const head=function(tn){return '<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';};
+    if(isLong&&text){
+      pages.push('<div class="pb-page pb-textpage"><div class="tp-frame"><div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div><div class="tp-emoji">'+emoji+'</div><div class="tp-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')+'<div class="tp-rule">✶ ✶ ✶</div><div class="tp-text">'+text+'</div></div></div>');
+      if(dayPhotos.length>4){
+        const first=dayPhotos.slice(0,4),rest=dayPhotos.slice(4);
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,iso)+'</div>');
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort||'Fortsetzung')+' · Fortsetzung</div>'+photoLayout(rest,iso,4)+'</div>');
+      }else if(dayPhotos.length){
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(dayPhotos,iso)+'</div>');
+      }
+    }else if(dayPhotos.length>4){
+      const first=dayPhotos.slice(0,4),rest=dayPhotos.slice(4);
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,iso)+textBlock+'</div>');
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort||'Fortsetzung')+' · Fortsetzung</div>'+photoLayout(rest,iso,4)+'</div>');
+    }else{
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+(dayPhotos.length?photoLayout(dayPhotos,iso):'')+textBlock+'</div>');
+    }
+  }
+  if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
+  // ── Deckblatt ──
+  const title=tripHead.title||'Unsere Reise';
+  const sub=tripHead.sub||'';
+  const emoji=tripHead.emoji&&tripHead.emoji!=='🌍'?tripHead.emoji:'🧳';
+  let dateStr='';
+  if(tripHead.from){
+    const f=new Date(tripHead.from+'T12:00:00');
+    if(tripHead.to){dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
+    else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
+  }
+  const stations=Array.from(new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label.split('·')[0].trim()))).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">M-Reisen · tripstoryai.com</div></div>';
+  // ── CSS ──
+  const css='<style>'
+    +'@page{size:A4 landscape;margin:0;}'
+    +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
+    +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:14mm;page-break-after:always;overflow:hidden;}'
+    +'.pb-page:last-child{page-break-after:auto;}'
+    +'.pb-cover{background:linear-gradient(160deg,#1a6b8a 0%,#13506b 45%,#0d3a52 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
+    +'.pb-cover-sun{position:absolute;top:42mm;left:50%;transform:translateX(-50%);width:120mm;height:120mm;background:radial-gradient(circle,rgba(224,123,63,.45) 0%,rgba(224,123,63,0) 70%);border-radius:50%;}'
+    +'.pb-cover-waves{position:absolute;bottom:0;left:0;width:100%;height:60mm;}'
+    +'.pb-cover-waves svg{width:100%;height:100%;display:block;}'
+    +'.pb-cover-inner{position:relative;z-index:2;padding:20mm;}'
+    +'.pb-cover-koala{font-size:64px;margin-bottom:10mm;}'
+    +'.pb-cover-eyebrow{font-size:15px;letter-spacing:4px;text-transform:uppercase;opacity:.9;margin-bottom:6mm;}'
+    +'.pb-cover-title{font-family:Georgia,serif;font-size:64px;font-weight:bold;letter-spacing:1px;line-height:1.1;}'
+    +'.pb-cover-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;margin-top:4mm;opacity:.95;}'
+    +'.pb-cover-line{width:40mm;height:3px;background:rgba(255,255,255,.7);margin:10mm auto;}'
+    +'.pb-cover-dates{font-size:18px;letter-spacing:1px;margin-bottom:8mm;}'
+    +'.pb-cover-route{font-size:12px;line-height:2;opacity:.92;max-width:150mm;margin:0 auto;}'
+    +'.pb-cover-footer{position:absolute;bottom:14mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.8;z-index:2;}'
+    +'.pb-day{background:#fdfbf7;background-image:radial-gradient(#efe7d8 0.5px,transparent 0.5px),radial-gradient(#efe7d8 0.5px,#fdfbf7 0.5px);background-size:14px 14px;background-position:0 0,7px 7px;display:flex;flex-direction:column;}'
+    +'.pb-day-cont{font-family:Georgia,serif;font-style:italic;color:#1a6b8a;font-size:14px;text-align:center;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px dashed #d8cfc2;}'
+    +'.pb-corner{position:absolute;width:22mm;height:22mm;}'
+    +'.pb-corner-tl{top:8mm;left:8mm;border-top:2px solid #1a6b8a;border-left:2px solid #1a6b8a;}'
+    +'.pb-corner-br{bottom:8mm;right:8mm;border-bottom:2px solid #1a6b8a;border-right:2px solid #1a6b8a;}'
+    +'.pb-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a6b8a;padding-bottom:6mm;margin-bottom:8mm;}'
+    +'.pb-head-l{display:flex;align-items:center;gap:5mm;}'
+    +'.pb-emoji{font-size:34px;}'
+    +'.pb-date{font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1a6b8a;}'
+    +'.pb-loc{font-size:13px;color:#999;margin-top:1mm;letter-spacing:.5px;}'
+    +'.pb-tagnr{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#bbb;border:1px solid #e0d8cc;border-radius:20px;padding:2mm 4mm;}'
+    +'.pomasonry{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8mm 6mm;padding:6mm 4mm;}'
+    +'.pomasonry figure{background:#fff;padding:2.5mm 2.5mm 6mm;border-radius:1mm;box-shadow:0 4px 14px rgba(0,0,0,.16);transform:rotate(var(--rot));position:relative;}'
+    +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
+    +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
+    +'.poN1 figure{width:150mm;}.poN1 figure img{height:120mm;}'
+    +'.poN2 figure{width:115mm;}.poN2 figure img{height:78mm;}'
+    +'.poN3 figure{width:82mm;}.poN3 figure img{height:62mm;}'
+    +'.poN4 figure{width:80mm;}.poN4 figure img{height:58mm;}'
+    +'.poN5 figure{width:76mm;}.poN5 figure img{height:54mm;}'
+    +'.poN6 figure{width:72mm;}.poN6 figure img{height:50mm;}'
+    +'.poN7 figure{width:66mm;}.poN7 figure img{height:47mm;}'
+    +'.poN8 figure{width:62mm;}.poN8 figure img{height:45mm;}'
+    +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #1a6b8a;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
+    +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
+    +'.pb-textpage{background:linear-gradient(160deg,#f1f7f9 0%,#e0eef2 100%);display:flex;align-items:center;justify-content:center;}'
+    +'.tp-frame{position:relative;width:100%;height:182mm;border:2px solid #6aa6bd;border-radius:3mm;padding:16mm 24mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.5);}'
+    +'.tp-frame:before{content:"";position:absolute;inset:4mm;border:1px solid #9ac3d3;border-radius:2mm;pointer-events:none;}'
+    +'.tp-corner{position:absolute;font-size:20px;color:#6aa6bd;}'
+    +'.tp-tl{top:6mm;left:8mm;}.tp-tr{top:6mm;right:8mm;}.tp-bl{bottom:6mm;left:8mm;}.tp-br{bottom:6mm;right:8mm;}'
+    +'.tp-emoji{font-size:40px;margin-bottom:4mm;}'
+    +'.tp-date{font-family:Georgia,serif;font-size:22px;color:#1a6b8a;font-weight:bold;}'
+    +'.tp-loc{font-size:13px;color:#999;margin-top:2mm;letter-spacing:.5px;}'
+    +'.tp-rule{color:#6aa6bd;font-size:13px;letter-spacing:6px;margin:6mm 0;}'
+    +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
+    +'</style>';
+  const win=window.open('','_blank');
+  if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
+  win.document.close();
+  toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann über „Drucken → Als PDF" speichern.');
+}
+function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
 
 // ── INIT ────────────────────────────────────────────────────────────────────
 async function init(){
