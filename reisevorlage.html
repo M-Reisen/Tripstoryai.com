@@ -203,6 +203,28 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .ausflug-price{font-weight:600;font-size:.9rem;color:var(--ink);}
 .ausflug-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(28,26,22,.08);}
 
+/* ROUTE / TIMELINE */
+.timeline{position:relative;}
+.timeline-line{position:absolute;left:24px;top:6px;bottom:6px;width:2px;background:linear-gradient(to bottom,#7c3aed,var(--ocean),var(--bush),var(--tour),var(--reef),var(--sunset));border-radius:2px;}
+.tl-item,.tl-transport{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;position:relative;}
+.tl-dot{display:flex;align-items:flex-start;justify-content:center;padding-top:14px;position:relative;z-index:1;}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--white);box-shadow:0 0 0 2px currentColor;flex-shrink:0;}
+.tl-card{background:var(--white);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);margin-left:8px;}
+.tl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+.tl-date{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
+.tl-badge{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:4px;}
+.tl-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;margin:4px 0 2px;}
+.tl-loc{font-size:.77rem;color:var(--fog);}
+.tl-transport-card{background:rgba(255,255,255,.75);border-radius:10px;padding:9px 14px;margin-left:8px;border:1.5px dashed;display:flex;align-items:center;gap:10px;font-size:.81rem;}
+.transport-icon{font-size:1.05rem;}
+.transport-detail{flex:1;}
+.transport-name{font-weight:600;}
+.transport-info{font-size:.75rem;opacity:.7;margin-top:1px;}
+
+/* BELEG-UPLOAD */
+.beleg-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;border:2px dashed rgba(28,26,22,.22);border-radius:12px;cursor:pointer;text-align:center;transition:all .15s;background:var(--paper);}
+.beleg-drop:hover{border-color:var(--reef);background:#f0f6f5;}
+
 /* HOTEL-BANNER (Tageskopf wie Australien) */
 .hotel-banner{width:100%;height:150px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
 .hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.25;}
@@ -248,6 +270,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">📅 Tag für Tag</button>
+  <button class="tab-btn" onclick="showTab('route')" id="tab-route">📍 Route</button>
   <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">🎟️ Ausflüge</button>
   <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
 </div>
@@ -259,6 +282,15 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       <button class="btn btn-reef btn-sm" onclick="createPhotobook()">📖 Fotobuch als PDF</button>
     </div>
     <div id="tage-content"></div>
+  </div>
+
+  <!-- ROUTE -->
+  <div class="section" id="section-route">
+    <div style="margin-bottom:18px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem">📍 Reiseroute</div>
+      <div style="font-size:.83rem;color:var(--fog);margin-top:3px">Alle Stationen, Transfers und Ausflüge chronologisch.</div>
+    </div>
+    <div class="timeline"><div class="timeline-line"></div><div id="timeline-items"></div></div>
   </div>
 
   <!-- AUSFLÜGE -->
@@ -273,7 +305,10 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
   <!-- KOSTEN -->
   <div class="section" id="section-kosten">
     <div class="cost-card">
-      <div class="cost-title">💰 Reisekosten</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="cost-title" style="margin:0">💰 Reisekosten</div>
+        <button id="beleg-btn" class="btn btn-sm" style="background:var(--reef);color:#fff;display:none" onclick="openBeleg()">📄 Beleg auslesen</button>
+      </div>
       <div id="fx-settings"></div>
       <div id="cost-list"></div>
       <div id="grand-total-box"></div>
@@ -448,6 +483,28 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       <button class="cancel" onclick="closeApiKey()">Später</button>
       <button class="save" onclick="saveApiKey()">Speichern</button>
     </div>
+  </div>
+</div>
+
+<!-- BELEG-UPLOAD-MODAL -->
+<div class="overlay" id="beleg-modal" onclick="if(event.target===this)closeBelegModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">📄 Beleg auslesen</div>
+        <div style="font-size:.76rem;color:var(--fog);margin-top:2px;">PDF oder Screenshot – KI erstellt Vorschläge</div>
+      </div>
+      <button class="modal-close" onclick="closeBelegModal()">✕</button>
+    </div>
+    <label class="beleg-drop">
+      <div style="font-size:2rem">📎</div>
+      <div style="font-weight:600;font-size:.9rem;margin-top:4px">Beleg auswählen</div>
+      <div style="font-size:.74rem;color:var(--fog);margin-top:2px">PDF, JPG oder PNG</div>
+      <input type="file" id="beleg-file" accept="image/*,application/pdf" style="display:none" onchange="handleBelegFile(event)">
+    </label>
+    <div style="font-size:.72rem;color:var(--fog);margin-top:8px;line-height:1.5">Die Datei wird nur ausgelesen und <b>nicht gespeichert</b>. Prüfe die Vorschläge, bevor du sie übernimmst.</div>
+    <div id="beleg-status"></div>
+    <div id="beleg-result" style="display:none;margin-top:14px"></div>
   </div>
 </div>
 
@@ -1245,6 +1302,139 @@ async function aiPolishReview(){
   catch(e){toast('Fehler: '+e.message);}
   btn.textContent=orig;btn.disabled=false;
 }
+
+// ── BELEG-UPLOAD & KI-AUSLESUNG ───────────────────────────────────────────────
+let _belegVorschlag=null;
+// API-Call mit Datei (Bild oder PDF) + Text
+async function aiCallWithFile(promptText,file,maxTokens){
+  const base64=await new Promise(function(res,rej){
+    const r=new FileReader();
+    r.onload=function(){res(r.result.split(',')[1]);};
+    r.onerror=function(){rej(new Error('Datei konnte nicht gelesen werden.'));};
+    r.readAsDataURL(file);
+  });
+  let fileBlock;
+  if(file.type==='application/pdf'){
+    fileBlock={type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}};
+  }else{
+    let mt=file.type||'image/jpeg';
+    if(!/^image\//.test(mt))mt='image/jpeg';
+    fileBlock={type:'image',source:{type:'base64',media_type:mt,data:base64}};
+  }
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1500,messages:[{role:'user',content:[fileBlock,{type:'text',text:promptText}]}]})
+  });
+  const d=await r.json();
+  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  return d.content?d.content.map(c=>c.text||'').join(''):'';
+}
+function openBeleg(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  _belegVorschlag=null;
+  document.getElementById('beleg-status').innerHTML='';
+  document.getElementById('beleg-result').style.display='none';
+  document.getElementById('beleg-file').value='';
+  document.getElementById('beleg-modal').classList.add('open');
+}
+function closeBelegModal(){document.getElementById('beleg-modal').classList.remove('open');}
+async function handleBelegFile(ev){
+  const file=ev.target.files[0];if(!file)return;
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const status=document.getElementById('beleg-status');
+  status.innerHTML='<div style="color:var(--fog);font-size:.85rem;padding:10px 0">⏳ Beleg wird ausgelesen… (kann 10–20 Sek. dauern)</div>';
+  document.getElementById('beleg-result').style.display='none';
+  // Reisezeitraum als Kontext für die Datums-Zuordnung
+  const ctx=(tripHead.from?'Reisezeitraum: '+tripHead.from+' bis '+(tripHead.to||tripHead.from)+'. ':'');
+  const catList='Unterkunft, Flug, Transport, Ausflug, Sonstiges';
+  const prompt=ctx+'Du bist ein Assistent, der Reisebelege ausliest. Analysiere den beigefügten Beleg (Rechnung, Buchungsbestätigung, Ticket, Screenshot o.ä.) und extrahiere die Daten. '
+    +'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Erklärung, keine Code-Fences) in genau diesem Format:\n'
+    +'{"kostenposition":{"kategorie":"eine von: '+catList+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","details":"z.B. Referenznr, Nächte","uhrzeit":"HH:MM oder leer","personen":"Anzahl oder leer"},"tageseintrag":{"erstellen":true oder false,"datum":"YYYY-MM-DD oder leer","titel":"kurzer Titel","text":"1-2 Sätze was an dem Tag passiert, aus Belegsicht"}}\n'
+    +'Regeln: Betrag als reine Zahl ohne Währungssymbol. Wenn ein Feld nicht erkennbar ist, leeren String bzw. 0 verwenden. "tageseintrag.erstellen" nur true, wenn der Beleg eine konkrete Aktivität/Erlebnis beschreibt (z.B. Ausflug, Restaurant, Tour) — bei reinen Rechnungen/Transfers false. Für Unterkunft-Buchungen die Kategorie "Unterkunft", für Flüge "Flug", für Mietwagen/Bahn/Bus/Fähre "Transport", für Touren/Aktivitäten "Ausflug".';
+  try{
+    const out=await aiCallWithFile(prompt,file,1500);
+    const json=parseBelegJSON(out);
+    if(!json){status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Konnte den Beleg nicht auslesen. Bitte manuell erfassen.</div>';return;}
+    _belegVorschlag=json;
+    status.innerHTML='';
+    showBelegVorschlag(json);
+  }catch(e){
+    status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Fehler: '+esc(e.message)+'</div>';
+  }
+}
+function parseBelegJSON(txt){
+  if(!txt)return null;
+  // Code-Fences entfernen, erstes {...} extrahieren
+  let t=txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<0)return null;
+  try{return JSON.parse(t.substring(a,b+1));}catch(e){return null;}
+}
+function showBelegVorschlag(j){
+  const box=document.getElementById('beleg-result');
+  const k=j.kostenposition||{};
+  const t=j.tageseintrag||{};
+  // Kostenposition-Formular vorbefüllen
+  const catOpts=['Unterkunft','Flug','Transport','Ausflug','Sonstiges'].map(function(c){return '<option value="'+c+'"'+(k.kategorie===c?' selected':'')+'>'+(CAT_EMOJI[c]||'')+' '+c+'</option>';}).join('');
+  const curOpts=['EUR','USD','GBP','CHF','JPY','AUD'].map(function(c){return '<option value="'+c+'"'+((k.waehrung||'EUR')===c?' selected':'')+'>'+c+'</option>';}).join('');
+  let html='<div style="font-size:.8rem;color:var(--reef);font-weight:600;margin-bottom:10px">✓ Ausgelesen – bitte prüfen und anpassen:</div>';
+  html+='<div style="background:var(--paper);border-radius:10px;padding:12px;margin-bottom:12px">';
+  html+='<div style="font-size:.72rem;color:var(--fog);text-transform:uppercase;margin-bottom:8px">💰 Kostenposition</div>';
+  html+='<div class="field"><label>Kategorie</label><select id="bk-cat">'+catOpts+'</select></div>';
+  html+='<div class="field"><label>Bezeichnung</label><input id="bk-label" type="text" value="'+escAttr(k.label||'')+'"></div>';
+  html+='<div class="field-row"><div class="field"><label>Datum</label><input id="bk-datum" type="date" value="'+escAttr(k.datum||'')+'"></div><div class="field"><label>Betrag</label><input id="bk-amount" type="number" step="0.01" value="'+escAttr(k.betrag||'')+'"></div></div>';
+  html+='<div class="field-row"><div class="field"><label>Währung</label><select id="bk-cur">'+curOpts+'</select></div><div class="field"><label>Details</label><input id="bk-info" type="text" value="'+escAttr(k.details||'')+'"></div></div>';
+  html+='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;text-transform:none"><input type="checkbox" id="bk-use" checked style="width:auto"> Als Kostenposition anlegen</label>';
+  html+='</div>';
+  // Tageseintrag (optional)
+  if(t.erstellen&&(t.text||t.titel)){
+    html+='<div style="background:var(--paper);border-radius:10px;padding:12px;margin-bottom:12px">';
+    html+='<div style="font-size:.72rem;color:var(--fog);text-transform:uppercase;margin-bottom:8px">📅 Tag-für-Tag-Eintrag</div>';
+    html+='<div class="field"><label>Datum</label><input id="bt-datum" type="date" value="'+escAttr(t.datum||k.datum||'')+'"></div>';
+    html+='<div class="field"><label>Titel</label><input id="bt-titel" type="text" value="'+escAttr(t.titel||'')+'"></div>';
+    html+='<div class="field"><label>Text</label><textarea id="bt-text" style="min-height:70px">'+esc(t.text||'')+'</textarea></div>';
+    html+='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;text-transform:none"><input type="checkbox" id="bt-use" checked style="width:auto"> Als Tageseintrag anlegen</label>';
+    html+='</div>';
+  }
+  html+='<button class="save" style="width:100%" onclick="applyBeleg()">✓ Übernehmen</button>';
+  box.innerHTML=html;
+  box.style.display='block';
+}
+async function applyBeleg(){
+  let done=[];
+  // Kostenposition
+  if(document.getElementById('bk-use')&&document.getElementById('bk-use').checked){
+    const cat=val('bk-cat');
+    const label=val('bk-label').trim();
+    const datum=val('bk-datum')||'';
+    const amt=parseFloat((val('bk-amount')||'').replace(',','.'))||0;
+    const cur=val('bk-cur');
+    const info=val('bk-info').trim();
+    if(label&&amt>0){
+      const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
+      const id=await sbSaveCost(draft);
+      if(id!==null){costs.push(Object.assign({id:id},draft));done.push('Kostenposition');}
+    }
+  }
+  // Tageseintrag
+  if(document.getElementById('bt-use')&&document.getElementById('bt-use').checked){
+    const datum=val('bt-datum')||'';
+    const titel=val('bt-titel').trim();
+    const text=val('bt-text').trim();
+    if(datum&&text){
+      // vorhandenen Eintrag nicht überschreiben, sondern ergänzen
+      const existing=entries[datum];
+      const newText=existing&&existing.text?(existing.text+'\n\n'+text):text;
+      await sbSaveEntry(datum,titel||(existing?existing.titel:''),(existing?existing.kat:'Sonstiges')||'Sonstiges',(existing?existing.ort:'')||'',newText);
+      done.push('Tageseintrag');
+    }
+  }
+  closeBelegModal();
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();renderRoute();
+  toast(done.length?('✓ '+done.join(' & ')+' angelegt!'):'Nichts ausgewählt.');
+}
+function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function openLightbox(iso,idx){
   _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
   if(!_lbPhotos.length)return;
@@ -1380,6 +1570,7 @@ function saveFxRate(cur){
 // ── KOSTEN UI ─────────────────────────────────────────────────────────────────
 function renderCosts(){
   const pc=editMode?'':'price-blur';
+  const bb=document.getElementById('beleg-btn');if(bb)bb.style.display=editMode?'inline-flex':'none';
   let total=0,html='';
   PLAN_CATS.forEach(function(cat){
     const items=costs.filter(c=>c.cat===cat.key);
@@ -1544,6 +1735,49 @@ function renderAusfluege(){
   }).join('')+'</div>';
 }
 
+// ── ROUTE / TIMELINE (dynamisch aus Kostenpositionen) ─────────────────────────
+const ROUTE_DOT={Unterkunft:'var(--bush)',Flug:'#7c3aed',Transport:'#b45309',Ausflug:'#be185d',Sonstiges:'var(--fog)'};
+function renderRoute(){
+  const c=document.getElementById('timeline-items');
+  if(!c)return;
+  const dated=costs.filter(x=>x.datum).slice().sort(function(a,b){
+    if(a.datum!==b.datum)return a.datum<b.datum?-1:1;
+    const ord={Unterkunft:0,Flug:1,Transport:1,Ausflug:2,Sonstiges:3};
+    return (ord[a.cat]||9)-(ord[b.cat]||9);
+  });
+  if(!dated.length){
+    c.innerHTML='<div class="empty"><div class="big">📍</div><div class="lbl">Noch keine Route</div><div class="sub">Erfasse Kostenpositionen mit Datum (Unterkunft, Flug, Transport, Ausflug) – sie erscheinen hier automatisch als Zeitstrahl.</div></div>';
+    return;
+  }
+  c.innerHTML=dated.map(function(x){
+    const dc=ROUTE_DOT[x.cat]||'var(--fog)';
+    const dateStr=new Date(x.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const pi=parseInfo(x.info);
+    if(x.cat==='Unterkunft'){
+      const rev=hotelReviews[x.datum];
+      let starStr='';
+      if(rev&&rev.stars){for(let s=1;s<=rev.stars;s++)starStr+='★';}
+      return '<div class="tl-item"><div class="tl-dot"><div class="dot" style="color:'+dc+';background:'+dc+'"></div></div>'
+        +'<div class="tl-card" style="border-left:4px solid '+dc+'">'
+        +'<div class="tl-top"><div class="tl-date">'+dateStr+'</div>'+(starStr?'<span class="tl-badge" style="background:#fef3c7;color:#92400e">'+starStr+'</span>':'')+'</div>'
+        +'<div class="tl-name">🏨 '+esc(x.label)+'</div>'
+        +(pi.text?'<div class="tl-loc">'+esc(pi.text)+'</div>':'')
+        +'</div></div>';
+    }
+    const icon={Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'•'}[x.cat]||'•';
+    let meta=[];
+    if(pi.text)meta.push(esc(pi.text));
+    if(pi.time)meta.push('🕐 '+esc(pi.time));
+    if(pi.pax)meta.push('👥 '+esc(pi.pax));
+    return '<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:'+dc+';background:'+dc+'"></div></div>'
+      +'<div class="tl-transport-card" style="border-color:'+dc+'">'
+      +'<span class="transport-icon">'+icon+'</span>'
+      +'<div class="transport-detail"><div class="transport-name">'+esc(x.label)+'</div>'
+      +'<div class="transport-info">'+dateStr+(meta.length?' · '+meta.join(' · '):'')+'</div></div>'
+      +'</div></div>';
+  }).join('');
+}
+
 // ── TABS ──────────────────────────────────────────────────────────────────────
 function showTab(tab){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
@@ -1553,6 +1787,7 @@ function showTab(tab){
   if(tab==='kosten')renderCosts();
   if(tab==='tage')renderTage();
   if(tab==='ausfluege')renderAusfluege();
+  if(tab==='route')renderRoute();
 }
 function buildDaySlides(){renderTage();}
 
@@ -1562,7 +1797,7 @@ function toggleAdmin(){
     editMode=false;
     document.getElementById('admin-btn').textContent='🔑 Admin';
     document.getElementById('admin-btn').style.background='';
-    renderHead();renderCosts();renderTage();renderAusfluege();
+    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
     toast('Admin-Modus beendet.');
   }else{
     pinBuffer='';updatePinDots();
@@ -1579,7 +1814,7 @@ function checkPin(){
     closePin();editMode=true;
     document.getElementById('admin-btn').textContent='Admin aktiv';
     document.getElementById('admin-btn').style.background='var(--sunset)';
-    renderHead();renderCosts();renderTage();renderAusfluege();
+    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
     toast('Admin-Modus aktiv!');
   }else{
     document.getElementById('pin-err').textContent='Falsche PIN.';
