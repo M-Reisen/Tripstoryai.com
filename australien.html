@@ -261,6 +261,7 @@ textarea{resize:vertical;min-height:100px;}
     <div class="header-actions">
       <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">← Übersicht</a>
       <button class="btn btn-ghost btn-sm" id="edit-toggle-btn" onclick="toggleEditMode()" style="display:none">✏️ Bearbeiten</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
     </div>
   </div>
 </header>
@@ -591,6 +592,10 @@ async function initAuth(){
   if(tripVisibility==='private' && !isOwner)return false;
   return true;
 }
+async function doLogout(){
+  await sb.auth.signOut();
+  location.href='index.html';
+}
 
 async function sbLoadEntries(){
   const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
@@ -786,6 +791,9 @@ async function initApp(){
     if(canEdit){eb.style.display='';eb.textContent='✏️ Bearbeiten';}
     else{eb.style.display='none';}
   }
+  // Logout-Button nur wenn eingeloggt
+  var lb=document.getElementById('logout-btn');
+  if(lb){lb.style.display=currentUser?'':'none';}
   try{
     const db=await sbLoadEntries();
     entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));

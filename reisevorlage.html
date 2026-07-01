@@ -255,7 +255,8 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </a>
     <div class="header-actions">
       <a class="btn btn-ghost btn-sm" href="index.html">← Übersicht</a>
-      <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+      <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()" style="display:none">✏️ Bearbeiten</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
     </div>
   </div>
 </header>
@@ -317,29 +318,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V6 · Fotos horizontal scrollbar</div>
-
-<!-- PIN -->
-<div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
-  <div class="modal" style="max-width:300px;text-align:center;">
-    <div style="font-size:1.8rem;margin-bottom:8px">🔑</div>
-    <div class="modal-title" style="margin-bottom:4px">Admin-Modus</div>
-    <div style="font-size:.8rem;color:var(--fog)">PIN eingeben</div>
-    <div class="pin-dots">
-      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
-    </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="pinIn('1')">1</button><button class="pin-key" onclick="pinIn('2')">2</button><button class="pin-key" onclick="pinIn('3')">3</button>
-      <button class="pin-key" onclick="pinIn('4')">4</button><button class="pin-key" onclick="pinIn('5')">5</button><button class="pin-key" onclick="pinIn('6')">6</button>
-      <button class="pin-key" onclick="pinIn('7')">7</button><button class="pin-key" onclick="pinIn('8')">8</button><button class="pin-key" onclick="pinIn('9')">9</button>
-      <button class="pin-key" style="font-size:.85rem;color:var(--fog)" onclick="pinDel()">⌫</button>
-      <button class="pin-key" onclick="pinIn('0')">0</button>
-      <button class="pin-key" style="font-size:.78rem;color:var(--fog)" onclick="closePin()">✕</button>
-    </div>
-    <div class="pin-err" id="pin-err"></div>
-  </div>
-</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V8 · Logout ergänzt</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -601,6 +580,35 @@ const SUPABASE_URL='https://celihvrblqqivtlvzbjp.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+// ── AUTH / BESITZ ─────────────────────────────────────────────────────────────
+let currentUser=null;    // eingeloggter Nutzer (oder null)
+let tripOwner=null;      // Besitzer-ID dieser Reise
+let tripVisibility='private';
+let canEdit=false;       // darf der aktuelle Nutzer bearbeiten?
+// Lädt Session + Reise-Metadaten, entscheidet über Zugriff. Gibt false zurück, wenn Zugriff verweigert.
+async function initAuth(){
+  const s=await sb.auth.getSession();
+  currentUser=(s.data.session&&s.data.session.user)?s.data.session.user:null;
+  // Reise-Metadaten laden (trips-Tabelle)
+  if(REISE){
+    const {data}=await sb.from('trips').select('owner,visibility').eq('id',REISE).limit(1);
+    if(data&&data.length){tripOwner=data[0].owner;tripVisibility=data[0].visibility||'private';}
+  }
+  // Zugriffsentscheidung
+  const isOwner=currentUser&&tripOwner&&currentUser.id===tripOwner;
+  canEdit=!!isOwner;
+  // Private Reise + nicht Besitzer → wegleiten
+  if(tripVisibility==='private' && !isOwner){
+    // Wenn gar nicht eingeloggt ODER nicht Besitzer: zurück zur Startseite
+    return false;
+  }
+  return true;
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  location.href='index.html';
+}
+
 // ── STATE ────────────────────────────────────────────────────────────────────
 const CORRECT_PIN='2026';
 const PLAN_CATS=[
@@ -675,7 +683,7 @@ async function sbSaveHead(){
     if(data&&data.length){
       await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
     }else{
-      await sb.from('kommentare').insert({ort:PFX+'triphead',name:'Reisekopf',nachricht:payload,created_at:new Date().toISOString()});
+      await sb.from('kommentare').insert({ort:PFX+'triphead',name:'Reisekopf',nachricht:payload,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
     }
     return true;
   }catch(e){toast('Fehler beim Speichern der Eckdaten.');return false;}
@@ -687,7 +695,7 @@ async function sbSaveCost(c){
   const uid=PFX+'kost_'+Date.now()+Math.floor(Math.random()*1000);
   const {data,error}=await sb.from('kommentare').insert({
     ort:uid, name:c.cat+'|'+c.label, nachricht:c.amount+'|'+c.cur+'|'+(c.datum||'')+'|'+(c.info||''),
-    created_at:new Date().toISOString()
+    created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE
   }).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
   return data&&data[0]?data[0].id:null;
@@ -764,7 +772,7 @@ async function sbSavePhotoMeta(iso){
     if(data&&data.length){
       await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
     }else{
-      await sb.from('kommentare').insert({ort:key,name:'PhotoMeta',nachricht:payload,created_at:new Date().toISOString()});
+      await sb.from('kommentare').insert({ort:key,name:'PhotoMeta',nachricht:payload,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
     }
   }catch(e){console.error('PhotoMeta speichern:',e);}
 }
@@ -802,7 +810,7 @@ async function sbSaveEntry(iso,titel,kat,ort,text){
     if(error){toast('Fehler beim Speichern.');return false;}
     entries[iso]={id:data[0].id,titel:titel,kat:kat,ort:ort,text:text};
   }else{
-    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:nameField,nachricht:text,created_at:new Date().toISOString()}).select();
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:nameField,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE}).select();
     if(error){toast('Fehler beim Speichern.');return false;}
     entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,kat:kat,ort:ort,text:text};
   }
@@ -833,7 +841,7 @@ async function sbSaveReview(iso,stars,text){
     if(error){toast('Fehler beim Speichern.');return false;}
     hotelReviews[iso]={id:data[0].id,stars:stars,text:text};
   }else{
-    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:String(stars),nachricht:text,created_at:new Date().toISOString()}).select();
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:String(stars),nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE}).select();
     if(error){toast('Fehler beim Speichern.');return false;}
     hotelReviews[iso]={id:ins&&ins[0]?ins[0].id:null,stars:stars,text:text};
   }
@@ -859,7 +867,7 @@ async function sbSaveFX(){
     if(data&&data.length){
       await sb.from('kommentare').update({nachricht:JSON.stringify(FX)}).eq('id',data[0].id);
     }else{
-      await sb.from('kommentare').insert({ort:PFX+'fx',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString()});
+      await sb.from('kommentare').insert({ort:PFX+'fx',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
     }
     return true;
   }catch(e){toast('Fehler beim Speichern der Kurse.');return false;}
@@ -869,7 +877,7 @@ async function sbSaveFX(){
 // ort=PFX+'ausgabe_<iso>_<uid>', name='cat|label', nachricht='amount|cur'
 async function sbSaveExpense(iso,cat,label,amount,cur){
   const uid=PFX+'ausgabe_'+iso+'_'+Date.now()+Math.floor(Math.random()*1000);
-  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString()}).select();
+  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE}).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
   return data&&data[0]?data[0].id:null;
 }
@@ -1870,35 +1878,19 @@ function showTab(tab){
 function buildDaySlides(){renderTage();}
 
 // ── ADMIN / PIN ─────────────────────────────────────────────────────────────
+// ── BEARBEITEN-MODUS (nur Besitzer) ──────────────────────────────────────────
 function toggleAdmin(){
+  if(!canEdit){toast('Nur der Besitzer kann diese Reise bearbeiten.');return;}
+  editMode=!editMode;
+  const b=document.getElementById('admin-btn');
   if(editMode){
-    editMode=false;
-    document.getElementById('admin-btn').textContent='🔑 Admin';
-    document.getElementById('admin-btn').style.background='';
-    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
-    toast('Admin-Modus beendet.');
+    b.textContent='✓ Fertig';
+    b.style.background='var(--sunset)';
   }else{
-    pinBuffer='';updatePinDots();
-    document.getElementById('pin-err').textContent='';
-    document.getElementById('pin-overlay').classList.add('open');
+    b.textContent='✏️ Bearbeiten';
+    b.style.background='';
   }
-}
-function pinIn(d){if(pinBuffer.length>=4)return;pinBuffer+=d;updatePinDots();if(pinBuffer.length===4)setTimeout(checkPin,150);}
-function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
-function updatePinDots(){for(var i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);}
-function closePin(){document.getElementById('pin-overlay').classList.remove('open');pinBuffer='';updatePinDots();}
-function checkPin(){
-  if(pinBuffer===CORRECT_PIN){
-    closePin();editMode=true;
-    document.getElementById('admin-btn').textContent='Admin aktiv';
-    document.getElementById('admin-btn').style.background='var(--sunset)';
-    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
-    toast('Admin-Modus aktiv!');
-  }else{
-    document.getElementById('pin-err').textContent='Falsche PIN.';
-    pinBuffer='';updatePinDots();
-    setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
-  }
+  renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
 }
 
 // ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
@@ -2041,7 +2033,25 @@ async function init(){
     document.getElementById('hero-eyebrow').textContent='Hinweis';
     document.getElementById('hero-title').innerHTML='Keine Reise ausgewählt';
     document.getElementById('hero-sub').innerHTML='Diese Seite wird über die Startseite mit einer Reise geöffnet. Bitte kehre zur <a href="index.html" style="color:var(--sunset)">Übersicht</a> zurück und wähle oder erstelle eine Reise.';
+    return;
   }
+  // Zugriff prüfen
+  let allowed=true;
+  try{allowed=await initAuth();}catch(e){console.error(e);}
+  if(!allowed){
+    // Private Reise, kein Zugriff → zur Startseite
+    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Playfair Display,serif;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
+    return;
+  }
+  // Besitzer sieht Bearbeiten-Button; Besucher nicht
+  var adminBtn=document.getElementById('admin-btn');
+  if(adminBtn){
+    if(canEdit){adminBtn.style.display='';adminBtn.textContent='✏️ Bearbeiten';}
+    else{adminBtn.style.display='none';}
+  }
+  // Logout-Button nur wenn eingeloggt
+  var logoutBtn=document.getElementById('logout-btn');
+  if(logoutBtn){logoutBtn.style.display=currentUser?'':'none';}
   try{await sbLoadHead();}catch(e){console.error(e);}
   try{await sbLoadFX();}catch(e){console.error(e);}
   try{await sbLoadCosts();}catch(e){console.error(e);}
