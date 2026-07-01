@@ -1,0 +1,2051 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Reisetagebuch · M-Reisen</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --ocean:#1a6b8a;--reef:#0d9488;--sand:#f0e6cc;--sunset:#e07b3f;
+  --bush:#5a7a40;--paper:#faf7f2;--ink:#1c1a16;--fog:#7a7167;
+  --white:#fff;--radius:14px;--shadow:0 4px 28px rgba(28,26,22,.10);
+  --flight:#7c3aed;--bus:#16a34a;--car:#b45309;--tour:#be185d;--ferry:#0369a1;
+}
+body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
+
+/* HEADER */
+header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
+.header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
+.logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
+.logo .mark{font-size:1.9rem;line-height:1;}
+.logo .txt{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand);}
+.logo .txt em{color:var(--sunset);font-style:italic;}
+.header-actions{display:flex;gap:8px;}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;text-decoration:none;}
+.btn-primary{background:var(--sunset);color:var(--white);}.btn-primary:hover{background:#c96a30;}
+.btn-ghost{background:transparent;color:var(--sand);border:1px solid rgba(255,255,255,.22);}.btn-ghost:hover{background:rgba(255,255,255,.09);}
+.btn-reef{background:var(--reef);color:var(--white);}
+.btn-bush{background:var(--bush);color:var(--white);}
+.btn-sm{padding:6px 12px;font-size:.76rem;}
+
+/* HERO */
+.hero{position:relative;overflow:hidden;background:radial-gradient(120% 130% at 50% -10%,#16314a 0%,#0d1f33 45%,#0a1626 100%);padding:48px 24px 40px;text-align:center;color:var(--sand);}
+.hero-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1.5px 1.5px at 15% 20%,rgba(255,255,200,.7),transparent),radial-gradient(1px 1px at 60% 10%,rgba(255,255,200,.5),transparent),radial-gradient(1.5px 1.5px at 80% 30%,rgba(255,255,200,.6),transparent),radial-gradient(1px 1px at 30% 70%,rgba(255,255,200,.4),transparent);}
+.hero-eyebrow{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--sunset);margin-bottom:8px;position:relative;}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,6vw,3.2rem);font-weight:400;line-height:1.12;margin-bottom:10px;position:relative;}
+.hero h1 em{color:var(--sunset);font-style:italic;}
+.hero-dates{font-family:'Caveat',cursive;font-size:1.25rem;color:rgba(240,230,204,.7);margin-bottom:6px;position:relative;}
+.hero-sub{font-size:.85rem;color:rgba(240,230,204,.5);margin-bottom:22px;position:relative;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.5;}
+.hero-stats{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;position:relative;}
+.hero-stat .num{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--sunset);display:block;line-height:1;}
+.hero-stat .lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,230,204,.5);margin-top:5px;}
+.hero-edit-btn{position:relative;margin-top:18px;}
+
+/* TABS */
+.tabs{max-width:1140px;margin:0 auto;padding:0 24px;display:flex;gap:4px;border-bottom:2px solid rgba(28,26,22,.1);overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;color:var(--fog);background:none;border:none;padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;border-radius:6px 6px 0 0;white-space:nowrap;}
+.tab-btn.active{color:var(--sunset);border-bottom-color:var(--sunset);}
+.tab-btn:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.04);}
+
+main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
+.section{display:none;}
+.section.active{display:block;}
+
+/* EMPTY STATES */
+.empty{text-align:center;padding:50px 20px;color:var(--fog);}
+.empty .big{font-size:2.8rem;margin-bottom:12px;}
+.empty .lbl{font-size:.95rem;margin-bottom:6px;color:var(--ink);font-family:'Playfair Display',serif;}
+.empty .sub{font-size:.83rem;line-height:1.5;max-width:340px;margin:0 auto 16px;}
+
+/* TAG FÜR TAG */
+.days-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;}
+.days-nav-title{font-family:'Playfair Display',serif;font-size:1.15rem;text-align:center;flex:1;}
+.days-nav-title small{display:block;font-family:'Inter',sans-serif;font-size:.75rem;color:var(--fog);font-weight:400;margin-top:2px;}
+.nav-arrow{background:var(--white);border:1.5px solid rgba(28,26,22,.15);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:all .18s;box-shadow:var(--shadow);}
+.nav-arrow:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
+.nav-arrow:disabled{opacity:.3;cursor:default;}
+.days-dots{display:flex;justify-content:center;gap:5px;margin-bottom:18px;flex-wrap:wrap;}
+.day-dot{width:8px;height:8px;border-radius:50%;background:rgba(28,26,22,.15);cursor:pointer;transition:all .18s;}
+.day-dot.active{background:var(--sunset);transform:scale(1.3);}
+.day-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.day-card-header{padding:18px 22px 14px;border-bottom:1px solid rgba(28,26,22,.07);}
+.day-card-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
+.day-card-loc{font-size:.8rem;color:var(--fog);margin-top:2px;}
+.day-entry-area{padding:18px 22px;}
+.day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:12px;}
+.entry-titel{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:6px;}
+.day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:12px;}
+.day-program{display:flex;flex-wrap:wrap;gap:6px;padding:12px 22px;background:rgba(28,26,22,.03);border-top:1px solid rgba(28,26,22,.06);}
+.program-badge{font-size:.75rem;padding:4px 11px;border-radius:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px;}
+.badge-Unterkunft{background:#dbeafe;color:#1d4ed8;}
+.badge-Flug{background:#ede9fe;color:#5b21b6;}
+.badge-Transport{background:#fef3c7;color:#92400e;}
+.badge-Ausflug{background:#fce7f3;color:#9d174d;}
+.badge-Sonstiges{background:#e8f0e0;color:#3d5a26;}
+
+/* COST */
+.cost-card{background:var(--white);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);max-width:720px;margin:0 auto;}
+.cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:14px;}
+.cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:14px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;display:flex;align-items:center;gap:6px;}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,26,22,.06);font-size:.85rem;gap:12px;}
+.cost-row .info{font-size:.73rem;color:var(--fog);margin-top:1px;}
+.cost-row .date-chip{display:inline-block;font-size:.68rem;background:#e8f0e0;color:#3d5a26;padding:1px 7px;border-radius:8px;margin-top:3px;}
+.cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
+.cost-edit-btn,.cost-del-btn{background:none;border:none;cursor:pointer;font-size:.8rem;padding:2px 4px;border-radius:5px;line-height:1;opacity:.65;transition:opacity .15s,background .15s;}
+.cost-edit-btn:hover{opacity:1;background:rgba(28,26,22,.06);}
+.cost-del-btn{color:#dc2626;}
+.cost-del-btn:hover{opacity:1;background:#fef2f2;}
+.cost-add-btn{display:block;width:100%;text-align:left;background:none;border:1.5px dashed rgba(28,26,22,.2);border-radius:8px;padding:7px 12px;margin:8px 0 4px;font-size:.78rem;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;}
+.cost-add-btn:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.price-blur{filter:blur(5px);user-select:none;}
+.grand-total{display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);}
+
+/* MODALS (generic overlay) */
+.overlay{display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;}
+.overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:24px 22px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:92vh;overflow-y:auto;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-title{font-family:'Playfair Display',serif;font-size:1.15rem;}
+.modal-close{background:none;border:none;font-size:1.25rem;cursor:pointer;color:var(--fog);line-height:1;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.field label .opt{text-transform:none;font-weight:400;}
+.field input,.field select,.field textarea{width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:#fff;}
+.field textarea{resize:vertical;min-height:70px;}
+.field-row{display:flex;gap:10px;}
+.field-row>div{flex:1;}
+.preview-line{font-size:.78rem;color:var(--sunset);text-align:right;min-height:16px;margin-bottom:8px;}
+.modal-actions{display:flex;gap:10px;margin-top:6px;}
+.modal-actions .cancel{flex:1;padding:10px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;background:none;cursor:pointer;color:var(--fog);font-family:'Inter',sans-serif;}
+.modal-actions .save{flex:2;padding:10px;background:var(--sunset);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
+
+/* PIN */
+.pin-dots{display:flex;justify-content:center;gap:11px;margin:14px 0 16px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);transition:all .16s;}
+.pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
+.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.pin-key:hover{background:var(--sunset);color:#fff;border-color:var(--sunset);}
+.pin-err{color:#dc2626;font-size:.77rem;margin-top:10px;min-height:16px;text-align:center;}
+
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:10px 22px;border-radius:8px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* FOTOS */
+.photo-strip{padding:14px 22px;border-bottom:1px solid rgba(28,26,22,.07);}
+.photo-strip-label{font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.photo-cell{position:relative;width:100%;padding-top:100%;border-radius:8px;overflow:hidden;background:#e8e0d4;}
+.photo-cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+.photo-del{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.88);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-move{position:absolute;bottom:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-move-l{left:5px;}.photo-move-r{left:33px;}
+.photo-cap-btn{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.62rem;cursor:pointer;z-index:2;}
+.photo-cap{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;z-index:1;}
+.photo-add{position:relative;padding-top:100%;border:2px dashed rgba(28,26,22,.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:var(--fog);gap:2px;background:var(--paper);transition:all .15s;}
+.photo-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.photo-add>span{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;}
+.photo-add>span:first-child{position:static;transform:none;}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:700;flex-direction:column;align-items:center;justify-content:center;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:94vw;max-height:78vh;object-fit:contain;border-radius:8px;}
+.lb-top{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 18px;color:#fff;}
+.lb-counter{font-size:.82rem;color:rgba(255,255,255,.7);}
+.lb-close{background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;opacity:.85;}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.3rem;cursor:pointer;}
+.lb-arrow.prev{left:12px;}.lb-arrow.next{right:12px;}
+
+/* TAGESAUSGABEN */
+.day-exp-section{margin-top:14px;border-top:1px solid rgba(28,26,22,.08);padding-top:12px;}
+.day-exp-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);margin-bottom:8px;}
+.exp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(28,26,22,.05);font-size:.84rem;gap:8px;}
+.exp-del{background:none;border:none;color:#dc2626;cursor:pointer;font-size:.78rem;padding:1px 4px;border-radius:4px;opacity:.7;}
+.exp-del:hover{opacity:1;background:#fef2f2;}
+.exp-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding-top:7px;margin-top:4px;border-top:1px solid rgba(28,26,22,.12);}
+.exp-add{background:none;border:1.5px dashed rgba(28,26,22,.2);border-radius:8px;padding:6px 12px;font-size:.78rem;color:var(--fog);cursor:pointer;width:100%;text-align:left;margin-top:8px;font-family:'Inter',sans-serif;}
+.exp-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+
+/* WECHSELKURSE */
+.fx-box{background:#f0f6f5;border:1px solid rgba(13,148,136,.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;}
+.fx-title{font-size:.74rem;font-weight:600;color:var(--reef);margin-bottom:8px;}
+.fx-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.fx-cur{font-weight:600;font-size:.82rem;width:40px;}
+.fx-row input{flex:1;padding:6px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:7px;font-family:'Inter',sans-serif;font-size:.82rem;background:#fff;}
+.fx-save{background:var(--reef);color:#fff;border:none;border-radius:7px;width:34px;height:32px;cursor:pointer;font-size:.85rem;}
+
+/* HOTELBEWERTUNG */
+.hotel-review{margin-top:14px;border-top:1px solid rgba(28,26,22,.08);padding-top:12px;}
+.hotel-review-head{font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.hotel-stars{margin-bottom:6px;}
+.hotel-review-text{font-size:.86rem;line-height:1.7;color:#3a2d22;white-space:pre-wrap;}
+.hotel-review-empty{font-size:.82rem;color:var(--fog);font-style:italic;margin-bottom:8px;}
+.star-picker{display:flex;gap:6px;font-size:1.8rem;}
+.star-pick{cursor:pointer;color:#d8cfc2;transition:color .12s;line-height:1;}
+.star-pick.on{color:#e0b34f;}
+.star-pick:hover{color:#e0b34f;}
+
+/* AUSFLÜGE */
+.ausflug-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.ausflug-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
+.ausflug-stripe{height:5px;background:var(--tour);}
+.ausflug-body{padding:16px 18px;}
+.ausflug-date{font-family:'Caveat',cursive;font-size:1rem;color:var(--tour);margin-bottom:3px;}
+.ausflug-title{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;line-height:1.3;margin-bottom:6px;}
+.ausflug-info{font-size:.83rem;line-height:1.55;color:#4a3d30;margin-bottom:6px;}
+.ausflug-meta{font-size:.76rem;color:var(--fog);margin-bottom:8px;}
+.ausflug-price{font-weight:600;font-size:.9rem;color:var(--ink);}
+.ausflug-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(28,26,22,.08);}
+
+/* ROUTE / TIMELINE */
+.timeline{position:relative;}
+.timeline-line{position:absolute;left:24px;top:6px;bottom:6px;width:2px;background:linear-gradient(to bottom,#7c3aed,var(--ocean),var(--bush),var(--tour),var(--reef),var(--sunset));border-radius:2px;}
+.tl-item,.tl-transport{display:grid;grid-template-columns:50px 1fr;gap:0;margin-bottom:10px;position:relative;}
+.tl-dot{display:flex;align-items:flex-start;justify-content:center;padding-top:14px;position:relative;z-index:1;}
+.dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--white);box-shadow:0 0 0 2px currentColor;flex-shrink:0;}
+.tl-card{background:var(--white);border-radius:var(--radius);padding:14px 18px;box-shadow:var(--shadow);margin-left:8px;}
+.tl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
+.tl-date{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
+.tl-badge{font-size:.7rem;font-weight:600;padding:2px 7px;border-radius:4px;}
+.tl-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;margin:4px 0 2px;}
+.tl-loc{font-size:.77rem;color:var(--fog);}
+.tl-transport-card{background:rgba(255,255,255,.75);border-radius:10px;padding:9px 14px;margin-left:8px;border:1.5px dashed;display:flex;align-items:center;gap:10px;font-size:.81rem;}
+.transport-icon{font-size:1.05rem;}
+.transport-detail{flex:1;}
+.transport-name{font-weight:600;}
+.transport-info{font-size:.75rem;opacity:.7;margin-top:1px;}
+
+/* BELEG-UPLOAD */
+.beleg-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;border:2px dashed rgba(28,26,22,.22);border-radius:12px;cursor:pointer;text-align:center;transition:all .15s;background:var(--paper);}
+.beleg-drop:hover{border-color:var(--reef);background:#f0f6f5;}
+
+/* HOTEL-BANNER (Tageskopf wie Australien) */
+.hotel-banner{width:100%;height:150px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.25;}
+.hotel-banner-loc{font-size:.74rem;color:rgba(255,255,255,.8);text-align:center;position:relative;z-index:1;}
+.hotel-banner-loc::before{content:'📍 ';}
+.hotel-banner-nights{font-size:.68rem;background:rgba(255,255,255,.22);color:#fff;padding:2px 10px;border-radius:10px;margin-top:3px;position:relative;z-index:1;}
+.hotel-banner-emoji-bg{font-size:3.6rem;opacity:.22;position:absolute;bottom:-6px;right:12px;z-index:0;line-height:1;}
+
+@media(max-width:600px){
+  .cost-card,.modal{padding:18px;}
+  .hero{padding:34px 18px 30px;}
+  .header-inner{padding:11px 16px;}
+  .field-row{flex-direction:column;gap:12px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="index.html">
+      <span class="mark">🧳</span>
+      <span class="txt"><em>M</em>-Reisen</span>
+    </a>
+    <div class="header-actions">
+      <a class="btn btn-ghost btn-sm" href="index.html">← Übersicht</a>
+      <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-stars"></div>
+  <div class="hero-eyebrow" id="hero-eyebrow">Neues Reisetagebuch</div>
+  <h1 id="hero-title">Deine <em>Reise</em></h1>
+  <div class="hero-dates" id="hero-dates"></div>
+  <div class="hero-sub" id="hero-sub">Lege im Admin-Modus die Eckdaten an und erfasse deine Kosten mit Datum — daraus entsteht automatisch der Tagesplan.</div>
+  <div class="hero-stats" id="hero-stats"></div>
+  <div class="hero-edit-btn" id="hero-edit-wrap" style="display:none">
+    <button class="btn btn-primary btn-sm" onclick="openTripHead()">✏️ Reise-Eckdaten bearbeiten</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">📅 Tag für Tag</button>
+  <button class="tab-btn" onclick="showTab('route')" id="tab-route">📍 Route</button>
+  <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">🎟️ Ausflüge</button>
+  <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
+</div>
+
+<main>
+  <!-- TAG FÜR TAG -->
+  <div class="section active" id="section-tage">
+    <div style="text-align:right;margin-bottom:14px">
+      <button class="btn btn-reef btn-sm" onclick="createPhotobook()">📖 Fotobuch als PDF</button>
+    </div>
+    <div id="tage-content"></div>
+  </div>
+
+  <!-- ROUTE -->
+  <div class="section" id="section-route">
+    <div style="margin-bottom:18px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem">📍 Reiseroute</div>
+      <div style="font-size:.83rem;color:var(--fog);margin-top:3px">Alle Stationen, Transfers und Ausflüge chronologisch.</div>
+    </div>
+    <div class="timeline"><div class="timeline-line"></div><div id="timeline-items"></div></div>
+  </div>
+
+  <!-- AUSFLÜGE -->
+  <div class="section" id="section-ausfluege">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.3rem">🎟️ Ausflüge & Touren</div>
+      <button id="ausflug-add-btn" class="btn btn-sm" style="background:var(--tour);color:#fff;display:none" onclick="addCost('Ausflug')">+ Ausflug</button>
+    </div>
+    <div id="ausfluege-grid"></div>
+  </div>
+
+  <!-- KOSTEN -->
+  <div class="section" id="section-kosten">
+    <div class="cost-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="cost-title" style="margin:0">💰 Reisekosten</div>
+        <button id="beleg-btn" class="btn btn-sm" style="background:var(--reef);color:#fff;display:none" onclick="openBeleg()">📄 Beleg auslesen</button>
+      </div>
+      <div id="fx-settings"></div>
+      <div id="cost-list"></div>
+      <div id="grand-total-box"></div>
+    </div>
+  </div>
+</main>
+
+<!-- PIN -->
+<div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
+  <div class="modal" style="max-width:300px;text-align:center;">
+    <div style="font-size:1.8rem;margin-bottom:8px">🔑</div>
+    <div class="modal-title" style="margin-bottom:4px">Admin-Modus</div>
+    <div style="font-size:.8rem;color:var(--fog)">PIN eingeben</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinIn('1')">1</button><button class="pin-key" onclick="pinIn('2')">2</button><button class="pin-key" onclick="pinIn('3')">3</button>
+      <button class="pin-key" onclick="pinIn('4')">4</button><button class="pin-key" onclick="pinIn('5')">5</button><button class="pin-key" onclick="pinIn('6')">6</button>
+      <button class="pin-key" onclick="pinIn('7')">7</button><button class="pin-key" onclick="pinIn('8')">8</button><button class="pin-key" onclick="pinIn('9')">9</button>
+      <button class="pin-key" style="font-size:.85rem;color:var(--fog)" onclick="pinDel()">⌫</button>
+      <button class="pin-key" onclick="pinIn('0')">0</button>
+      <button class="pin-key" style="font-size:.78rem;color:var(--fog)" onclick="closePin()">✕</button>
+    </div>
+    <div class="pin-err" id="pin-err"></div>
+  </div>
+</div>
+
+<!-- REISEKOPF-MODAL -->
+<div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Reise-Eckdaten</div>
+      <button class="modal-close" onclick="closeTripHead()">✕</button>
+    </div>
+    <div class="field"><label>Reisetitel</label><input type="text" id="h-title" placeholder="z.B. Japan im Frühling"></div>
+    <div class="field"><label>Untertitel / Region <span class="opt">(optional)</span></label><input type="text" id="h-sub" placeholder="z.B. Tokio · Kyoto · Osaka"></div>
+    <div class="field-row">
+      <div class="field"><label>Von</label><input type="date" id="h-from"></div>
+      <div class="field"><label>Bis</label><input type="date" id="h-to"></div>
+    </div>
+    <div class="field"><label>Emoji <span class="opt">(optional)</span></label><input type="text" id="h-emoji" placeholder="🌸" maxlength="4"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeTripHead()">Abbrechen</button>
+      <button class="save" onclick="saveTripHead()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- KOSTEN-MODAL -->
+<div class="overlay" id="cost-modal" onclick="if(event.target===this)closeCostModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="cm-title">Position hinzufügen</div>
+      <button class="modal-close" onclick="closeCostModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <select id="c-cat" onchange="toggleAusflugFields()">
+        <option value="Unterkunft">🏨 Unterkünfte</option>
+        <option value="Flug">✈️ Flüge</option>
+        <option value="Transport">🚗 Transport</option>
+        <option value="Ausflug">🎟️ Ausflüge</option>
+        <option value="Sonstiges">✨ Sonstiges</option>
+      </select>
+    </div>
+    <div class="field"><label>Datum <span class="opt">(optional · erscheint im Tagesplan)</span></label><input type="date" id="c-datum"></div>
+    <div class="field" id="c-bis-wrap" style="display:none"><label>Abreise <span class="opt">(Unterkunft · Nächte werden berechnet)</span></label><input type="date" id="c-bis"></div>
+    <div class="field"><label>Bezeichnung</label><input type="text" id="c-label" placeholder="z.B. Hotel Tokio"></div>
+    <div class="field"><label>Details <span class="opt">(optional)</span></label><input type="text" id="c-info" placeholder="z.B. 3 Nächte · Ref. XY"></div>
+    <div id="c-ausflug-fields" style="display:none">
+      <div class="field-row">
+        <div class="field"><label>Uhrzeit <span class="opt">(optional)</span></label><input type="text" id="c-time" placeholder="z.B. 13:15"></div>
+        <div class="field"><label>Personen <span class="opt">(optional)</span></label><input type="text" id="c-pax" placeholder="z.B. 2"></div>
+      </div>
+      <div class="field"><label>Referenz-Nr. <span class="opt">(optional)</span></label><input type="text" id="c-ref" placeholder="z.B. #358349003"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Betrag</label><input type="number" step="0.01" min="0" id="c-amount" placeholder="0.00" oninput="updateCostPreview()"></div>
+      <div class="field"><label>Währung</label>
+        <select id="c-currency" onchange="updateCostPreview()">
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="USD">🇺🇸 USD</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="CHF">🇨🇭 CHF</option>
+          <option value="JPY">🇯🇵 JPY</option>
+          <option value="AUD">🇦🇺 AUD</option>
+        </select>
+      </div>
+    </div>
+    <div class="preview-line" id="c-preview"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeCostModal()">Abbrechen</button>
+      <button class="save" onclick="saveCost()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAGEBUCHEINTRAG-MODAL -->
+<div class="overlay" id="entry-modal" onclick="if(event.target===this)closeEntryModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Tagebucheintrag</div>
+        <div id="entry-date-lbl" style="font-size:.78rem;color:var(--fog);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeEntryModal()">✕</button>
+    </div>
+    <div class="field"><label>Ort</label><input type="text" id="entry-ort" placeholder="z.B. Port Douglas"></div>
+    <div class="field"><label>Titel <span class="opt">(optional)</span></label><input type="text" id="entry-titel" placeholder="z.B. Schnorcheln mit Schildkröten"></div>
+    <div class="field"><label>Kategorie</label><select id="entry-kat"></select></div>
+    <div class="field">
+      <label>Stichpunkte / Notizen</label>
+      <textarea id="entry-notes" style="min-height:90px" placeholder="z.B.&#10;- Kängurus beim Sonnenaufgang&#10;- Schnorcheln mit Schildkröten&#10;- Abendessen: frischer Barramundi"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+      <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert den Eintrag</button>
+      <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--bush);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
+      <button class="btn btn-sm" style="background:var(--paper);color:var(--fog);border:1.5px solid rgba(28,26,22,.15)" onclick="openApiKey()">🔑 API-Key</button>
+    </div>
+    <div style="font-size:.72rem;color:var(--fog);margin-bottom:6px">🎤 Diktieren & ✨ KI arbeiten mit den Stichpunkten oben.</div>
+    <div style="height:1px;background:rgba(28,26,22,.1);margin:14px 0"></div>
+    <div class="field">
+      <label>Finaler Text</label>
+      <textarea id="entry-text" style="min-height:130px" placeholder="KI-Text erscheint oben — oder direkt selbst schreiben."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="deleteEntry()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
+      <button class="save" onclick="saveEntry()">💾 Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOTELBEWERTUNG-MODAL -->
+<div class="overlay" id="rev-modal" onclick="if(event.target===this)closeReviewModal()">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Hotelbewertung</div>
+        <div id="rev-hotel-name" style="font-size:.78rem;color:var(--fog);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeReviewModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Sterne</label>
+      <div id="rev-stars" class="star-picker"></div>
+    </div>
+    <div class="field">
+      <label>Beschreibung</label>
+      <textarea id="rev-text" style="min-height:120px" placeholder="Wie war die Unterkunft? Lage, Zimmer, Service…"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <button id="rev-dictate-btn" class="btn btn-sm" style="background:var(--ocean);color:#fff" onclick="dictateReview()">🎤 Diktieren</button>
+      <button id="rev-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiPolishReview()">✨ Verschönern</button>
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="deleteReview()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
+      <button class="save" onclick="saveReview()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- API-KEY-OVERLAY -->
+<div class="overlay" id="apikey-overlay" onclick="if(event.target===this)closeApiKey()">
+  <div class="modal" style="max-width:380px;">
+    <div style="font-size:1.6rem;text-align:center;margin-bottom:8px;">🔑</div>
+    <div class="modal-title" style="text-align:center;margin-bottom:6px;">API-Key für KI</div>
+    <div style="font-size:.78rem;color:var(--fog);margin-bottom:16px;text-align:center;line-height:1.5;">Wird nur lokal in deinem Browser gespeichert. Nötig für die KI-Funktionen.</div>
+    <input id="apikey-input" type="password" placeholder="sk-ant-api03-…" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:8px;">
+    <div id="apikey-hint" style="font-size:.74rem;color:var(--fog);margin-bottom:14px;text-align:center;"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeApiKey()">Später</button>
+      <button class="save" onclick="saveApiKey()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- BELEG-UPLOAD-MODAL -->
+<div class="overlay" id="beleg-modal" onclick="if(event.target===this)closeBelegModal()">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">📄 Beleg auslesen</div>
+        <div style="font-size:.76rem;color:var(--fog);margin-top:2px;">PDF oder Screenshot – KI erstellt Vorschläge</div>
+      </div>
+      <button class="modal-close" onclick="closeBelegModal()">✕</button>
+    </div>
+    <label class="beleg-drop">
+      <div style="font-size:2rem">📎</div>
+      <div style="font-weight:600;font-size:.9rem;margin-top:4px">Beleg auswählen</div>
+      <div style="font-size:.74rem;color:var(--fog);margin-top:2px">PDF, JPG oder PNG</div>
+      <input type="file" id="beleg-file" accept="image/*,application/pdf" style="display:none" onchange="handleBelegFile(event)">
+    </label>
+    <div style="font-size:.72rem;color:var(--fog);margin-top:8px;line-height:1.5">Die Datei wird nur ausgelesen und <b>nicht gespeichert</b>. Prüfe die Vorschläge, bevor du sie übernimmst.</div>
+    <div id="beleg-status"></div>
+    <div id="beleg-result" style="display:none;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- TAGESAUSGABE-MODAL -->
+<div class="overlay" id="expense-modal" onclick="if(event.target===this)closeExpenseModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Ausgabe erfassen</div>
+      <div id="exp-date-lbl" style="font-size:.8rem;color:var(--fog);"></div>
+    </div>
+    <div class="field">
+      <label>Kategorie</label>
+      <select id="exp-cat">
+        <option>🍽️ Essen &amp; Trinken</option>
+        <option>🎫 Eintritt</option>
+        <option>🛍️ Shopping</option>
+        <option>🚕 Taxi / Transport</option>
+        <option>🏖️ Aktivität</option>
+        <option>💆 Sonstiges</option>
+      </select>
+    </div>
+    <div class="field"><label>Bezeichnung</label><input id="exp-label" type="text" placeholder="z.B. Abendessen am Strand"></div>
+    <div class="field-row">
+      <div class="field"><label>Betrag</label><input id="exp-amount" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateExpPreview()"></div>
+      <div class="field"><label>Währung</label>
+        <select id="exp-currency" onchange="updateExpPreview()">
+          <option value="EUR">🇪🇺 EUR</option>
+          <option value="USD">🇺🇸 USD</option>
+          <option value="GBP">🇬🇧 GBP</option>
+          <option value="CHF">🇨🇭 CHF</option>
+          <option value="JPY">🇯🇵 JPY</option>
+          <option value="AUD">🇦🇺 AUD</option>
+        </select>
+      </div>
+    </div>
+    <div class="preview-line" id="exp-preview"></div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeExpenseModal()">Abbrechen</button>
+      <button class="save" onclick="saveExpense()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="if(event.target===this)closeLightbox()">
+  <div class="lb-top">
+    <span class="lb-counter" id="lb-counter"></span>
+    <button class="lb-close" onclick="closeLightbox()">✕</button>
+  </div>
+  <button class="lb-arrow prev" onclick="lbNav(-1)">‹</button>
+  <img id="lb-img" src="" alt="Foto">
+  <button class="lb-arrow next" onclick="lbNav(1)">›</button>
+  <div id="lb-caption" style="position:absolute;bottom:24px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:.85rem;padding:0 24px;"></div>
+</div>
+
+<!-- BILDUNTERSCHRIFT-MODAL -->
+<div class="overlay" id="caption-modal" onclick="if(event.target===this)closeCaptionModal()">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-head">
+      <div class="modal-title">Bildunterschrift</div>
+      <button class="modal-close" onclick="closeCaptionModal()">✕</button>
+    </div>
+    <div class="field">
+      <label>Beschreibung des Fotos</label>
+      <input id="caption-input" type="text" placeholder="z.B. Sonnenaufgang am Strand…">
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeCaptionModal()">Abbrechen</button>
+      <button class="save" onclick="saveCaption()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── REISE-SCHLÜSSEL aus URL (?reise=xxx) ────────────────────────────────────
+function getReiseKey(){
+  var p=new URLSearchParams(window.location.search);
+  var k=(p.get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  return k; // '' = keine Reise angegeben
+}
+var REISE=getReiseKey();
+// Präfix für alle Supabase-Schlüssel dieser Reise.
+// Leerer Reise-Key → 'demo_' (Vorlage ohne Reise sollte nicht mit echten Daten kollidieren)
+var PFX=(REISE||'demo')+'_';
+
+// ── SUPABASE ────────────────────────────────────────────────────────────────
+const SUPABASE_URL='https://celihvrblqqivtlvzbjp.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+const CORRECT_PIN='2026';
+const PLAN_CATS=[
+  {key:'Unterkunft', emoji:'🏨', label:'Unterkünfte'},
+  {key:'Flug',       emoji:'✈️', label:'Flüge'},
+  {key:'Transport',  emoji:'🚗', label:'Transport'},
+  {key:'Ausflug',    emoji:'🎟️', label:'Ausflüge'},
+  {key:'Sonstiges',  emoji:'✨', label:'Sonstiges'}
+];
+let FX={EUR:1, USD:0.92, GBP:1.17, CHF:1.06, JPY:0.0061, AUD:0.61};
+function toEUR(a,c){return a*(FX[c]||1);}
+const CAT_EMOJI={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'✨'};
+// Eintrag-Kategorien (wie Australien)
+const ENTRY_CATS=[
+  {v:'Strand',label:'🏖️ Strand & Meer'},
+  {v:'Natur',label:'🌿 Natur & Wildlife'},
+  {v:'Stadt',label:'🏙️ Stadt'},
+  {v:'Kultur',label:'🏛️ Kultur & Sehenswürdigkeiten'},
+  {v:'Berge',label:'⛰️ Berge & Wandern'},
+  {v:'Insel',label:'🏝️ Insel'},
+  {v:'Ausflug',label:'🎟️ Ausflug / Tour'},
+  {v:'Essen',label:'🍽️ Kulinarik'},
+  {v:'Reise',label:'✈️ Anreise / Transfer'},
+  {v:'Sonstiges',label:'✨ Sonstiges'}
+];
+const ENTRY_CAT_EMOJI={Strand:'🏖️',Natur:'🌿',Stadt:'🏙️',Kultur:'🏛️',Berge:'⛰️',Insel:'🏝️',Ausflug:'🎟️',Essen:'🍽️',Reise:'✈️',Sonstiges:'✨'};
+
+let tripHead={title:'', sub:'', from:'', to:'', emoji:'🌍'};
+let costs=[];            // {id, cat, label, info, datum, amount, cur}
+let dayExpenses={};      // iso -> [{id,cat,label,amount,cur},...]
+let entries={};          // iso -> {id, titel, text}
+let photos={};           // iso -> [url,...] (undefined = noch nicht geladen)
+let photoMeta={};        // iso -> {order:[url,...], captions:{url:text}}
+let _expIso=null;        // aktueller Tag für Ausgabe
+let _capIso=null;        // aktueller Tag für Bildunterschrift
+let _capUrl=null;        // aktuelle Foto-URL für Bildunterschrift
+let hotelReviews={};     // iso -> {id, stars, text}
+let _revIso=null;        // aktueller Tag für Hotelbewertung
+let _apiKey='';          // Anthropic API-Key
+let _dictRec=null, _dictTimeout=null;  // Diktierfunktion
+let editMode=false;
+let pinBuffer='';
+let currentDay=0;
+let _editId=null;
+let _entryIso=null;      // aktuell bearbeiteter Eintrag
+let _lbPhotos=[];        // Lightbox-Fotos
+let _lbIdx=0;
+let _lbIso=null;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function isISODate(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'');}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
+function val(id){var e=document.getElementById(id);return e?e.value:'';}
+function setVal(id,v){var e=document.getElementById(id);if(e)e.value=v;}
+
+// ── SUPABASE: REISEKOPF ───────────────────────────────────────────────────────
+// Gespeichert als ort=PFX+'triphead', nachricht=JSON
+async function sbLoadHead(){
+  try{
+    const {data,error}=await sb.from('kommentare').select('*').eq('ort',PFX+'triphead').limit(1);
+    if(error||!data||!data.length)return;
+    const j=JSON.parse(data[0].nachricht||'{}');
+    tripHead=Object.assign(tripHead,j);
+  }catch(e){console.error('Head laden:',e);}
+}
+async function sbSaveHead(){
+  try{
+    const {data}=await sb.from('kommentare').select('id').eq('ort',PFX+'triphead').limit(1);
+    const payload=JSON.stringify(tripHead);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:PFX+'triphead',name:'Reisekopf',nachricht:payload,created_at:new Date().toISOString()});
+    }
+    return true;
+  }catch(e){toast('Fehler beim Speichern der Eckdaten.');return false;}
+}
+
+// ── SUPABASE: KOSTEN ──────────────────────────────────────────────────────────
+// ort=PFX+'kost_<uid>', name='cat|label', nachricht='amount|cur|datum|info'
+async function sbSaveCost(c){
+  const uid=PFX+'kost_'+Date.now()+Math.floor(Math.random()*1000);
+  const {data,error}=await sb.from('kommentare').insert({
+    ort:uid, name:c.cat+'|'+c.label, nachricht:c.amount+'|'+c.cur+'|'+(c.datum||'')+'|'+(c.info||''),
+    created_at:new Date().toISOString()
+  }).select();
+  if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
+  return data&&data[0]?data[0].id:null;
+}
+async function sbUpdateCost(c){
+  const {error}=await sb.from('kommentare').update({
+    name:c.cat+'|'+c.label, nachricht:c.amount+'|'+c.cur+'|'+(c.datum||'')+'|'+(c.info||'')
+  }).eq('id',c.id);
+  if(error){toast('Fehler beim Aktualisieren: '+(error.message||''));return false;}
+  return true;
+}
+async function sbDeleteCost(id){
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  return !error;
+}
+async function sbLoadCosts(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'kost_%').order('created_at',{ascending:true});
+  if(error){console.error('Kosten laden:',error);return;}
+  costs=(data||[]).map(function(r){
+    const np=(r.name||'').split('|');
+    const cat=np[0]||'Sonstiges';
+    const label=np.slice(1).join('|')||'Position';
+    const mp=(r.nachricht||'').split('|');
+    const amount=parseFloat(mp[0])||0;
+    const cur=mp[1]||'EUR';
+    let datum='',info='';
+    if(mp.length>=4){datum=isISODate(mp[2])?mp[2]:'';info=mp.slice(3).join('|');if(!datum&&mp[2])info=mp.slice(2).join('|');}
+    else if(mp.length===3){if(isISODate(mp[2]))datum=mp[2];else info=mp[2];}
+    return {id:r.id,cat:cat,label:label,info:info,datum:datum,amount:amount,cur:cur};
+  });
+}
+
+// ── SUPABASE: FOTOS (Storage-Bucket 'Reisefotos', Pfad <reise>/<datum>/) ──────
+function photoFolder(iso){return REISE+'/'+iso;}
+async function sbLoadPhotos(iso){
+  const {data,error}=await sb.storage.from('Reisefotos').list(photoFolder(iso),{limit:100});
+  if(error||!data)return[];
+  return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl(photoFolder(iso)+'/'+f.name);
+    return u.publicUrl;
+  });
+}
+async function sbUploadPhoto(iso,file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path=photoFolder(iso)+'/'+Date.now()+'_'+Math.floor(Math.random()*10000)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg'});
+  if(error){console.error('Upload:',error);return null;}
+  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+  return data&&data.publicUrl?data.publicUrl:null;
+}
+async function sbDeletePhoto(url){
+  const path=url.split('/Reisefotos/')[1];
+  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
+
+// ── FOTO-META: Reihenfolge + Bildunterschriften (pro Tag, in Supabase) ────────
+// ort=PFX+'photometa_<iso>', nachricht=JSON {order:[...], captions:{url:text}}
+async function sbLoadPhotoMeta(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'photometa_%');
+  if(error){console.error('PhotoMeta laden:',error);return;}
+  photoMeta={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'photometa_').length);
+    try{photoMeta[iso]=JSON.parse(r.nachricht||'{}');}catch(e){photoMeta[iso]={};}
+    if(!photoMeta[iso].order)photoMeta[iso].order=[];
+    if(!photoMeta[iso].captions)photoMeta[iso].captions={};
+  });
+}
+async function sbSavePhotoMeta(iso){
+  const key=PFX+'photometa_'+iso;
+  const payload=JSON.stringify(photoMeta[iso]||{order:[],captions:{}});
+  try{
+    const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:payload}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:key,name:'PhotoMeta',nachricht:payload,created_at:new Date().toISOString()});
+    }
+  }catch(e){console.error('PhotoMeta speichern:',e);}
+}
+// Fotos in gespeicherter Reihenfolge zurückgeben (neue ans Ende)
+function orderedPhotos(iso,loaded){
+  const meta=photoMeta[iso];
+  if(!meta||!meta.order||!meta.order.length)return loaded;
+  const inOrder=meta.order.filter(u=>loaded.includes(u));
+  const newOnes=loaded.filter(u=>!inOrder.includes(u));
+  return inOrder.concat(newOnes);
+}
+function captionFor(iso,url){
+  const meta=photoMeta[iso];
+  return (meta&&meta.captions&&meta.captions[url])||'';
+}
+
+// ── SUPABASE: TAGEBUCHEINTRÄGE (ein Eintrag pro Tag) ──────────────────────────
+// ort=PFX+'entry_<datum>', name=titel, nachricht=text
+async function sbLoadEntries(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'entry_%');
+  if(error){console.error('Einträge laden:',error);return;}
+  entries={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'entry_').length);
+    const parts=(r.name||'').split('|');
+    entries[iso]={id:r.id,titel:parts[0]||'',kat:parts[1]||'Sonstiges',ort:parts[2]||'',text:r.nachricht||''};
+  });
+}
+async function sbSaveEntry(iso,titel,kat,ort,text){
+  const key=PFX+'entry_'+iso;
+  const nameField=titel+'|'+kat+'|'+ort;
+  const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+  if(data&&data.length){
+    const {error}=await sb.from('kommentare').update({name:nameField,nachricht:text}).eq('id',data[0].id);
+    if(error){toast('Fehler beim Speichern.');return false;}
+    entries[iso]={id:data[0].id,titel:titel,kat:kat,ort:ort,text:text};
+  }else{
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:nameField,nachricht:text,created_at:new Date().toISOString()}).select();
+    if(error){toast('Fehler beim Speichern.');return false;}
+    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,kat:kat,ort:ort,text:text};
+  }
+  return true;
+}
+async function sbDeleteEntry(iso){
+  const e=entries[iso];if(!e||!e.id)return;
+  await sb.from('kommentare').delete().eq('id',e.id);
+  delete entries[iso];
+}
+
+// ── SUPABASE: HOTELBEWERTUNGEN (pro Tag) ──────────────────────────────────────
+// ort=PFX+'review_<iso>', name=stars, nachricht=text
+async function sbLoadReviews(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'review_%');
+  if(error){console.error('Bewertungen laden:',error);return;}
+  hotelReviews={};
+  (data||[]).forEach(function(r){
+    const iso=r.ort.substring((PFX+'review_').length);
+    hotelReviews[iso]={id:r.id,stars:parseInt(r.name)||0,text:r.nachricht||''};
+  });
+}
+async function sbSaveReview(iso,stars,text){
+  const key=PFX+'review_'+iso;
+  const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+  if(data&&data.length){
+    const {error}=await sb.from('kommentare').update({name:String(stars),nachricht:text}).eq('id',data[0].id);
+    if(error){toast('Fehler beim Speichern.');return false;}
+    hotelReviews[iso]={id:data[0].id,stars:stars,text:text};
+  }else{
+    const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:String(stars),nachricht:text,created_at:new Date().toISOString()}).select();
+    if(error){toast('Fehler beim Speichern.');return false;}
+    hotelReviews[iso]={id:ins&&ins[0]?ins[0].id:null,stars:stars,text:text};
+  }
+  return true;
+}
+async function sbDeleteReview(iso){
+  const r=hotelReviews[iso];if(!r||!r.id)return;
+  await sb.from('kommentare').delete().eq('id',r.id);
+  delete hotelReviews[iso];
+}
+
+// ── SUPABASE: WECHSELKURSE (pro Reise) ────────────────────────────────────────
+async function sbLoadFX(){
+  try{
+    const {data,error}=await sb.from('kommentare').select('*').eq('ort',PFX+'fx').limit(1);
+    if(error||!data||!data.length)return;
+    FX=Object.assign(FX,JSON.parse(data[0].nachricht||'{}'));
+  }catch(e){console.error('FX laden:',e);}
+}
+async function sbSaveFX(){
+  try{
+    const {data}=await sb.from('kommentare').select('id').eq('ort',PFX+'fx').limit(1);
+    if(data&&data.length){
+      await sb.from('kommentare').update({nachricht:JSON.stringify(FX)}).eq('id',data[0].id);
+    }else{
+      await sb.from('kommentare').insert({ort:PFX+'fx',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString()});
+    }
+    return true;
+  }catch(e){toast('Fehler beim Speichern der Kurse.');return false;}
+}
+
+// ── SUPABASE: TAGESAUSGABEN VOR ORT (pro Reise) ───────────────────────────────
+// ort=PFX+'ausgabe_<iso>_<uid>', name='cat|label', nachricht='amount|cur'
+async function sbSaveExpense(iso,cat,label,amount,cur){
+  const uid=PFX+'ausgabe_'+iso+'_'+Date.now()+Math.floor(Math.random()*1000);
+  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString()}).select();
+  if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
+  return data&&data[0]?data[0].id:null;
+}
+async function sbLoadExpenses(){
+  const {data,error}=await sb.from('kommentare').select('*').like('ort',PFX+'ausgabe_%').order('created_at',{ascending:true});
+  if(error){console.error('Ausgaben laden:',error);return;}
+  dayExpenses={};
+  (data||[]).forEach(function(r){
+    const rest=r.ort.substring((PFX+'ausgabe_').length);
+    const m=rest.match(/^(\d{4}-\d{2}-\d{2})/);
+    const iso=m?m[1]:rest;
+    const parts=(r.name||'').split('|');
+    const cat=parts[0]||'💶';
+    const label=parts.slice(1).join('|')||'Ausgabe';
+    const np=(r.nachricht||'').split('|');
+    const amount=parseFloat(np[0])||0;
+    const cur=np[1]||'EUR';
+    if(!dayExpenses[iso])dayExpenses[iso]=[];
+    dayExpenses[iso].push({id:r.id,cat:cat,label:label,amount:amount,cur:cur});
+  });
+}
+async function sbDeleteExpense(id){
+  const {error}=await sb.from('kommentare').delete().eq('id',id);
+  return !error;
+}
+
+// ── REISEKOPF UI ──────────────────────────────────────────────────────────────
+function renderHead(){
+  document.getElementById('hero-title').innerHTML = tripHead.title
+    ? (tripHead.emoji?tripHead.emoji+' ':'')+esc(tripHead.title)
+    : 'Deine <em>Reise</em>';
+  document.getElementById('hero-eyebrow').textContent = tripHead.sub || 'Reisetagebuch';
+  // Datum
+  let dateStr='';
+  if(tripHead.from){
+    const f=new Date(tripHead.from+'T12:00:00');
+    if(tripHead.to){
+      const t=new Date(tripHead.to+'T12:00:00');
+      dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+t.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    }else{
+      dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    }
+  }
+  document.getElementById('hero-dates').textContent=dateStr;
+  // Sub-Hinweis ausblenden sobald Titel da ist
+  document.getElementById('hero-sub').style.display = tripHead.title ? 'none' : 'block';
+  // Stats
+  const days=buildDays();
+  const stations=new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label)).size;
+  const total=costs.reduce((s,c)=>s+toEUR(c.amount,c.cur),0);
+  let stats='';
+  if(days.length){stats+=`<div class="hero-stat"><span class="num">${days.length}</span><span class="lbl">Tage</span></div>`;}
+  if(stations){stats+=`<div class="hero-stat"><span class="num">${stations}</span><span class="lbl">Unterkünfte</span></div>`;}
+  if(costs.length){stats+=`<div class="hero-stat"><span class="num">${costs.length}</span><span class="lbl">Positionen</span></div>`;}
+  document.getElementById('hero-stats').innerHTML=stats;
+  document.getElementById('hero-edit-wrap').style.display=editMode?'block':'none';
+}
+function openTripHead(){
+  setVal('h-title',tripHead.title);setVal('h-sub',tripHead.sub);
+  setVal('h-from',tripHead.from);setVal('h-to',tripHead.to);setVal('h-emoji',tripHead.emoji==='🌍'?'':tripHead.emoji);
+  document.getElementById('head-modal').classList.add('open');
+}
+function closeTripHead(){document.getElementById('head-modal').classList.remove('open');}
+async function saveTripHead(){
+  const title=val('h-title').trim();
+  if(!title){toast('Bitte einen Titel eingeben.');return;}
+  const from=val('h-from'),to=val('h-to');
+  if(from&&to&&to<from){toast('„Bis" liegt vor „Von".');return;}
+  tripHead={title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'};
+  await sbSaveHead();
+  closeTripHead();
+  renderHead();buildDaySlides();
+  toast('Eckdaten gespeichert!');
+}
+
+// ── TAGE: aus Reisezeitraum ODER aus datierten Kosten ─────────────────────────
+function buildDays(){
+  // Primär: Reisezeitraum aus tripHead. Fallback: min/max der datierten Kosten.
+  let from=tripHead.from, to=tripHead.to;
+  const dated=costs.filter(c=>c.datum).map(c=>c.datum).sort();
+  if(!from && dated.length) from=dated[0];
+  if(!to && dated.length) to=dated[dated.length-1];
+  if(!from) return [];
+  if(!to) to=from;
+  const days=[];
+  const start=new Date(from+'T12:00:00'), end=new Date(to+'T12:00:00');
+  if(end<start) return [];
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    days.push(d.toISOString().split('T')[0]);
+  }
+  return days;
+}
+
+function renderTage(){
+  const days=buildDays();
+  const c=document.getElementById('tage-content');
+  if(!days.length){
+    c.innerHTML='<div class="empty"><div class="big">🗺️</div><div class="lbl">Noch kein Tagesplan</div>'
+      +'<div class="sub">Lege im Admin-Modus die Reise-Eckdaten an oder erfasse Kosten mit einem Datum — daraus entsteht hier automatisch der Tagesplan.</div>'
+      +(editMode?'<button class="btn btn-primary btn-sm" onclick="openTripHead()">✏️ Eckdaten anlegen</button>':'')+'</div>';
+    return;
+  }
+  if(currentDay>=days.length)currentDay=days.length-1;
+  if(currentDay<0)currentDay=0;
+  c.innerHTML=
+    '<div class="days-nav">'
+    +'<button class="nav-arrow" id="btn-prev" onclick="slideDay(-1)">←</button>'
+    +'<div class="days-nav-title" id="day-nav-title"></div>'
+    +'<button class="nav-arrow" id="btn-next" onclick="slideDay(1)">→</button>'
+    +'</div>'
+    +'<div class="days-dots" id="days-dots"></div>'
+    +'<div id="day-card-wrap"></div>';
+  // dots
+  let dots='';
+  days.forEach(function(iso,i){dots+=`<div class="day-dot${i===currentDay?' active':''}" onclick="goToDay(${i})"></div>`;});
+  document.getElementById('days-dots').innerHTML=dots;
+  renderDayCard(days);
+}
+function renderDayCard(days){
+  const iso=days[currentDay];
+  const d=new Date(iso+'T12:00:00');
+  const dateLabel=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  // Programmpunkte = datierte Kosten dieses Tages
+  const dayCosts=costs.filter(c=>c.datum===iso);
+  const stay=stayForDay(iso);
+  const loc=stay?stay.label:(dayCosts.length?'Programm':'–');
+  const badges=dayCosts.map(c=>`<span class="program-badge badge-${c.cat}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
+  document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
+  document.getElementById('btn-prev').disabled=currentDay===0;
+  document.getElementById('btn-next').disabled=currentDay===days.length-1;
+
+  // ── Fotos ──
+  let photoHTML='';
+  if(photos[iso]===undefined){
+    photoHTML='<div style="font-size:.78rem;color:var(--fog);padding:4px 0">⏳ Fotos werden geladen…</div>';
+    // asynchron laden, in gespeicherte Reihenfolge bringen, danach neu rendern
+    sbLoadPhotos(iso).then(function(list){photos[iso]=orderedPhotos(iso,list);if(buildDays()[currentDay]===iso)renderDayCard(days);}).catch(function(){photos[iso]=[];});
+  }else{
+    const arr=photos[iso]||[];
+    let cells=arr.map(function(url,pi){
+      const cap=captionFor(iso,url);
+      let html='<div class="photo-cell">'
+        +'<img src="'+url+'" onclick="openLightbox(\''+iso+'\','+pi+')" alt="Foto">';
+      if(editMode){
+        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
+        if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
+        if(pi<arr.length-1)html+='<button class="photo-move photo-move-r" onclick="movePhoto(\''+iso+'\','+pi+',1)">▶</button>';
+        html+='<button class="photo-cap-btn" onclick="openCaption(\''+iso+'\','+pi+')">✏️</button>';
+      }
+      if(cap)html+='<div class="photo-cap">'+esc(cap)+'</div>';
+      html+='</div>';
+      return html;
+    }).join('');
+    const addCell=editMode
+      ?'<label class="photo-add"><span style="font-size:1.4rem">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,\''+iso+'\')"></label>'
+      :'';
+    if(arr.length||editMode){
+      photoHTML='<div class="photo-grid">'+cells+addCell+'</div>';
+    }
+  }
+
+  // ── Tagebucheintrag ──
+  const entry=entries[iso];
+  let entryHTML;
+  if(entry&&entry.text){
+    const emoji=ENTRY_CAT_EMOJI[entry.kat]||'';
+    const titelLine=entry.titel?'<div class="entry-titel">'+(emoji?emoji+' ':'')+esc(entry.titel)+'</div>':(emoji?'<div class="entry-titel">'+emoji+'</div>':'');
+    entryHTML=titelLine+'<div class="day-entry-text">'+esc(entry.text)+'</div>'
+      +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18)" onclick="openEntry(\''+iso+'\')">✏️ Bearbeiten</button>':'');
+  }else{
+    entryHTML='<div class="day-entry-empty">Noch kein Tagebucheintrag für diesen Tag.</div>'
+      +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
+  }
+
+  // ── Hotel-Banner (Tageskopf) + Bewertung ──
+  let bannerHTML='', revHTML='';
+  if(stay){
+    const hotelName=stay.label.split('·')[0].trim();
+    const pi=parseInfo(stay.info);
+    const nights=nightsBetween(stay.datum,pi.bis);
+    // Welche Nacht sind wir? (0-basiert ab Anreisetag)
+    let nightInfo='';
+    if(nights>0){
+      const idx=Math.round((new Date(iso+'T12:00:00')-new Date(stay.datum+'T12:00:00'))/86400000);
+      nightInfo=(idx>0)?`Nacht ${idx+1} von ${nights}`:`${nights} ${nights===1?'Nacht':'Nächte'}`;
+    }
+    const nightsBadge=nightInfo?`<div class="hotel-banner-nights">${nightInfo}</div>`:'';
+    const bannerBg=stayColor(stay.datum);
+    bannerHTML='<div class="hotel-banner" style="background:'+bannerBg+'">'
+      +'<div class="hotel-banner-emoji-bg">🏨</div>'
+      +'<div class="hotel-banner-name">'+esc(hotelName)+'</div>'
+      +(pi.text?'<div class="hotel-banner-loc">'+esc(pi.text.split('·')[0].trim())+'</div>':'')
+      +nightsBadge
+      +'</div>';
+    // Bewertung hängt am Anreisetag der Unterkunft
+    const revIso=stay.datum;
+    const rev=hotelReviews[revIso];
+    const stars=rev?rev.stars:0;
+    let starStr='';
+    for(let s=1;s<=5;s++)starStr+='<span style="color:'+(s<=stars?'#e0b34f':'#d8cfc2')+';font-size:1.3rem">★</span>';
+    if(rev&&(rev.text||rev.stars)){
+      revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
+        +(rev.text?'<div class="hotel-review-text">'+esc(rev.text)+'</div>':'')
+        +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:6px" onclick="openReview(\''+revIso+'\')">✏️ Bearbeiten</button>':'')
+        +'</div>';
+    }else if(editMode){
+      revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
+        +'<div class="hotel-review-empty">Noch keine Bewertung.</div>'
+        +'<button class="btn btn-primary btn-sm" onclick="openReview(\''+revIso+'\')">⭐ Hotel bewerten</button></div>';
+    }
+  }
+
+  // ── Tagesausgaben vor Ort ──
+  const exps=dayExpenses[iso]||[];
+  let expHTML='';
+  if(exps.length||editMode){
+    let rows=exps.map(function(e,ei){
+      const amtStr=(e.cur!=='EUR')?`${fmt(e.amount)} ${e.cur}`:`EUR ${fmt(e.amount)}`;
+      const del=editMode?`<button class="exp-del" onclick="delExpense('${iso}',${ei})">✕</button>`:'';
+      return `<div class="exp-row"><span>${e.cat} ${esc(e.label)}</span><span style="display:flex;align-items:center;gap:6px"><span>${amtStr}</span>${del}</span></div>`;
+    }).join('');
+    const dayT=exps.reduce((s,e)=>s+toEUR(e.amount,e.cur),0);
+    const totalRow=exps.length?`<div class="exp-total"><span>Summe</span><span>EUR ${fmt(dayT)}</span></div>`:'';
+    const addBtn=editMode?`<button class="exp-add" onclick="addDayExpense('${iso}')">+ Ausgabe erfassen</button>`:'';
+    expHTML=`<div class="day-exp-section"><div class="day-exp-title">💶 Ausgaben vor Ort</div>${rows}${totalRow}${addBtn}</div>`;
+  }
+
+  document.getElementById('day-card-wrap').innerHTML=
+    '<div class="day-card">'
+    +bannerHTML
+    +revHTML
+    +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
+    +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
+    +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
+    +(badges?`<div class="day-program">${badges}</div>`:'')
+    +'</div>';
+}
+function stayColor(iso){
+  // Stabile Farbe je Tag aus einer kleinen Palette
+  const pal=['linear-gradient(140deg,#4a6534,#2a3d1a)','linear-gradient(140deg,#1a6b8a,#0d3a52)','linear-gradient(140deg,#0d6e63,#0a3d4a)','linear-gradient(140deg,#b4651f,#7a3d10)','linear-gradient(140deg,#6b3a8a,#3d1a52)'];
+  let h=0;for(let i=0;i<iso.length;i++)h=(h*31+iso.charCodeAt(i))&0xffff;
+  return pal[h%pal.length];
+}
+function slideDay(dir){const days=buildDays();const n=currentDay+dir;if(n<0||n>=days.length)return;currentDay=n;renderTage();}
+function goToDay(i){currentDay=i;renderTage();}
+
+// ── FOTOS UI ──────────────────────────────────────────────────────────────────
+async function handlePhotos(event,iso){
+  if(!editMode)return;
+  const files=Array.from(event.target.files);if(!files.length)return;
+  if(!Array.isArray(photos[iso]))photos[iso]=[];
+  toast('Lade '+files.length+' Foto(s) hoch…');
+  let ok=0;
+  for(const f of files){
+    const url=await sbUploadPhoto(iso,f);
+    if(url){photos[iso].push(url);ok++;}
+  }
+  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
+  photoMeta[iso].order=photos[iso].slice();
+  await sbSavePhotoMeta(iso);
+  renderTage();
+  toast(ok+' Foto(s) gespeichert!');
+}
+async function delPhoto(iso,idx){
+  if(!editMode)return;
+  if(!confirm('Foto löschen?'))return;
+  const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
+  await sbDeletePhoto(url);
+  arr.splice(idx,1);
+  // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
+  if(photoMeta[iso]){
+    if(photoMeta[iso].order)photoMeta[iso].order=arr.slice();
+    if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
+    await sbSavePhotoMeta(iso);
+  }
+  renderTage();toast('Foto gelöscht.');
+}
+async function movePhoto(iso,idx,dir){
+  if(!editMode)return;
+  const arr=photos[iso]||[];const ni=idx+dir;
+  if(ni<0||ni>=arr.length)return;
+  const tmp=arr[idx];arr[idx]=arr[ni];arr[ni]=tmp;
+  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
+  photoMeta[iso].order=arr.slice();
+  await sbSavePhotoMeta(iso);
+  renderTage();
+}
+function openCaption(iso,idx){
+  if(!editMode)return;
+  const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
+  _capIso=iso;_capUrl=url;
+  setVal('caption-input',captionFor(iso,url));
+  document.getElementById('caption-modal').classList.add('open');
+  setTimeout(function(){document.getElementById('caption-input').focus();},200);
+}
+async function saveCaption(){
+  if(!_capIso||!_capUrl)return;
+  const v=val('caption-input').trim();
+  if(!photoMeta[_capIso])photoMeta[_capIso]={order:[],captions:{}};
+  if(!photoMeta[_capIso].captions)photoMeta[_capIso].captions={};
+  if(v)photoMeta[_capIso].captions[_capUrl]=v;else delete photoMeta[_capIso].captions[_capUrl];
+  await sbSavePhotoMeta(_capIso);
+  document.getElementById('caption-modal').classList.remove('open');
+  // Falls Lightbox offen: Caption dort aktualisieren
+  const lbCap=document.getElementById('lb-caption');if(lbCap)lbCap.textContent=v;
+  renderTage();toast('Bildunterschrift gespeichert!');
+}
+function closeCaptionModal(){document.getElementById('caption-modal').classList.remove('open');}
+
+// ── HOTELBEWERTUNG UI ─────────────────────────────────────────────────────────
+let _revStars=0;
+function openReview(iso){
+  if(!editMode)return;
+  _revIso=iso;
+  const rev=hotelReviews[iso]||{stars:0,text:''};
+  _revStars=rev.stars||0;
+  const stay=costs.filter(c=>c.cat==='Unterkunft'&&c.datum===iso)[0];
+  document.getElementById('rev-hotel-name').textContent=stay?stay.label.split('·')[0].trim():'Unterkunft';
+  setVal('rev-text',rev.text||'');
+  renderStarPicker();
+  document.getElementById('rev-modal').classList.add('open');
+}
+function renderStarPicker(){
+  let html='';
+  for(let s=1;s<=5;s++)html+='<span class="star-pick'+(s<=_revStars?' on':'')+'" onclick="setStars('+s+')">★</span>';
+  document.getElementById('rev-stars').innerHTML=html;
+}
+function setStars(s){_revStars=s;renderStarPicker();}
+async function saveReview(){
+  if(!_revIso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  const text=val('rev-text').trim();
+  const ok=await sbSaveReview(_revIso,_revStars,text);
+  if(!ok)return;
+  document.getElementById('rev-modal').classList.remove('open');
+  renderTage();toast('Bewertung gespeichert!');
+}
+async function deleteReview(){
+  if(!_revIso)return;
+  if(!confirm('Bewertung wirklich löschen?'))return;
+  await sbDeleteReview(_revIso);
+  document.getElementById('rev-modal').classList.remove('open');
+  renderTage();toast('Bewertung gelöscht.');
+}
+function closeReviewModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('rev-modal').classList.remove('open');}
+
+// ── DIKTIERFUNKTION (robust: interimResults) ──────────────────────────────────
+function startDictationFor(textareaId,btnId){
+  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
+  const btn=document.getElementById(btnId);
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';toast('Diktat beendet.');return;}
+  const ta=document.getElementById(textareaId);if(!ta){return;}
+  let baseText=ta.value?(ta.value.trim()+' '):'';
+  _dictRec=new SpeechRec();
+  _dictRec.lang='de-DE';_dictRec.continuous=true;_dictRec.interimResults=true;
+  _dictRec.onstart=function(){if(btn)btn.textContent='⏹ Stopp';toast('🎤 Mikrofon aktiv – jetzt sprechen…');};
+  _dictRec.onresult=function(e){
+    let finalT='',interimT='';
+    for(let i=0;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=t+' ';else interimT+=t;}
+    ta.value=(baseText+finalT+interimT).trim();
+  };
+  _dictRec.onerror=function(e){
+    if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('Mikrofonzugriff verweigert. Bitte erlauben.');
+    else if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
+  };
+  _dictRec.onend=function(){_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';};
+  try{
+    _dictRec.start();
+    if(_dictTimeout)clearTimeout(_dictTimeout);
+    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
+  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
+}
+function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn');}
+function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
+
+// ── API-KEY ───────────────────────────────────────────────────────────────────
+function loadApiKey(){
+  try{
+    // Zuerst globalen Key, dann (Fallback) alten reise-spezifischen Key
+    var enc=localStorage.getItem('_mk_global')||localStorage.getItem('_mk_'+REISE);
+    return enc?atob(enc):'';
+  }catch(e){return'';}
+}
+function saveApiKey(){
+  var k=document.getElementById('apikey-input').value.trim();
+  if(!k||k.length<20){toast('Bitte gültigen Key eingeben.');return;}
+  _apiKey=k;
+  try{localStorage.setItem('_mk_global',btoa(k));}catch(e){}
+  document.getElementById('apikey-overlay').classList.remove('open');
+  document.getElementById('apikey-input').value='';
+  toast('API-Key gespeichert!');
+}
+function openApiKey(){
+  if(!_apiKey)_apiKey=loadApiKey();
+  var hint=document.getElementById('apikey-hint');
+  if(hint){
+    if(_apiKey){hint.textContent='✓ Ein Key ist gespeichert. Nur eingeben, um ihn zu ersetzen.';hint.style.color='var(--reef)';}
+    else{hint.textContent='Noch kein Key gespeichert.';hint.style.color='var(--fog)';}
+  }
+  document.getElementById('apikey-overlay').classList.add('open');
+}
+function closeApiKey(){document.getElementById('apikey-overlay').classList.remove('open');}
+function ensureApiKey(){
+  if(!_apiKey)_apiKey=loadApiKey();
+  if(!_apiKey){openApiKey();return false;}
+  return true;
+}
+
+// ── KI: Eintrag aus Stichpunkten / Text verschönern ───────────────────────────
+async function aiCall(prompt,maxTokens){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1000,messages:[{role:'user',content:prompt}]})
+  });
+  const d=await r.json();
+  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  return d.content?d.content.map(c=>c.text||'').join(''):'';
+}
+async function aiWriteEntry(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const notes=val('entry-notes').trim();
+  if(!notes){toast('Bitte erst Stichpunkte eingeben.');return;}
+  const ort=val('entry-ort').trim()||(tripHead.sub||tripHead.title||'unsere Reise');
+  const titel=val('entry-titel').trim();
+  const kat=val('entry-kat');
+  const btn=document.getElementById('entry-ai-btn');const orig=btn.textContent;btn.textContent='✨ KI schreibt…';btn.disabled=true;
+  const prompt='Du bist ein enthusiastischer Reiseblogger. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 120–180 Wörter). Wir-Form. Stil: warm, bildhaft, authentisch.\n\nOrt: '+ort+' | Kategorie: '+kat+(titel?' | Titel: '+titel:'')+'\nStichpunkte:\n'+notes+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
+  try{const out=await aiCall(prompt,1000);if(out)setVal('entry-text',out);toast('✓ Eintrag formuliert!');}
+  catch(e){toast('Fehler: '+e.message);}
+  btn.textContent=orig;btn.disabled=false;
+}
+async function aiPolishReview(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const raw=val('rev-text').trim();
+  if(!raw){toast('Bitte erst Text eingeben.');return;}
+  const hotel=document.getElementById('rev-hotel-name').textContent;
+  const btn=document.getElementById('rev-ai-btn');const orig=btn.textContent;btn.textContent='✨…';btn.disabled=true;
+  const prompt='Verbessere diesen Hotelbewertungstext. Flüssiger und lebendiger. Inhalt beibehalten. Keine persönlichen Anreden. Nur den Text.\n\nHotel: '+hotel+'\nText: '+raw;
+  try{const out=await aiCall(prompt,400);if(out)setVal('rev-text',out);toast('✓ Text verbessert!');}
+  catch(e){toast('Fehler: '+e.message);}
+  btn.textContent=orig;btn.disabled=false;
+}
+
+// ── BELEG-UPLOAD & KI-AUSLESUNG ───────────────────────────────────────────────
+let _belegVorschlag=null;
+// Bild bei Bedarf verkleinern/komprimieren, damit es unter dem API-Limit bleibt
+function shrinkImage(file){
+  return new Promise(function(resolve){
+    // PDFs und kleine Bilder unverändert lassen
+    if(file.type==='application/pdf'){resolve(file);return;}
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth,h=img.naturalHeight;
+      const maxDim=2000; // längste Kante max. 2000px
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(function(blob){
+        if(!blob){resolve(file);return;}
+        resolve(new File([blob],'beleg.jpg',{type:'image/jpeg'}));
+      },'image/jpeg',0.85);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
+// API-Call mit Datei (Bild oder PDF) + Text
+async function aiCallWithFile(promptText,file,maxTokens){
+  file=await shrinkImage(file);
+  const base64=await new Promise(function(res,rej){
+    const r=new FileReader();
+    r.onload=function(){res(r.result.split(',')[1]);};
+    r.onerror=function(){rej(new Error('Datei konnte nicht gelesen werden.'));};
+    r.readAsDataURL(file);
+  });
+  // Base64 ist ~33% größer als die Bytes; API-Limit 10 MB (≈14 MB Base64)
+  if(base64.length>13800000){
+    if(file.type==='application/pdf')throw new Error('Das PDF ist zu groß (max. 10 MB). Bitte ein kleineres PDF oder einen Screenshot der wichtigsten Seite verwenden.');
+    throw new Error('Das Bild ist auch nach Komprimierung zu groß. Bitte einen kleineren Ausschnitt verwenden.');
+  }
+  let fileBlock;
+  if(file.type==='application/pdf'){
+    fileBlock={type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}};
+  }else{
+    let mt=file.type||'image/jpeg';
+    if(!/^image\//.test(mt))mt='image/jpeg';
+    fileBlock={type:'image',source:{type:'base64',media_type:mt,data:base64}};
+  }
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1500,messages:[{role:'user',content:[fileBlock,{type:'text',text:promptText}]}]})
+  });
+  const d=await r.json();
+  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  return d.content?d.content.map(c=>c.text||'').join(''):'';
+}
+function openBeleg(){
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  _belegVorschlag=null;
+  document.getElementById('beleg-status').innerHTML='';
+  document.getElementById('beleg-result').style.display='none';
+  document.getElementById('beleg-file').value='';
+  document.getElementById('beleg-modal').classList.add('open');
+}
+function closeBelegModal(){document.getElementById('beleg-modal').classList.remove('open');}
+async function handleBelegFile(ev){
+  const file=ev.target.files[0];if(!file)return;
+  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  const status=document.getElementById('beleg-status');
+  status.innerHTML='<div style="color:var(--fog);font-size:.85rem;padding:10px 0">⏳ Beleg wird ausgelesen… (kann 10–20 Sek. dauern)</div>';
+  document.getElementById('beleg-result').style.display='none';
+  // Reisezeitraum als Kontext für die Datums-Zuordnung
+  const ctx=(tripHead.from?'Reisezeitraum: '+tripHead.from+' bis '+(tripHead.to||tripHead.from)+'. ':'');
+  const catList='Unterkunft, Flug, Transport, Ausflug, Sonstiges';
+  const prompt=ctx+'Du bist ein Assistent, der Reisebelege ausliest. Analysiere den beigefügten Beleg (Rechnung, Buchungsbestätigung, Ticket, Screenshot o.ä.) und extrahiere die Daten. '
+    +'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Erklärung, keine Code-Fences) in genau diesem Format:\n'
+    +'{"kostenposition":{"kategorie":"eine von: '+catList+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","details":"z.B. Referenznr, Nächte","uhrzeit":"HH:MM oder leer","personen":"Anzahl oder leer"},"tageseintrag":{"erstellen":true oder false,"datum":"YYYY-MM-DD oder leer","titel":"kurzer Titel","text":"1-2 Sätze was an dem Tag passiert, aus Belegsicht"}}\n'
+    +'Regeln: Betrag als reine Zahl ohne Währungssymbol. Wenn ein Feld nicht erkennbar ist, leeren String bzw. 0 verwenden. "tageseintrag.erstellen" nur true, wenn der Beleg eine konkrete Aktivität/Erlebnis beschreibt (z.B. Ausflug, Restaurant, Tour) — bei reinen Rechnungen/Transfers false. Für Unterkunft-Buchungen die Kategorie "Unterkunft", für Flüge "Flug", für Mietwagen/Bahn/Bus/Fähre "Transport", für Touren/Aktivitäten "Ausflug".';
+  try{
+    const out=await aiCallWithFile(prompt,file,1500);
+    const json=parseBelegJSON(out);
+    if(!json){status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Konnte den Beleg nicht auslesen. Bitte manuell erfassen.</div>';return;}
+    _belegVorschlag=json;
+    status.innerHTML='';
+    showBelegVorschlag(json);
+  }catch(e){
+    status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Fehler: '+esc(e.message)+'</div>';
+  }
+}
+function parseBelegJSON(txt){
+  if(!txt)return null;
+  // Code-Fences entfernen, erstes {...} extrahieren
+  let t=txt.replace(/```json/gi,'').replace(/```/g,'').trim();
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a<0||b<0)return null;
+  try{return JSON.parse(t.substring(a,b+1));}catch(e){return null;}
+}
+function showBelegVorschlag(j){
+  const box=document.getElementById('beleg-result');
+  const k=j.kostenposition||{};
+  const t=j.tageseintrag||{};
+  // Kostenposition-Formular vorbefüllen
+  const catOpts=['Unterkunft','Flug','Transport','Ausflug','Sonstiges'].map(function(c){return '<option value="'+c+'"'+(k.kategorie===c?' selected':'')+'>'+(CAT_EMOJI[c]||'')+' '+c+'</option>';}).join('');
+  const curOpts=['EUR','USD','GBP','CHF','JPY','AUD'].map(function(c){return '<option value="'+c+'"'+((k.waehrung||'EUR')===c?' selected':'')+'>'+c+'</option>';}).join('');
+  let html='<div style="font-size:.8rem;color:var(--reef);font-weight:600;margin-bottom:10px">✓ Ausgelesen – bitte prüfen und anpassen:</div>';
+  html+='<div style="background:var(--paper);border-radius:10px;padding:12px;margin-bottom:12px">';
+  html+='<div style="font-size:.72rem;color:var(--fog);text-transform:uppercase;margin-bottom:8px">💰 Kostenposition</div>';
+  html+='<div class="field"><label>Kategorie</label><select id="bk-cat">'+catOpts+'</select></div>';
+  html+='<div class="field"><label>Bezeichnung</label><input id="bk-label" type="text" value="'+escAttr(k.label||'')+'"></div>';
+  html+='<div class="field-row"><div class="field"><label>Datum</label><input id="bk-datum" type="date" value="'+escAttr(k.datum||'')+'"></div><div class="field"><label>Betrag</label><input id="bk-amount" type="number" step="0.01" value="'+escAttr(k.betrag||'')+'"></div></div>';
+  html+='<div class="field-row"><div class="field"><label>Währung</label><select id="bk-cur">'+curOpts+'</select></div><div class="field"><label>Details</label><input id="bk-info" type="text" value="'+escAttr(k.details||'')+'"></div></div>';
+  html+='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;text-transform:none"><input type="checkbox" id="bk-use" checked style="width:auto"> Als Kostenposition anlegen</label>';
+  html+='</div>';
+  // Tageseintrag (optional)
+  if(t.erstellen&&(t.text||t.titel)){
+    html+='<div style="background:var(--paper);border-radius:10px;padding:12px;margin-bottom:12px">';
+    html+='<div style="font-size:.72rem;color:var(--fog);text-transform:uppercase;margin-bottom:8px">📅 Tag-für-Tag-Eintrag</div>';
+    html+='<div class="field"><label>Datum</label><input id="bt-datum" type="date" value="'+escAttr(t.datum||k.datum||'')+'"></div>';
+    html+='<div class="field"><label>Titel</label><input id="bt-titel" type="text" value="'+escAttr(t.titel||'')+'"></div>';
+    html+='<div class="field"><label>Text</label><textarea id="bt-text" style="min-height:70px">'+esc(t.text||'')+'</textarea></div>';
+    html+='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;text-transform:none"><input type="checkbox" id="bt-use" checked style="width:auto"> Als Tageseintrag anlegen</label>';
+    html+='</div>';
+  }
+  html+='<button class="save" style="width:100%" onclick="applyBeleg()">✓ Übernehmen</button>';
+  box.innerHTML=html;
+  box.style.display='block';
+}
+async function applyBeleg(){
+  let done=[];
+  // Kostenposition
+  if(document.getElementById('bk-use')&&document.getElementById('bk-use').checked){
+    const cat=val('bk-cat');
+    const label=val('bk-label').trim();
+    const datum=val('bk-datum')||'';
+    const amt=parseFloat((val('bk-amount')||'').replace(',','.'))||0;
+    const cur=val('bk-cur');
+    const info=val('bk-info').trim();
+    if(label&&amt>0){
+      const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
+      const id=await sbSaveCost(draft);
+      if(id!==null){costs.push(Object.assign({id:id},draft));done.push('Kostenposition');}
+    }
+  }
+  // Tageseintrag
+  if(document.getElementById('bt-use')&&document.getElementById('bt-use').checked){
+    const datum=val('bt-datum')||'';
+    const titel=val('bt-titel').trim();
+    const text=val('bt-text').trim();
+    if(datum&&text){
+      // vorhandenen Eintrag nicht überschreiben, sondern ergänzen
+      const existing=entries[datum];
+      const newText=existing&&existing.text?(existing.text+'\n\n'+text):text;
+      await sbSaveEntry(datum,titel||(existing?existing.titel:''),(existing?existing.kat:'Sonstiges')||'Sonstiges',(existing?existing.ort:'')||'',newText);
+      done.push('Tageseintrag');
+    }
+  }
+  closeBelegModal();
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();renderRoute();
+  toast(done.length?('✓ '+done.join(' & ')+' angelegt!'):'Nichts ausgewählt.');
+}
+function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function openLightbox(iso,idx){
+  _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
+  if(!_lbPhotos.length)return;
+  document.getElementById('lb-img').src=_lbPhotos[idx];
+  document.getElementById('lb-counter').textContent=(idx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[idx]);
+  document.getElementById('lightbox').classList.add('open');
+}
+function lbNav(dir){
+  if(!_lbPhotos.length)return;
+  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
+  document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
+  document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(_lbIso,_lbPhotos[_lbIdx]);
+}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+
+// ── TAGEBUCHEINTRAG UI ────────────────────────────────────────────────────────
+function openEntry(iso){
+  if(!editMode)return;
+  _entryIso=iso;
+  const e=entries[iso]||{titel:'',kat:'Sonstiges',ort:'',text:''};
+  const d=new Date(iso+'T12:00:00');
+  document.getElementById('entry-date-lbl').textContent=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  // Ort vorbelegen: aus Eintrag, sonst aus Unterkunft des Tages
+  let ort=e.ort||'';
+  if(!ort){const stay=costs.filter(c=>c.cat==='Unterkunft'&&c.datum===iso)[0];if(stay)ort=stay.label.split('·')[0].trim();}
+  setVal('entry-ort',ort);
+  setVal('entry-titel',e.titel||'');
+  // Kategorie-Dropdown füllen
+  const sel=document.getElementById('entry-kat');
+  sel.innerHTML=ENTRY_CATS.map(c=>'<option value="'+c.v+'">'+c.label+'</option>').join('');
+  sel.value=e.kat||'Sonstiges';
+  setVal('entry-notes','');
+  setVal('entry-text',e.text||'');
+  document.getElementById('entry-modal').classList.add('open');
+}
+async function saveEntry(){
+  const iso=_entryIso;if(!iso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  const titel=val('entry-titel').trim();
+  const kat=val('entry-kat');
+  const ort=val('entry-ort').trim();
+  const text=val('entry-text').trim();
+  if(!text){toast('Bitte einen finalen Text eingeben (oder per KI formulieren).');return;}
+  const ok=await sbSaveEntry(iso,titel,kat,ort,text);
+  if(!ok)return;
+  document.getElementById('entry-modal').classList.remove('open');
+  renderTage();toast('Eintrag gespeichert!');
+}
+async function deleteEntry(){
+  const iso=_entryIso;if(!iso)return;
+  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  if(!confirm('Eintrag wirklich löschen?'))return;
+  await sbDeleteEntry(iso);
+  document.getElementById('entry-modal').classList.remove('open');
+  renderTage();toast('Eintrag gelöscht.');
+}
+function closeEntryModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('entry-modal').classList.remove('open');}
+
+// ── TAGESAUSGABEN UI ──────────────────────────────────────────────────────────
+function addDayExpense(iso){
+  if(!editMode)return;
+  _expIso=iso;
+  const d=new Date(iso+'T12:00:00');
+  document.getElementById('exp-date-lbl').textContent=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+  setVal('exp-cat',document.getElementById('exp-cat').options[0].value);
+  setVal('exp-label','');setVal('exp-amount','');setVal('exp-currency','EUR');
+  document.getElementById('exp-preview').textContent='';
+  document.getElementById('expense-modal').classList.add('open');
+}
+function updateExpPreview(){
+  const amt=parseFloat((val('exp-amount')||'').replace(',','.'));
+  const cur=val('exp-currency');const pv=document.getElementById('exp-preview');
+  if(isNaN(amt)||amt<=0||cur==='EUR'){pv.textContent='';return;}
+  pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
+}
+async function saveExpense(){
+  const iso=_expIso;if(!iso)return;
+  const catText=val('exp-cat');
+  const label=val('exp-label').trim();
+  const amt=parseFloat((val('exp-amount')||'').replace(',','.'));
+  const cur=val('exp-currency');
+  if(!label){toast('Bitte Bezeichnung eingeben.');return;}
+  if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
+  const cat=catText.split(' ')[0];
+  const id=await sbSaveExpense(iso,cat,label,amt,cur);
+  if(id===null)return;
+  if(!dayExpenses[iso])dayExpenses[iso]=[];
+  dayExpenses[iso].push({id:id,cat:cat,label:label,amount:amt,cur:cur});
+  document.getElementById('expense-modal').classList.remove('open');
+  renderTage();renderCosts();toast('Ausgabe gespeichert!');
+}
+async function delExpense(iso,idx){
+  if(!editMode)return;
+  const list=dayExpenses[iso]||[];const e=list[idx];if(!e)return;
+  if(!confirm('Ausgabe löschen?'))return;
+  await sbDeleteExpense(e.id);
+  list.splice(idx,1);
+  if(!list.length)delete dayExpenses[iso];
+  renderTage();renderCosts();toast('Ausgabe gelöscht.');
+}
+function closeExpenseModal(){document.getElementById('expense-modal').classList.remove('open');}
+
+// ── WECHSELKURSE UI ───────────────────────────────────────────────────────────
+function renderFXSettings(){
+  const box=document.getElementById('fx-settings');
+  if(!box)return;
+  if(!editMode){box.innerHTML='';return;}
+  // Währungen, die in dieser Reise tatsächlich genutzt werden (außer EUR)
+  const used={};
+  costs.forEach(c=>{if(c.cur&&c.cur!=='EUR')used[c.cur]=true;});
+  Object.keys(dayExpenses).forEach(iso=>dayExpenses[iso].forEach(e=>{if(e.cur&&e.cur!=='EUR')used[e.cur]=true;}));
+  const curs=Object.keys(used);
+  if(!curs.length){box.innerHTML='<div style="font-size:.76rem;color:var(--fog);padding:8px 0">💱 Sobald du Fremdwährungen nutzt, kannst du hier die Wechselkurse anpassen.</div>';return;}
+  let html='<div class="fx-box"><div class="fx-title">💱 Wechselkurse (1 Einheit = € )</div>';
+  curs.forEach(cur=>{
+    html+=`<div class="fx-row"><span class="fx-cur">${cur}</span>`
+      +`<input type="number" step="0.0001" min="0" id="fx-input-${cur}" value="${FX[cur]||''}">`
+      +`<button class="fx-save" onclick="saveFxRate('${cur}')">✓</button></div>`;
+  });
+  html+='</div>';
+  box.innerHTML=html;
+}
+function saveFxRate(cur){
+  const inp=document.getElementById('fx-input-'+cur);if(!inp)return;
+  const v=parseFloat((inp.value||'').replace(',','.'));
+  if(isNaN(v)||v<=0){toast('Ungültiger Kurs.');return;}
+  FX[cur]=v;
+  sbSaveFX().then(()=>{renderCosts();renderTage();toast('Kurs gespeichert: 1 '+cur+' = '+v+' €');});
+}
+
+// ── KOSTEN UI ─────────────────────────────────────────────────────────────────
+function renderCosts(){
+  const pc=editMode?'':'price-blur';
+  const bb=document.getElementById('beleg-btn');if(bb)bb.style.display=editMode?'inline-flex':'none';
+  let total=0,html='';
+  PLAN_CATS.forEach(function(cat){
+    const items=costs.filter(c=>c.cat===cat.key);
+    if(!items.length && !editMode) return;
+    html+=`<div class="cost-section-title">${cat.emoji} ${cat.label}</div>`;
+    let sum=0;
+    items.forEach(function(c){
+      const eur=toEUR(c.amount,c.cur);sum+=eur;total+=eur;
+      const amtStr=(c.cur!=='EUR')?`${fmt(c.amount)} ${c.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
+      const dateChip=c.datum?`<div class="date-chip">📅 ${new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</div>`:'';
+      const btns=editMode?`<button class="cost-edit-btn" data-id="${c.id}" onclick="editCostEl(this)">✏️</button><button class="cost-del-btn" data-id="${c.id}" onclick="delCostEl(this)">✕</button>`:'';
+      html+=`<div class="cost-row"><div style="flex:1"><div>${esc(c.label)}</div>${infoDisplay(c)?`<div class="info">${esc(infoDisplay(c))}</div>`:''}${dateChip}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${btns}</div></div>`;
+    });
+    if(editMode)html+=`<button class="cost-add-btn" onclick="addCost('${cat.key}')">+ Position in ${cat.label} hinzufügen</button>`;
+    if(items.length)html+=`<div class="cost-group-total"><span>Summe ${cat.label}</span><span class="${pc}">EUR ${fmt(sum)}</span></div>`;
+  });
+  // ── Tagesausgaben vor Ort ──
+  let tag=0,tagHtml='';
+  Object.keys(dayExpenses).sort().forEach(function(iso){
+    const list=dayExpenses[iso];if(!list||!list.length)return;
+    const d=new Date(iso+'T12:00:00');
+    const dl=d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const dayT=list.reduce((s,e)=>s+toEUR(e.amount,e.cur),0);
+    tagHtml+=`<div class="cost-row" style="font-weight:600"><div>${dl}</div><div class="${pc}">EUR ${fmt(dayT)}</div></div>`;
+    list.forEach(function(e){const amtStr=(e.cur!=='EUR')?`${fmt(e.amount)} ${e.cur}`:`EUR ${fmt(e.amount)}`;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${esc(e.label)}</div><div class="${pc}">${amtStr}</div></div>`;tag+=toEUR(e.amount,e.cur);});
+  });
+  if(tag>0){
+    html+='<div class="cost-section-title">💶 Tagesausgaben vor Ort</div>'+tagHtml;
+    total+=tag;
+    html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
+  }
+  renderFXSettings();
+  if(!costs.length && !tag && !editMode){
+    html='<div class="empty"><div class="big">💰</div><div class="lbl">Noch keine Kosten erfasst</div><div class="sub">Aktiviere den Admin-Modus, um Positionen hinzuzufügen.</div></div>';
+    document.getElementById('cost-list').innerHTML=html;
+    document.getElementById('grand-total-box').innerHTML='';
+    return;
+  }
+  document.getElementById('cost-list').innerHTML=html;
+  document.getElementById('grand-total-box').innerHTML=`<div class="grand-total"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
+}
+function toggleAusflugFields(){
+  const cat=val('c-cat');
+  document.getElementById('c-ausflug-fields').style.display=(cat==='Ausflug')?'block':'none';
+  document.getElementById('c-bis-wrap').style.display=(cat==='Unterkunft')?'block':'none';
+}
+// Extras in info kodiert: "sichtbarerText‖time‖pax‖ref‖bis"
+function parseInfo(raw){
+  const p=String(raw||'').split('‖');
+  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||'', bis:p[4]||''};
+}
+function buildInfo(text,time,pax,ref,bis){
+  if(time||pax||ref||bis)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'')+'‖'+(bis||'');
+  return text||'';
+}
+// Nächte zwischen zwei ISO-Daten
+function nightsBetween(von,bis){
+  if(!von||!bis)return 0;
+  const a=new Date(von+'T12:00:00'),b=new Date(bis+'T12:00:00');
+  const n=Math.round((b-a)/86400000);
+  return n>0?n:0;
+}
+// Findet die Unterkunft, die an einem Tag gilt (von ≤ iso < bis; ohne bis: nur am von-Tag)
+function stayForDay(iso){
+  const stays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
+  // exakter Anreisetag hat Vorrang
+  let exact=stays.find(c=>c.datum===iso);
+  if(exact)return exact;
+  // sonst: Tag liegt im Zeitraum von..bis (Abreisetag zählt nicht mehr zum Hotel)
+  for(const c of stays){
+    const bis=parseInfo(c.info).bis;
+    if(bis && c.datum<iso && iso<bis)return c;
+  }
+  return null;
+}
+// Lesbare Info-Anzeige (sichtbarer Text + Ausflug-Extras als Chips-Text)
+function infoDisplay(c){
+  const pi=parseInfo(c.info);
+  let bits=[];
+  if(pi.text)bits.push(pi.text);
+  if(c.cat==='Unterkunft'&&pi.bis){
+    const n=nightsBetween(c.datum,pi.bis);
+    const bisStr=new Date(pi.bis+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+    bits.push('bis '+bisStr+(n>0?' · '+n+' '+(n===1?'Nacht':'Nächte'):''));
+  }
+  if(pi.time)bits.push('🕐 '+pi.time);
+  if(pi.pax)bits.push('👥 '+pi.pax);
+  if(pi.ref)bits.push('# '+pi.ref.replace(/^#\s*/,''));
+  return bits.join(' · ');
+}
+function addCost(catKey){
+  if(!editMode)return;
+  _editId=null;
+  document.getElementById('cm-title').textContent='Position hinzufügen';
+  setVal('c-cat',catKey||'Sonstiges');setVal('c-datum','');setVal('c-label','');
+  setVal('c-info','');setVal('c-amount','');setVal('c-currency','EUR');
+  setVal('c-time','');setVal('c-pax','');setVal('c-ref','');setVal('c-bis','');
+  toggleAusflugFields();
+  updateCostPreview();
+  document.getElementById('cost-modal').classList.add('open');
+}
+function editCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const c=costs.find(x=>String(x.id)===String(id));if(!c)return;
+  _editId=c.id;
+  document.getElementById('cm-title').textContent='Position bearbeiten';
+  setVal('c-cat',c.cat);setVal('c-datum',c.datum||'');setVal('c-label',c.label);
+  setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
+  const pi=parseInfo(c.info);
+  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);setVal('c-bis',pi.bis);
+  toggleAusflugFields();
+  updateCostPreview();
+  document.getElementById('cost-modal').classList.add('open');
+}
+async function delCostEl(btn){
+  if(!editMode)return;
+  const id=btn.getAttribute('data-id');
+  const c=costs.find(x=>String(x.id)===String(id));if(!c)return;
+  if(!confirm('Position „'+c.label+'" wirklich löschen?'))return;
+  const ok=await sbDeleteCost(c.id);
+  if(!ok){toast('Löschen fehlgeschlagen.');return;}
+  costs=costs.filter(x=>String(x.id)!==String(id));
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();toast('Position gelöscht.');
+}
+function updateCostPreview(){
+  const amt=parseFloat((val('c-amount')||'').replace(',','.'));
+  const cur=val('c-currency');const pv=document.getElementById('c-preview');
+  if(isNaN(amt)||amt<=0||cur==='EUR'){pv.textContent='';return;}
+  pv.textContent='≈ EUR '+fmt(toEUR(amt,cur));
+}
+async function saveCost(){
+  const cat=val('c-cat'),label=val('c-label').trim();
+  const datum=val('c-datum')||'';
+  const amt=parseFloat((val('c-amount')||'').replace(',','.'));
+  const cur=val('c-currency');
+  const info=(cat==='Ausflug')
+    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim(),'')
+    : (cat==='Unterkunft')
+      ? buildInfo(val('c-info').trim(),'','','',val('c-bis')||'')
+      : val('c-info').trim();
+  if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
+  if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
+  if(_editId){
+    const c={id:_editId,cat,label,info,datum,amount:amt,cur};
+    const ok=await sbUpdateCost(c);if(!ok)return;
+    const i=costs.findIndex(x=>String(x.id)===String(_editId));if(i>=0)costs[i]=c;
+    toast('Position aktualisiert!');
+  }else{
+    const draft={cat,label,info,datum,amount:amt,cur};
+    const id=await sbSaveCost(draft);if(id===null)return;
+    costs.push(Object.assign({id:id},draft));
+    toast('Position hinzugefügt!');
+  }
+  document.getElementById('cost-modal').classList.remove('open');
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();
+}
+function closeCostModal(){document.getElementById('cost-modal').classList.remove('open');}
+
+// ── AUSFLÜGE (= Kostenpositionen Kategorie 'Ausflug') ─────────────────────────
+function renderAusfluege(){
+  const grid=document.getElementById('ausfluege-grid');
+  if(!grid)return;
+  const addBtn=document.getElementById('ausflug-add-btn');
+  if(addBtn)addBtn.style.display=editMode?'inline-flex':'none';
+  const items=costs.filter(c=>c.cat==='Ausflug');
+  // nach Datum sortieren (ohne Datum ans Ende)
+  items.sort((a,b)=>{const x=a.datum||'9999';const y=b.datum||'9999';return x<y?-1:x>y?1:0;});
+  if(!items.length){
+    grid.innerHTML='<div class="empty"><div class="big">🎟️</div><div class="lbl">Noch keine Ausflüge</div><div class="sub">Erfasse einen Ausflug hier oder bei den Kosten (Kategorie „Ausflug") – er erscheint automatisch an beiden Stellen.</div>'+(editMode?'<button class="btn btn-sm" style="background:var(--tour);color:#fff" onclick="addCost(\'Ausflug\')">+ Ausflug hinzufügen</button>':'')+'</div>';
+    return;
+  }
+  grid.innerHTML='<div class="ausflug-cards">'+items.map(function(c){
+    const pi=parseInfo(c.info);
+    const eur=toEUR(c.amount,c.cur);
+    const dateStr=c.datum?new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}):'Datum offen';
+    const amtStr=(c.cur!=='EUR')?fmt(c.amount)+' '+c.cur+' ≈ EUR '+fmt(eur):'EUR '+fmt(eur);
+    let meta=[];
+    if(pi.time)meta.push('🕐 '+esc(pi.time));
+    if(pi.pax)meta.push('👥 '+esc(pi.pax)+' Pers.');
+    if(pi.ref)meta.push('# '+esc(pi.ref.replace(/^#\s*/,'')));
+    const btns=editMode?'<div class="ausflug-actions"><button class="cost-edit-btn" data-id="'+c.id+'" onclick="editCostEl(this)">✏️ Bearbeiten</button><button class="cost-del-btn" data-id="'+c.id+'" onclick="delCostEl(this)">✕</button></div>':'';
+    return '<div class="ausflug-card"><div class="ausflug-stripe"></div><div class="ausflug-body">'
+      +'<div class="ausflug-date">'+dateStr+'</div>'
+      +'<div class="ausflug-title">🎟️ '+esc(c.label)+'</div>'
+      +(pi.text?'<div class="ausflug-info">'+esc(pi.text)+'</div>':'')
+      +(meta.length?'<div class="ausflug-meta">'+meta.join(' · ')+'</div>':'')
+      +'<div class="ausflug-price '+(editMode?'':'price-blur')+'">'+amtStr+'</div>'
+      +btns
+      +'</div></div>';
+  }).join('')+'</div>';
+}
+
+// ── ROUTE / TIMELINE (dynamisch aus Kostenpositionen) ─────────────────────────
+const ROUTE_DOT={Unterkunft:'var(--bush)',Flug:'#7c3aed',Transport:'#b45309',Ausflug:'#be185d',Sonstiges:'var(--fog)'};
+function renderRoute(){
+  const c=document.getElementById('timeline-items');
+  if(!c)return;
+  const dated=costs.filter(x=>x.datum).slice().sort(function(a,b){
+    if(a.datum!==b.datum)return a.datum<b.datum?-1:1;
+    const ord={Unterkunft:0,Flug:1,Transport:1,Ausflug:2,Sonstiges:3};
+    return (ord[a.cat]||9)-(ord[b.cat]||9);
+  });
+  if(!dated.length){
+    c.innerHTML='<div class="empty"><div class="big">📍</div><div class="lbl">Noch keine Route</div><div class="sub">Erfasse Kostenpositionen mit Datum (Unterkunft, Flug, Transport, Ausflug) – sie erscheinen hier automatisch als Zeitstrahl.</div></div>';
+    return;
+  }
+  c.innerHTML=dated.map(function(x){
+    const dc=ROUTE_DOT[x.cat]||'var(--fog)';
+    const dateStr=new Date(x.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+    const pi=parseInfo(x.info);
+    if(x.cat==='Unterkunft'){
+      const rev=hotelReviews[x.datum];
+      let starStr='';
+      if(rev&&rev.stars){for(let s=1;s<=rev.stars;s++)starStr+='★';}
+      return '<div class="tl-item"><div class="tl-dot"><div class="dot" style="color:'+dc+';background:'+dc+'"></div></div>'
+        +'<div class="tl-card" style="border-left:4px solid '+dc+'">'
+        +'<div class="tl-top"><div class="tl-date">'+dateStr+'</div>'+(starStr?'<span class="tl-badge" style="background:#fef3c7;color:#92400e">'+starStr+'</span>':'')+'</div>'
+        +'<div class="tl-name">🏨 '+esc(x.label)+'</div>'
+        +(pi.text?'<div class="tl-loc">'+esc(pi.text)+'</div>':'')
+        +'</div></div>';
+    }
+    const icon={Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'•'}[x.cat]||'•';
+    let meta=[];
+    if(pi.text)meta.push(esc(pi.text));
+    if(pi.time)meta.push('🕐 '+esc(pi.time));
+    if(pi.pax)meta.push('👥 '+esc(pi.pax));
+    return '<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:'+dc+';background:'+dc+'"></div></div>'
+      +'<div class="tl-transport-card" style="border-color:'+dc+'">'
+      +'<span class="transport-icon">'+icon+'</span>'
+      +'<div class="transport-detail"><div class="transport-name">'+esc(x.label)+'</div>'
+      +'<div class="transport-info">'+dateStr+(meta.length?' · '+meta.join(' · '):'')+'</div></div>'
+      +'</div></div>';
+  }).join('');
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function showTab(tab){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('section-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='kosten')renderCosts();
+  if(tab==='tage')renderTage();
+  if(tab==='ausfluege')renderAusfluege();
+  if(tab==='route')renderRoute();
+}
+function buildDaySlides(){renderTage();}
+
+// ── ADMIN / PIN ─────────────────────────────────────────────────────────────
+function toggleAdmin(){
+  if(editMode){
+    editMode=false;
+    document.getElementById('admin-btn').textContent='🔑 Admin';
+    document.getElementById('admin-btn').style.background='';
+    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
+    toast('Admin-Modus beendet.');
+  }else{
+    pinBuffer='';updatePinDots();
+    document.getElementById('pin-err').textContent='';
+    document.getElementById('pin-overlay').classList.add('open');
+  }
+}
+function pinIn(d){if(pinBuffer.length>=4)return;pinBuffer+=d;updatePinDots();if(pinBuffer.length===4)setTimeout(checkPin,150);}
+function pinDel(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
+function updatePinDots(){for(var i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);}
+function closePin(){document.getElementById('pin-overlay').classList.remove('open');pinBuffer='';updatePinDots();}
+function checkPin(){
+  if(pinBuffer===CORRECT_PIN){
+    closePin();editMode=true;
+    document.getElementById('admin-btn').textContent='Admin aktiv';
+    document.getElementById('admin-btn').style.background='var(--sunset)';
+    renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
+    toast('Admin-Modus aktiv!');
+  }else{
+    document.getElementById('pin-err').textContent='Falsche PIN.';
+    pinBuffer='';updatePinDots();
+    setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
+  }
+}
+
+// ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
+async function createPhotobook(){
+  toast('📖 Fotobuch wird vorbereitet…');
+  const days=buildDays();
+  if(!days.length){toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
+  // Alle Fotos aller Tage laden (in gespeicherter Reihenfolge)
+  for(const iso of days){
+    if(photos[iso]===undefined){
+      try{photos[iso]=orderedPhotos(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
+    }
+  }
+  const rots=['-2.5deg','2deg','-1.5deg','3deg','-3deg','1.5deg','-2deg','2.5deg'];
+  function photoLayout(pics,iso,offset){
+    offset=offset||0;
+    const n=pics.length;
+    const cap=function(pi){const c=captionFor(iso,pics[pi]);return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
+    const img=function(pi){return '<figure style="--rot:'+rots[(pi+offset)%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';};
+    return '<div class="pomasonry poN'+n+'">'+pics.map(function(_,i){return img(i);}).join('')+'</div>';
+  }
+  // ── Seiten ──
+  const pages=[];
+  let tagNr=0;
+  for(const iso of days){
+    const entry=entries[iso];
+    let dayPhotos=(photos[iso]||[]).slice(0,8);
+    if((!entry||!entry.text)&&dayPhotos.length===0)continue;
+    tagNr++;
+    const dayCosts=costs.filter(c=>c.datum===iso);
+    const stay=dayCosts.find(c=>c.cat==='Unterkunft');
+    const ort=stay?stay.label:'';
+    const emoji=stay?'🏨':'📸';
+    const rawText=entry&&entry.text?entry.text:'';
+    const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
+    const eTitel=entry&&entry.titel?esc((ENTRY_CAT_EMOJI[entry.kat]?ENTRY_CAT_EMOJI[entry.kat]+' ':'')+entry.titel):'';
+    const isLong=rawText.length>400;
+    const titelBlock=eTitel?'<div class="pb-etitel">'+eTitel+'</div>':'';
+    const textBlock=text?('<div class="pb-textbox">'+titelBlock+'<div class="pb-text">'+text+'</div></div>'):'';
+    const head=function(tn){return '<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';};
+    if(isLong&&text){
+      pages.push('<div class="pb-page pb-textpage"><div class="tp-frame"><div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div><div class="tp-emoji">'+emoji+'</div><div class="tp-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')+'<div class="tp-rule">✶ ✶ ✶</div>'+(eTitel?'<div class="tp-title">'+eTitel+'</div>':'')+'<div class="tp-text">'+text+'</div></div></div>');
+      if(dayPhotos.length>4){
+        const first=dayPhotos.slice(0,4),rest=dayPhotos.slice(4);
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,iso)+'</div>');
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort||'Fortsetzung')+' · Fortsetzung</div>'+photoLayout(rest,iso,4)+'</div>');
+      }else if(dayPhotos.length){
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(dayPhotos,iso)+'</div>');
+      }
+    }else if(dayPhotos.length>4){
+      const first=dayPhotos.slice(0,4),rest=dayPhotos.slice(4);
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,iso)+textBlock+'</div>');
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort||'Fortsetzung')+' · Fortsetzung</div>'+photoLayout(rest,iso,4)+'</div>');
+    }else{
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+(dayPhotos.length?photoLayout(dayPhotos,iso):'')+textBlock+'</div>');
+    }
+  }
+  if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
+  // ── Deckblatt ──
+  const title=tripHead.title||'Unsere Reise';
+  const sub=tripHead.sub||'';
+  const emoji=tripHead.emoji&&tripHead.emoji!=='🌍'?tripHead.emoji:'🧳';
+  let dateStr='';
+  if(tripHead.from){
+    const f=new Date(tripHead.from+'T12:00:00');
+    if(tripHead.to){dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
+    else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
+  }
+  const stations=Array.from(new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label.split('·')[0].trim()))).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">M-Reisen · tripstoryai.com</div></div>';
+  // ── CSS ──
+  const css='<style>'
+    +'@page{size:A4 landscape;margin:0;}'
+    +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
+    +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
+    +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:14mm;page-break-after:always;overflow:hidden;}'
+    +'.pb-page:last-child{page-break-after:auto;}'
+    +'.pb-cover{background:linear-gradient(160deg,#1a6b8a 0%,#13506b 45%,#0d3a52 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
+    +'.pb-cover-sun{position:absolute;top:42mm;left:50%;transform:translateX(-50%);width:120mm;height:120mm;background:radial-gradient(circle,rgba(224,123,63,.45) 0%,rgba(224,123,63,0) 70%);border-radius:50%;}'
+    +'.pb-cover-waves{position:absolute;bottom:0;left:0;width:100%;height:60mm;}'
+    +'.pb-cover-waves svg{width:100%;height:100%;display:block;}'
+    +'.pb-cover-inner{position:relative;z-index:2;padding:20mm;}'
+    +'.pb-cover-koala{font-size:64px;margin-bottom:10mm;}'
+    +'.pb-cover-eyebrow{font-size:15px;letter-spacing:4px;text-transform:uppercase;opacity:.9;margin-bottom:6mm;}'
+    +'.pb-cover-title{font-family:Georgia,serif;font-size:64px;font-weight:bold;letter-spacing:1px;line-height:1.1;}'
+    +'.pb-cover-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;margin-top:4mm;opacity:.95;}'
+    +'.pb-cover-line{width:40mm;height:3px;background:rgba(255,255,255,.7);margin:10mm auto;}'
+    +'.pb-cover-dates{font-size:18px;letter-spacing:1px;margin-bottom:8mm;}'
+    +'.pb-cover-route{font-size:12px;line-height:2;opacity:.92;max-width:150mm;margin:0 auto;}'
+    +'.pb-cover-footer{position:absolute;bottom:14mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.8;z-index:2;}'
+    +'.pb-day{background:#fdfbf7;background-image:radial-gradient(#efe7d8 0.5px,transparent 0.5px),radial-gradient(#efe7d8 0.5px,#fdfbf7 0.5px);background-size:14px 14px;background-position:0 0,7px 7px;display:flex;flex-direction:column;}'
+    +'.pb-day-cont{font-family:Georgia,serif;font-style:italic;color:#1a6b8a;font-size:14px;text-align:center;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px dashed #d8cfc2;}'
+    +'.pb-corner{position:absolute;width:22mm;height:22mm;}'
+    +'.pb-corner-tl{top:8mm;left:8mm;border-top:2px solid #1a6b8a;border-left:2px solid #1a6b8a;}'
+    +'.pb-corner-br{bottom:8mm;right:8mm;border-bottom:2px solid #1a6b8a;border-right:2px solid #1a6b8a;}'
+    +'.pb-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a6b8a;padding-bottom:6mm;margin-bottom:8mm;}'
+    +'.pb-head-l{display:flex;align-items:center;gap:5mm;}'
+    +'.pb-emoji{font-size:34px;}'
+    +'.pb-date{font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1a6b8a;}'
+    +'.pb-loc{font-size:13px;color:#999;margin-top:1mm;letter-spacing:.5px;}'
+    +'.pb-tagnr{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#bbb;border:1px solid #e0d8cc;border-radius:20px;padding:2mm 4mm;}'
+    +'.pomasonry{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8mm 6mm;padding:6mm 4mm;}'
+    +'.pomasonry figure{background:#fff;padding:2.5mm 2.5mm 6mm;border-radius:1mm;box-shadow:0 4px 14px rgba(0,0,0,.16);transform:rotate(var(--rot));position:relative;}'
+    +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
+    +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
+    +'.poN1 figure{width:150mm;}.poN1 figure img{height:120mm;}'
+    +'.poN2 figure{width:115mm;}.poN2 figure img{height:78mm;}'
+    +'.poN3 figure{width:82mm;}.poN3 figure img{height:62mm;}'
+    +'.poN4 figure{width:80mm;}.poN4 figure img{height:58mm;}'
+    +'.poN5 figure{width:76mm;}.poN5 figure img{height:54mm;}'
+    +'.poN6 figure{width:72mm;}.poN6 figure img{height:50mm;}'
+    +'.poN7 figure{width:66mm;}.poN7 figure img{height:47mm;}'
+    +'.poN8 figure{width:62mm;}.poN8 figure img{height:45mm;}'
+    +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #1a6b8a;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
+    +'.pb-etitel{font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1a6b8a;margin-bottom:3mm;}'
+    +'.tp-title{font-family:Georgia,serif;font-size:20px;font-style:italic;color:#1a6b8a;margin-bottom:5mm;}'
+    +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
+    +'.pb-textpage{background:linear-gradient(160deg,#f1f7f9 0%,#e0eef2 100%);display:flex;align-items:center;justify-content:center;}'
+    +'.tp-frame{position:relative;width:100%;height:182mm;border:2px solid #6aa6bd;border-radius:3mm;padding:16mm 24mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.5);}'
+    +'.tp-frame:before{content:"";position:absolute;inset:4mm;border:1px solid #9ac3d3;border-radius:2mm;pointer-events:none;}'
+    +'.tp-corner{position:absolute;font-size:20px;color:#6aa6bd;}'
+    +'.tp-tl{top:6mm;left:8mm;}.tp-tr{top:6mm;right:8mm;}.tp-bl{bottom:6mm;left:8mm;}.tp-br{bottom:6mm;right:8mm;}'
+    +'.tp-emoji{font-size:40px;margin-bottom:4mm;}'
+    +'.tp-date{font-family:Georgia,serif;font-size:22px;color:#1a6b8a;font-weight:bold;}'
+    +'.tp-loc{font-size:13px;color:#999;margin-top:2mm;letter-spacing:.5px;}'
+    +'.tp-rule{color:#6aa6bd;font-size:13px;letter-spacing:6px;margin:6mm 0;}'
+    +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
+    +'</style>';
+  const win=window.open('','_blank');
+  if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
+  win.document.close();
+  toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann über „Drucken → Als PDF" speichern.');
+}
+function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+async function init(){
+  if(!REISE){
+    document.getElementById('hero-eyebrow').textContent='Hinweis';
+    document.getElementById('hero-title').innerHTML='Keine Reise ausgewählt';
+    document.getElementById('hero-sub').innerHTML='Diese Seite wird über die Startseite mit einer Reise geöffnet. Bitte kehre zur <a href="index.html" style="color:var(--sunset)">Übersicht</a> zurück und wähle oder erstelle eine Reise.';
+  }
+  try{await sbLoadHead();}catch(e){console.error(e);}
+  try{await sbLoadFX();}catch(e){console.error(e);}
+  try{await sbLoadCosts();}catch(e){console.error(e);}
+  try{await sbLoadExpenses();}catch(e){console.error(e);}
+  try{await sbLoadEntries();}catch(e){console.error(e);}
+  try{await sbLoadReviews();}catch(e){console.error(e);}
+  try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
+  _apiKey=loadApiKey();
+  renderHead();renderTage();
+}
+init();
+</script>
+</body>
+</html>
