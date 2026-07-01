@@ -377,6 +377,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
       </select>
     </div>
     <div class="field"><label>Datum <span class="opt">(optional · erscheint im Tagesplan)</span></label><input type="date" id="c-datum"></div>
+    <div class="field" id="c-bis-wrap" style="display:none"><label>Abreise <span class="opt">(Unterkunft · Nächte werden berechnet)</span></label><input type="date" id="c-bis"></div>
     <div class="field"><label>Bezeichnung</label><input type="text" id="c-label" placeholder="z.B. Hotel Tokio"></div>
     <div class="field"><label>Details <span class="opt">(optional)</span></label><input type="text" id="c-info" placeholder="z.B. 3 Nächte · Ref. XY"></div>
     <div id="c-ausflug-fields" style="display:none">
@@ -990,7 +991,7 @@ function renderDayCard(days){
   const dateLabel=d.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   // Programmpunkte = datierte Kosten dieses Tages
   const dayCosts=costs.filter(c=>c.datum===iso);
-  const stay=dayCosts.find(c=>c.cat==='Unterkunft');
+  const stay=stayForDay(iso);
   const loc=stay?stay.label:(dayCosts.length?'Programm':'–');
   const badges=dayCosts.map(c=>`<span class="program-badge badge-${c.cat}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
   document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
@@ -1040,33 +1041,41 @@ function renderDayCard(days){
       +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
   }
 
-  // ── Hotel-Banner (Tageskopf) + Bewertung (nur wenn Tag eine Unterkunft hat) ──
+  // ── Hotel-Banner (Tageskopf) + Bewertung ──
   let bannerHTML='', revHTML='';
   if(stay){
     const hotelName=stay.label.split('·')[0].trim();
-    // Nächte aus info ableiten falls vorhanden, sonst nichts
-    const nightsMatch=(stay.info||'').match(/(\d+)\s*N(a|ä)cht/i);
-    const nightsBadge=nightsMatch?`<div class="hotel-banner-nights">${nightsMatch[1]} Nächte</div>`:'';
-    const bannerBg=stayColor(iso);
+    const pi=parseInfo(stay.info);
+    const nights=nightsBetween(stay.datum,pi.bis);
+    // Welche Nacht sind wir? (0-basiert ab Anreisetag)
+    let nightInfo='';
+    if(nights>0){
+      const idx=Math.round((new Date(iso+'T12:00:00')-new Date(stay.datum+'T12:00:00'))/86400000);
+      nightInfo=(idx>0)?`Nacht ${idx+1} von ${nights}`:`${nights} ${nights===1?'Nacht':'Nächte'}`;
+    }
+    const nightsBadge=nightInfo?`<div class="hotel-banner-nights">${nightInfo}</div>`:'';
+    const bannerBg=stayColor(stay.datum);
     bannerHTML='<div class="hotel-banner" style="background:'+bannerBg+'">'
       +'<div class="hotel-banner-emoji-bg">🏨</div>'
       +'<div class="hotel-banner-name">'+esc(hotelName)+'</div>'
-      +(stay.info?'<div class="hotel-banner-loc">'+esc(stay.info.split('·')[0].trim())+'</div>':'')
+      +(pi.text?'<div class="hotel-banner-loc">'+esc(pi.text.split('·')[0].trim())+'</div>':'')
       +nightsBadge
       +'</div>';
-    const rev=hotelReviews[iso];
+    // Bewertung hängt am Anreisetag der Unterkunft
+    const revIso=stay.datum;
+    const rev=hotelReviews[revIso];
     const stars=rev?rev.stars:0;
     let starStr='';
     for(let s=1;s<=5;s++)starStr+='<span style="color:'+(s<=stars?'#e0b34f':'#d8cfc2')+';font-size:1.3rem">★</span>';
     if(rev&&(rev.text||rev.stars)){
       revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
         +(rev.text?'<div class="hotel-review-text">'+esc(rev.text)+'</div>':'')
-        +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:6px" onclick="openReview(\''+iso+'\')">✏️ Bearbeiten</button>':'')
+        +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:6px" onclick="openReview(\''+revIso+'\')">✏️ Bearbeiten</button>':'')
         +'</div>';
     }else if(editMode){
       revHTML='<div class="hotel-review"><div class="hotel-stars">'+starStr+'</div>'
         +'<div class="hotel-review-empty">Noch keine Bewertung.</div>'
-        +'<button class="btn btn-primary btn-sm" onclick="openReview(\''+iso+'\')">⭐ Hotel bewerten</button></div>';
+        +'<button class="btn btn-primary btn-sm" onclick="openReview(\''+revIso+'\')">⭐ Hotel bewerten</button></div>';
     }
   }
 
@@ -1646,22 +1655,49 @@ function renderCosts(){
   document.getElementById('grand-total-box').innerHTML=`<div class="grand-total"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
 }
 function toggleAusflugFields(){
-  document.getElementById('c-ausflug-fields').style.display=(val('c-cat')==='Ausflug')?'block':'none';
+  const cat=val('c-cat');
+  document.getElementById('c-ausflug-fields').style.display=(cat==='Ausflug')?'block':'none';
+  document.getElementById('c-bis-wrap').style.display=(cat==='Unterkunft')?'block':'none';
 }
-// Ausflug-Extras in info kodiert: "sichtbarerText‖time‖pax‖ref"
+// Extras in info kodiert: "sichtbarerText‖time‖pax‖ref‖bis"
 function parseInfo(raw){
   const p=String(raw||'').split('‖');
-  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||''};
+  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||'', bis:p[4]||''};
 }
-function buildInfo(text,time,pax,ref){
-  if(time||pax||ref)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'');
+function buildInfo(text,time,pax,ref,bis){
+  if(time||pax||ref||bis)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'')+'‖'+(bis||'');
   return text||'';
+}
+// Nächte zwischen zwei ISO-Daten
+function nightsBetween(von,bis){
+  if(!von||!bis)return 0;
+  const a=new Date(von+'T12:00:00'),b=new Date(bis+'T12:00:00');
+  const n=Math.round((b-a)/86400000);
+  return n>0?n:0;
+}
+// Findet die Unterkunft, die an einem Tag gilt (von ≤ iso < bis; ohne bis: nur am von-Tag)
+function stayForDay(iso){
+  const stays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
+  // exakter Anreisetag hat Vorrang
+  let exact=stays.find(c=>c.datum===iso);
+  if(exact)return exact;
+  // sonst: Tag liegt im Zeitraum von..bis (Abreisetag zählt nicht mehr zum Hotel)
+  for(const c of stays){
+    const bis=parseInfo(c.info).bis;
+    if(bis && c.datum<iso && iso<bis)return c;
+  }
+  return null;
 }
 // Lesbare Info-Anzeige (sichtbarer Text + Ausflug-Extras als Chips-Text)
 function infoDisplay(c){
   const pi=parseInfo(c.info);
   let bits=[];
   if(pi.text)bits.push(pi.text);
+  if(c.cat==='Unterkunft'&&pi.bis){
+    const n=nightsBetween(c.datum,pi.bis);
+    const bisStr=new Date(pi.bis+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+    bits.push('bis '+bisStr+(n>0?' · '+n+' '+(n===1?'Nacht':'Nächte'):''));
+  }
   if(pi.time)bits.push('🕐 '+pi.time);
   if(pi.pax)bits.push('👥 '+pi.pax);
   if(pi.ref)bits.push('# '+pi.ref.replace(/^#\s*/,''));
@@ -1673,7 +1709,7 @@ function addCost(catKey){
   document.getElementById('cm-title').textContent='Position hinzufügen';
   setVal('c-cat',catKey||'Sonstiges');setVal('c-datum','');setVal('c-label','');
   setVal('c-info','');setVal('c-amount','');setVal('c-currency','EUR');
-  setVal('c-time','');setVal('c-pax','');setVal('c-ref','');
+  setVal('c-time','');setVal('c-pax','');setVal('c-ref','');setVal('c-bis','');
   toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
@@ -1687,7 +1723,7 @@ function editCostEl(btn){
   setVal('c-cat',c.cat);setVal('c-datum',c.datum||'');setVal('c-label',c.label);
   setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
   const pi=parseInfo(c.info);
-  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);
+  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);setVal('c-bis',pi.bis);
   toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
@@ -1714,8 +1750,10 @@ async function saveCost(){
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
   const cur=val('c-currency');
   const info=(cat==='Ausflug')
-    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim())
-    : val('c-info').trim();
+    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim(),'')
+    : (cat==='Unterkunft')
+      ? buildInfo(val('c-info').trim(),'','','',val('c-bis')||'')
+      : val('c-info').trim();
   if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
   if(_editId){
