@@ -1305,14 +1305,47 @@ async function aiPolishReview(){
 
 // ── BELEG-UPLOAD & KI-AUSLESUNG ───────────────────────────────────────────────
 let _belegVorschlag=null;
+// Bild bei Bedarf verkleinern/komprimieren, damit es unter dem API-Limit bleibt
+function shrinkImage(file){
+  return new Promise(function(resolve){
+    // PDFs und kleine Bilder unverändert lassen
+    if(file.type==='application/pdf'){resolve(file);return;}
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      let w=img.naturalWidth,h=img.naturalHeight;
+      const maxDim=2000; // längste Kante max. 2000px
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(function(blob){
+        if(!blob){resolve(file);return;}
+        resolve(new File([blob],'beleg.jpg',{type:'image/jpeg'}));
+      },'image/jpeg',0.85);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
 // API-Call mit Datei (Bild oder PDF) + Text
 async function aiCallWithFile(promptText,file,maxTokens){
+  file=await shrinkImage(file);
   const base64=await new Promise(function(res,rej){
     const r=new FileReader();
     r.onload=function(){res(r.result.split(',')[1]);};
     r.onerror=function(){rej(new Error('Datei konnte nicht gelesen werden.'));};
     r.readAsDataURL(file);
   });
+  // Base64 ist ~33% größer als die Bytes; API-Limit 10 MB (≈14 MB Base64)
+  if(base64.length>13800000){
+    if(file.type==='application/pdf')throw new Error('Das PDF ist zu groß (max. 10 MB). Bitte ein kleineres PDF oder einen Screenshot der wichtigsten Seite verwenden.');
+    throw new Error('Das Bild ist auch nach Komprimierung zu groß. Bitte einen kleineren Ausschnitt verwenden.');
+  }
   let fileBlock;
   if(file.type==='application/pdf'){
     fileBlock={type:'document',source:{type:'base64',media_type:'application/pdf',data:base64}};
