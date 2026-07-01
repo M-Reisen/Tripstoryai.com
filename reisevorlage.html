@@ -49,6 +49,9 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .tabs::-webkit-scrollbar{display:none;}
 .tab-btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;color:var(--fog);background:none;border:none;padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .18s;border-radius:6px 6px 0 0;white-space:nowrap;}
 .tab-btn.active{color:var(--sunset);border-bottom-color:var(--sunset);}
+.tab-action{margin-left:auto;color:var(--reef);font-weight:600;align-self:center;margin-bottom:2px;border:1.5px solid var(--reef);border-radius:8px;padding:7px 14px;}
+.tab-action:hover{background:var(--reef);color:#fff;}
+.tab-action.active{border-bottom-color:var(--reef);}
 .tab-btn:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.04);}
 
 main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
@@ -274,14 +277,12 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
   <button class="tab-btn" onclick="showTab('route')" id="tab-route">📍 Route</button>
   <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">🎟️ Ausflüge</button>
   <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">💰 Kosten</button>
+  <button class="tab-btn tab-action" onclick="createPhotobook()" id="tab-fotobuch">📖 Fotobuch</button>
 </div>
 
 <main>
   <!-- TAG FÜR TAG -->
   <div class="section active" id="section-tage">
-    <div style="text-align:right;margin-bottom:14px">
-      <button class="btn btn-reef btn-sm" onclick="createPhotobook()">📖 Fotobuch als PDF</button>
-    </div>
     <div id="tage-content"></div>
   </div>
 
@@ -316,7 +317,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V4 · Modal-Scrolling iPhone</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V5 · Fotobuch im Menü</div>
 
 <!-- PIN -->
 <div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
