@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>M-Reisen · Unsere Reisetagebücher</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -160,13 +161,36 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 </head>
 <body>
 
+<!-- LOGIN-SCREEN (wenn nicht eingeloggt) -->
+<div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:1000;background:linear-gradient(160deg,#1a2744,#0d1628);align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
+  <div style="background:#fff;border-radius:20px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.4);margin:auto;">
+    <div style="text-align:center;margin-bottom:22px;">
+      <div style="font-size:2.4rem;">🧳</div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-top:6px;"><em>M</em>-Reisen</div>
+      <div id="auth-subtitle" style="font-size:.85rem;color:var(--fog);margin-top:4px;">Melde dich an, um deine Reisetagebücher zu sehen</div>
+    </div>
+    <div class="field"><label>E-Mail</label><input type="email" id="auth-email" placeholder="du@beispiel.de" autocomplete="email"></div>
+    <div class="field"><label>Passwort</label><input type="password" id="auth-pass" placeholder="mindestens 6 Zeichen" autocomplete="current-password"></div>
+    <div id="auth-msg" style="font-size:.8rem;min-height:18px;margin:4px 0 12px;text-align:center;"></div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:10px;" id="auth-login-btn" onclick="doLogin()">Anmelden</button>
+    <button class="btn btn-ghost" style="width:100%;" id="auth-signup-btn" onclick="doSignup()">Neu hier? Konto erstellen</button>
+    <div style="text-align:center;margin-top:14px;">
+      <a href="#" onclick="toggleAuthMode();return false;" id="auth-toggle" style="font-size:.8rem;color:var(--ocean);">Ich habe schon ein Konto</a>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="header-inner">
     <div class="logo">
       <span class="mark">🧳</span>
       <span class="txt"><em>M</em>-Reisen</span>
     </div>
-    <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()">🔑 Admin</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="user-email" style="font-size:.78rem;color:var(--fog);"></span>
+      <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">✏️ Bearbeiten</button>
+      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none;">Abmelden</button>
+    </div>
   </div>
 </header>
 
@@ -200,26 +224,7 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 </footer>
 
 <!-- PIN OVERLAY -->
-<div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
-  <div class="pin-box">
-    <div class="ic">🔑</div>
-    <h3>Admin-Modus</h3>
-    <p>PIN eingeben, um Reisen zu verwalten</p>
-    <div class="pin-dots">
-      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
-    </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="pinIn('1')">1</button><button class="pin-key" onclick="pinIn('2')">2</button><button class="pin-key" onclick="pinIn('3')">3</button>
-      <button class="pin-key" onclick="pinIn('4')">4</button><button class="pin-key" onclick="pinIn('5')">5</button><button class="pin-key" onclick="pinIn('6')">6</button>
-      <button class="pin-key" onclick="pinIn('7')">7</button><button class="pin-key" onclick="pinIn('8')">8</button><button class="pin-key" onclick="pinIn('9')">9</button>
-      <button class="pin-key" style="font-size:.85rem;color:var(--fog)" onclick="pinDel()">⌫</button>
-      <button class="pin-key" onclick="pinIn('0')">0</button>
-      <button class="pin-key" style="font-size:.78rem;color:var(--fog)" onclick="closePin()">✕</button>
-    </div>
-    <div class="pin-err" id="pin-err"></div>
-  </div>
-</div>
+
 
 <!-- TRIP FORM MODAL -->
 <div class="overlay" id="trip-modal" onclick="if(event.target===this)closeTripModal()">
@@ -276,44 +281,125 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 <div id="toast"></div>
 
 <script>
-// ── KONFIG ───────────────────────────────────────────────────────────────
-var CORRECT_PIN = '2026';
-var STORAGE_KEY = 'mreisen_trips_v1';
-
-// Standard-Reise (Australien) — erscheint, solange nichts gespeichert ist
-var DEFAULT_TRIPS = [
-  {
-    id: 'australien-2026',
-    name: 'Das große Australien-Abenteuer',
-    emoji: '🦘',
-    loc: 'Queensland & Great Barrier Reef',
-    from: '2026-09-13',
-    to: '2026-10-10',
-    status: '',           // '' = automatisch aus Datum
-    note: 'Von Port Douglas über die Whitsundays bis Sydney — 27 Tage Riff, Regenwald und Outback.',
-    url: 'australien.html',
-    img: ''
-  }
-];
+// ── SUPABASE ─────────────────────────────────────────────────────────────
+var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+var sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+var STORAGE_KEY='mreisen_trips_v1'; // nur noch für einmalige Migration
+var authMode='login'; // 'login' oder 'signup'
+var currentUser=null;
 
 // ── STATE ────────────────────────────────────────────────────────────────
 var trips = [];
-var adminMode = false;
+var adminMode = false;   // hier: "Bearbeiten-Modus" für eingeloggten Besitzer
 var activeFilter = 'alle';
-var pinBuffer = '';
 var editingId = null;
 var pickedStatus = '';
 
-// ── PERSISTENZ ───────────────────────────────────────────────────────────
-function loadTrips(){
-  try{
-    var raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){ trips = JSON.parse(raw); return; }
-  }catch(e){}
-  trips = DEFAULT_TRIPS.slice();
+// ── AUTH ─────────────────────────────────────────────────────────────────
+function showAuthMsg(txt,ok){
+  var m=document.getElementById('auth-msg');
+  m.textContent=txt||''; m.style.color=ok?'var(--reef)':'#dc2626';
 }
-function saveTrips(){
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(trips)); }catch(e){ toast('Konnte nicht speichern.'); }
+function toggleAuthMode(){
+  authMode=(authMode==='login')?'signup':'login';
+  document.getElementById('auth-login-btn').style.display=(authMode==='login')?'block':'none';
+  document.getElementById('auth-signup-btn').style.display=(authMode==='signup')?'block':'none';
+  document.getElementById('auth-toggle').textContent=(authMode==='login')?'Neu hier? Konto erstellen':'Ich habe schon ein Konto';
+  document.getElementById('auth-subtitle').textContent=(authMode==='login')?'Melde dich an, um deine Reisetagebücher zu sehen':'Erstelle ein Konto für deine Reisetagebücher';
+  showAuthMsg('');
+}
+async function doLogin(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('auth-pass').value;
+  if(!email||!pass){showAuthMsg('Bitte E-Mail und Passwort eingeben.');return;}
+  showAuthMsg('Anmeldung läuft…',true);
+  var res=await sb.auth.signInWithPassword({email:email,password:pass});
+  if(res.error){showAuthMsg('Fehler: '+res.error.message);return;}
+  onLoggedIn(res.data.user);
+}
+async function doSignup(){
+  var email=document.getElementById('auth-email').value.trim();
+  var pass=document.getElementById('auth-pass').value;
+  if(!email||!pass){showAuthMsg('Bitte E-Mail und Passwort eingeben.');return;}
+  if(pass.length<6){showAuthMsg('Passwort muss mindestens 6 Zeichen haben.');return;}
+  showAuthMsg('Konto wird erstellt…',true);
+  var res=await sb.auth.signUp({email:email,password:pass});
+  if(res.error){showAuthMsg('Fehler: '+res.error.message);return;}
+  if(res.data.session){ onLoggedIn(res.data.user); }
+  else { showAuthMsg('Fast fertig! Bitte bestätige deine E-Mail über den Link, den wir dir geschickt haben, und melde dich dann an.',true); toggleAuthMode(); }
+}
+async function doLogout(){
+  await sb.auth.signOut();
+  currentUser=null;
+  location.reload();
+}
+function onLoggedIn(user){
+  currentUser=user;
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('user-email').textContent=user.email;
+  document.getElementById('logout-btn').style.display='inline-flex';
+  document.getElementById('edit-btn').style.display='inline-flex';
+  loadTripsFromDB();
+}
+function showAuthScreen(){
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('logout-btn').style.display='none';
+  document.getElementById('user-email').textContent='';
+}
+
+// ── REISEN AUS DB ────────────────────────────────────────────────────────
+async function loadTripsFromDB(){
+  var res=await sb.from('trips').select('*').eq('owner',currentUser.id).order('created_at',{ascending:true});
+  if(res.error){toast('Fehler beim Laden: '+res.error.message);return;}
+  trips=(res.data||[]).map(dbToTrip);
+  // Einmalige Migration alter localStorage-Reisen
+  await migrateLocalTrips();
+  render();
+}
+// DB-Zeile -> UI-Objekt
+function dbToTrip(r){
+  var meta={};
+  try{meta=JSON.parse(r.title||'{}');}catch(e){meta={name:r.title||'Reise'};}
+  return {
+    id:r.id, name:meta.name||'Reise', emoji:meta.emoji||'🧳', loc:meta.loc||'',
+    from:meta.from||'', to:meta.to||'', status:meta.status||'', note:meta.note||'',
+    url:meta.url||'', img:meta.img||'', visibility:r.visibility||'private'
+  };
+}
+// UI-Objekt -> DB-Felder (Metadaten als JSON in title)
+function tripToDB(t){
+  var meta={name:t.name,emoji:t.emoji,loc:t.loc,from:t.from,to:t.to,status:t.status,note:t.note,url:t.url,img:t.img};
+  return {id:t.id, owner:currentUser.id, title:JSON.stringify(meta), visibility:t.visibility||'private'};
+}
+async function saveTripDB(t){
+  var row=tripToDB(t);
+  var res=await sb.from('trips').upsert(row).select();
+  if(res.error){toast('Speichern fehlgeschlagen: '+res.error.message);return false;}
+  return true;
+}
+async function deleteTripDB(id){
+  var res=await sb.from('trips').delete().eq('id',id);
+  if(res.error){toast('Löschen fehlgeschlagen: '+res.error.message);return false;}
+  return true;
+}
+async function migrateLocalTrips(){
+  var done=localStorage.getItem('mreisen_migrated');
+  if(done)return;
+  var raw=localStorage.getItem(STORAGE_KEY);
+  if(!raw){localStorage.setItem('mreisen_migrated','1');return;}
+  try{
+    var old=JSON.parse(raw);
+    for(var i=0;i<old.length;i++){
+      var t=old[i];
+      if(trips.some(function(x){return x.id===t.id;}))continue; // schon da
+      t.visibility=t.visibility||'private';
+      var ok=await saveTripDB(t);
+      if(ok)trips.push(t);
+    }
+    localStorage.setItem('mreisen_migrated','1');
+    if(old.length)toast(old.length+' bestehende Reise(n) übernommen.');
+  }catch(e){}
 }
 
 // ── STATUS-LOGIK ─────────────────────────────────────────────────────────
@@ -352,8 +438,8 @@ function render(){
   // sortieren: laufende zuerst, dann geplante (nächstes Datum), dann erlebte (neueste)
   visible.sort(function(a,b){
     var order = {laeuft:0, geplant:1, fertig:2};
-    var sa = effectiveStatus(a), sb = effectiveStatus(b);
-    if(order[sa]!==order[sb]) return order[sa]-order[sb];
+    var sa = effectiveStatus(a), sbb = effectiveStatus(b);
+    if(order[sa]!==order[sbb]) return order[sa]-order[sbb];
     var fa = a.from||'', fb = b.from||'';
     return sa==='fertig' ? (fb<fa?-1:fb>fa?1:0) : (fa<fb?-1:fa>fb?1:0);
   });
@@ -436,43 +522,14 @@ function setFilter(f){
 
 // ── ADMIN / PIN ──────────────────────────────────────────────────────────
 function toggleAdmin(){
-  if(adminMode){
-    adminMode = false;
-    document.getElementById('admin-btn').textContent = '🔑 Admin';
-    document.getElementById('admin-btn').classList.remove('btn-primary');
-    document.getElementById('admin-btn').classList.add('btn-ghost');
-    render();
-    toast('Admin-Modus beendet.');
-  } else {
-    pinBuffer=''; updatePinDots();
-    document.getElementById('pin-err').textContent='';
-    document.getElementById('pin-overlay').classList.add('open');
+  adminMode=!adminMode;
+  var b=document.getElementById('edit-btn');
+  if(b){
+    b.textContent=adminMode?'✓ Fertig':'✏️ Bearbeiten';
+    b.classList.toggle('btn-primary',adminMode);
+    b.classList.toggle('btn-ghost',!adminMode);
   }
-}
-function pinIn(d){
-  if(pinBuffer.length>=4) return;
-  pinBuffer+=d; updatePinDots();
-  if(pinBuffer.length===4) setTimeout(checkPin,150);
-}
-function pinDel(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
-function updatePinDots(){
-  for(var i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled', i<pinBuffer.length);
-}
-function closePin(){ document.getElementById('pin-overlay').classList.remove('open'); pinBuffer=''; updatePinDots(); }
-function checkPin(){
-  if(pinBuffer===CORRECT_PIN){
-    closePin();
-    adminMode = true;
-    var b = document.getElementById('admin-btn');
-    b.textContent = 'Admin aktiv';
-    b.classList.remove('btn-ghost'); b.classList.add('btn-primary');
-    render();
-    toast('Admin-Modus aktiv!');
-  } else {
-    document.getElementById('pin-err').textContent='Falsche PIN.';
-    pinBuffer=''; updatePinDots();
-    setTimeout(function(){document.getElementById('pin-err').textContent='';},2000);
-  }
+  render();
 }
 
 // ── TRIP-FORMULAR ────────────────────────────────────────────────────────
@@ -503,7 +560,7 @@ function delTrip(ev,id){
   if(!t) return;
   if(!confirm('Reise „'+(t.name||'')+'" wirklich löschen?')) return;
   trips = trips.filter(function(x){return x.id!==id;});
-  saveTrips(); render();
+  deleteTripDB(id); render();
   toast('Reise gelöscht.');
 }
 function closeTripModal(){ document.getElementById('trip-modal').classList.remove('open'); }
@@ -536,7 +593,8 @@ function saveTrip(){
     status: pickedStatus,   // '' = automatisch
     note: val('t-note').trim(),
     url: url,
-    img: val('t-img').trim()
+    img: val('t-img').trim(),
+    visibility: (editingId ? (trips.find(function(x){return x.id===editingId;})||{}).visibility : 'private') || 'private'
   };
 
   if(editingId){
@@ -545,7 +603,7 @@ function saveTrip(){
   } else {
     trips.push(data);
   }
-  saveTrips();
+  saveTripDB(data);
   closeTripModal();
   render();
   toast(editingId ? 'Reise aktualisiert!' : 'Reise hinzugefügt!');
@@ -572,8 +630,15 @@ function toast(msg){
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────
-loadTrips();
-render();
+async function initApp(){
+  var res=await sb.auth.getSession();
+  if(res.data.session && res.data.session.user){
+    onLoggedIn(res.data.session.user);
+  } else {
+    showAuthScreen();
+  }
+}
+initApp();
 </script>
 </body>
 </html>
