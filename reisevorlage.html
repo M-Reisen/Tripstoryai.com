@@ -315,7 +315,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V2 · mit Hotel-Zeitraum</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V3 · Hotel-Zeitraum auch im Beleg</div>
 
 <!-- PIN -->
 <div class="overlay" id="pin-overlay" onclick="if(event.target===this)closePin()">
@@ -1393,8 +1393,8 @@ async function handleBelegFile(ev){
   const catList='Unterkunft, Flug, Transport, Ausflug, Sonstiges';
   const prompt=ctx+'Du bist ein Assistent, der Reisebelege ausliest. Analysiere den beigefügten Beleg (Rechnung, Buchungsbestätigung, Ticket, Screenshot o.ä.) und extrahiere die Daten. '
     +'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Erklärung, keine Code-Fences) in genau diesem Format:\n'
-    +'{"kostenposition":{"kategorie":"eine von: '+catList+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","details":"z.B. Referenznr, Nächte","uhrzeit":"HH:MM oder leer","personen":"Anzahl oder leer"},"tageseintrag":{"erstellen":true oder false,"datum":"YYYY-MM-DD oder leer","titel":"kurzer Titel","text":"1-2 Sätze was an dem Tag passiert, aus Belegsicht"}}\n'
-    +'Regeln: Betrag als reine Zahl ohne Währungssymbol. Wenn ein Feld nicht erkennbar ist, leeren String bzw. 0 verwenden. "tageseintrag.erstellen" nur true, wenn der Beleg eine konkrete Aktivität/Erlebnis beschreibt (z.B. Ausflug, Restaurant, Tour) — bei reinen Rechnungen/Transfers false. Für Unterkunft-Buchungen die Kategorie "Unterkunft", für Flüge "Flug", für Mietwagen/Bahn/Bus/Fähre "Transport", für Touren/Aktivitäten "Ausflug".';
+    +'{"kostenposition":{"kategorie":"eine von: '+catList+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","bis":"YYYY-MM-DD Abreisedatum nur bei Unterkunft, sonst leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","details":"z.B. Referenznr, Nächte","uhrzeit":"HH:MM oder leer","personen":"Anzahl oder leer"},"tageseintrag":{"erstellen":true oder false,"datum":"YYYY-MM-DD oder leer","titel":"kurzer Titel","text":"1-2 Sätze was an dem Tag passiert, aus Belegsicht"}}\n'
+    +'Regeln: Betrag als reine Zahl ohne Währungssymbol. Bei Unterkünften "datum"=Check-in/Anreise und "bis"=Check-out/Abreise. Wenn ein Feld nicht erkennbar ist, leeren String bzw. 0 verwenden. "tageseintrag.erstellen" nur true, wenn der Beleg eine konkrete Aktivität/Erlebnis beschreibt (z.B. Ausflug, Restaurant, Tour) — bei reinen Rechnungen/Transfers false. Für Unterkunft-Buchungen die Kategorie "Unterkunft", für Flüge "Flug", für Mietwagen/Bahn/Bus/Fähre "Transport", für Touren/Aktivitäten "Ausflug".';
   try{
     const out=await aiCallWithFile(prompt,file,1500);
     const json=parseBelegJSON(out);
@@ -1424,9 +1424,10 @@ function showBelegVorschlag(j){
   let html='<div style="font-size:.8rem;color:var(--reef);font-weight:600;margin-bottom:10px">✓ Ausgelesen – bitte prüfen und anpassen:</div>';
   html+='<div style="background:var(--paper);border-radius:10px;padding:12px;margin-bottom:12px">';
   html+='<div style="font-size:.72rem;color:var(--fog);text-transform:uppercase;margin-bottom:8px">💰 Kostenposition</div>';
-  html+='<div class="field"><label>Kategorie</label><select id="bk-cat">'+catOpts+'</select></div>';
+  html+='<div class="field"><label>Kategorie</label><select id="bk-cat" onchange="document.getElementById(\'bk-bis-wrap\').style.display=(this.value===\'Unterkunft\')?\'block\':\'none\'">'+catOpts+'</select></div>';
   html+='<div class="field"><label>Bezeichnung</label><input id="bk-label" type="text" value="'+escAttr(k.label||'')+'"></div>';
   html+='<div class="field-row"><div class="field"><label>Datum</label><input id="bk-datum" type="date" value="'+escAttr(k.datum||'')+'"></div><div class="field"><label>Betrag</label><input id="bk-amount" type="number" step="0.01" value="'+escAttr(k.betrag||'')+'"></div></div>';
+  html+='<div class="field" id="bk-bis-wrap" style="'+(k.kategorie==='Unterkunft'?'':'display:none')+'"><label>Abreise <span class="opt">(Nächte werden berechnet)</span></label><input id="bk-bis" type="date" value="'+escAttr(k.bis||'')+'"></div>';
   html+='<div class="field-row"><div class="field"><label>Währung</label><select id="bk-cur">'+curOpts+'</select></div><div class="field"><label>Details</label><input id="bk-info" type="text" value="'+escAttr(k.details||'')+'"></div></div>';
   html+='<label style="display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;text-transform:none"><input type="checkbox" id="bk-use" checked style="width:auto"> Als Kostenposition anlegen</label>';
   html+='</div>';
@@ -1453,7 +1454,10 @@ async function applyBeleg(){
     const datum=val('bk-datum')||'';
     const amt=parseFloat((val('bk-amount')||'').replace(',','.'))||0;
     const cur=val('bk-cur');
-    const info=val('bk-info').trim();
+    const infoText=val('bk-info').trim();
+    const bisEl=document.getElementById('bk-bis');
+    const bis=(cat==='Unterkunft'&&bisEl)?(bisEl.value||''):'';
+    const info=(cat==='Unterkunft'&&bis)?buildInfo(infoText,'','','',bis):infoText;
     if(label&&amt>0){
       const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
       const id=await sbSaveCost(draft);
