@@ -260,7 +260,7 @@ textarea{resize:vertical;min-height:100px;}
     </a>
     <div class="header-actions">
       <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">← Übersicht</a>
-      <button class="btn btn-ghost btn-sm" id="edit-toggle-btn" onclick="toggleEditMode()">🔑 Admin</button>
+      <button class="btn btn-ghost btn-sm" id="edit-toggle-btn" onclick="toggleEditMode()" style="display:none">✏️ Bearbeiten</button>
     </div>
   </div>
 </header>
@@ -424,26 +424,7 @@ textarea{resize:vertical;min-height:100px;}
   <div class="lightbox-nav" id="lb-nav"></div>
 </div>
 
-<div id="edit-pin-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeEditPin()">
-  <div style="background:#fff;border-radius:16px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);">
-    <div style="font-size:1.8rem;margin-bottom:10px">🔑</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:5px">Admin-Modus</div>
-    <div style="font-size:.8rem;color:var(--fog);margin-bottom:18px">PIN eingeben</div>
-    <div class="pin-dots" style="margin-bottom:16px">
-      <div class="pin-dot" id="epd0"></div><div class="pin-dot" id="epd1"></div>
-      <div class="pin-dot" id="epd2"></div><div class="pin-dot" id="epd3"></div>
-    </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="epIn('1')">1</button><button class="pin-key" onclick="epIn('2')">2</button><button class="pin-key" onclick="epIn('3')">3</button>
-      <button class="pin-key" onclick="epIn('4')">4</button><button class="pin-key" onclick="epIn('5')">5</button><button class="pin-key" onclick="epIn('6')">6</button>
-      <button class="pin-key" onclick="epIn('7')">7</button><button class="pin-key" onclick="epIn('8')">8</button><button class="pin-key" onclick="epIn('9')">9</button>
-      <button class="pin-key" style="font-size:.8rem;color:var(--fog)" onclick="epDel()">⌫</button>
-      <button class="pin-key" onclick="epIn('0')">0</button>
-      <button class="pin-key" style="font-size:.75rem;color:var(--fog)" onclick="closeEditPin()">✕</button>
-    </div>
-    <div id="ep-err" style="color:#dc2626;font-size:.77rem;margin-top:8px;min-height:15px"></div>
-  </div>
-</div>
+<div id="edit-pin-overlay" style="display:none"></div>
 
 <div id="caption-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:flex-end;justify-content:center;padding:0;" onclick="if(event.target===this)closeCaptionModal()">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.2);">
@@ -597,6 +578,20 @@ const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── AUTH / BESITZ ─────────────────────────────────────────────────────────────
+const REISE_ID='australien-2026';
+let currentUser=null, tripOwner=null, tripVisibility='private', canEdit=false;
+async function initAuth(){
+  const s=await sb.auth.getSession();
+  currentUser=(s.data.session&&s.data.session.user)?s.data.session.user:null;
+  const {data}=await sb.from('trips').select('owner,visibility').eq('id',REISE_ID).limit(1);
+  if(data&&data.length){tripOwner=data[0].owner;tripVisibility=data[0].visibility||'private';}
+  const isOwner=currentUser&&tripOwner&&currentUser.id===tripOwner;
+  canEdit=!!isOwner;
+  if(tripVisibility==='private' && !isOwner)return false;
+  return true;
+}
+
 async function sbLoadEntries(){
   const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
   if(error){console.error(error);return[];}
@@ -607,17 +602,17 @@ async function sbSaveEntry(datum,titel,text){
   const {data:existing}=await sb.from('kommentare').select('id').eq('ort',datum).not('ort','like','kommentar_%').limit(1);
   if(existing&&existing.length){
     // Aktualisieren
-    const {error}=await sb.from('kommentare').update({name:titel,nachricht:text,created_at:new Date().toISOString()}).eq('id',existing[0].id);
+    const {error}=await sb.from('kommentare').update({name:titel,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID}).eq('id',existing[0].id);
     if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
   }else{
     // Neu anlegen
-    const {error}=await sb.from('kommentare').insert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString()});
+    const {error}=await sb.from('kommentare').insert({ort:datum,name:titel,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
     if(error){alert('Speicher-Fehler: '+(error.message||JSON.stringify(error)));return false;}
   }
   return true;
 }
 async function sbSaveComment(iso,name,text){
-  const {error}=await sb.from('kommentare').insert({ort:'kommentar_'+iso+'_'+Date.now(),name:name,nachricht:text,created_at:new Date().toISOString()});
+  const {error}=await sb.from('kommentare').insert({ort:'kommentar_'+iso+'_'+Date.now(),name:name,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
   return !error;
 }
 async function sbLoadComments(iso){
@@ -740,7 +735,7 @@ async function sbSaveFX(){
     if(data&&data.length){
       await sb.from('kommentare').update({nachricht:JSON.stringify(FX)}).eq('id',data[0].id);
     }else{
-      await sb.from('kommentare').insert({ort:'fxrates',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString()});
+      await sb.from('kommentare').insert({ort:'fxrates',name:'Wechselkurse',nachricht:JSON.stringify(FX),created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
     }
     return true;
   }catch(e){toast('Fehler beim Speichern der Kurse.');return false;}
@@ -778,6 +773,19 @@ function buildDays(){
 const DAYS=buildDays();
 
 async function initApp(){
+  // Zugriff prüfen
+  let allowed=true;
+  try{allowed=await initAuth();}catch(e){console.error('Auth:',e);}
+  if(!allowed){
+    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Playfair Display,serif;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
+    return;
+  }
+  // Bearbeiten-Button nur für Besitzer
+  var eb=document.getElementById('edit-toggle-btn');
+  if(eb){
+    if(canEdit){eb.style.display='';eb.textContent='✏️ Bearbeiten';}
+    else{eb.style.display='none';}
+  }
   try{
     const db=await sbLoadEntries();
     entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
@@ -1207,8 +1215,23 @@ function renderTips(){
 function toggleTip(i){const body=document.getElementById('tip-body-'+i),arrow=document.getElementById('tip-arrow-'+i);const open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';}
 
 function toggleEditMode(){
-  if(editMode){editMode=false;document.getElementById('edit-toggle-btn').textContent='🔑 Admin';document.getElementById('edit-toggle-btn').style.background='';document.getElementById('tab-neu').style.display='none';const at=document.querySelector('.tab-btn.active');if(at&&at.id==='tab-neu')showTab('tage');buildDaySlides();try{renderCosts();}catch(e){}toast('Admin-Modus beendet.');}
-  else{editPinBuffer='';updateEpDots();document.getElementById('edit-pin-overlay').style.display='flex';}
+  if(!canEdit){toast('Nur der Besitzer kann diese Reise bearbeiten.');return;}
+  if(editMode){
+    editMode=false;
+    document.getElementById('edit-toggle-btn').textContent='✏️ Bearbeiten';
+    document.getElementById('edit-toggle-btn').style.background='';
+    document.getElementById('tab-neu').style.display='none';
+    const at=document.querySelector('.tab-btn.active');if(at&&at.id==='tab-neu')showTab('tage');
+    buildDaySlides();try{renderCosts();}catch(e){}
+  }else{
+    editMode=true;
+    document.getElementById('edit-toggle-btn').textContent='✓ Fertig';
+    document.getElementById('edit-toggle-btn').style.background='var(--sunset)';
+    document.getElementById('tab-neu').style.display='block';
+    document.getElementById('tab-kosten').style.display='block';
+    buildDaySlides();try{renderCosts();}catch(e){}
+    if(!_apiKey){var saved=loadApiKey();if(saved){_apiKey=saved;}else{setTimeout(()=>{document.getElementById('apikey-overlay').style.display='flex';},400);}}
+  }
 }
 function epIn(d){if(editPinBuffer.length>=4)return;editPinBuffer+=d;updateEpDots();if(editPinBuffer.length===4)setTimeout(checkEditPin,150);}
 function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
@@ -1381,7 +1404,7 @@ async function sbSaveExpense(iso,cat,label,amount,cur){
   // Eindeutiger ort-Wert pro Ausgabe (Zeitstempel+Zufall) → mehrere pro Tag möglich
   const uid='ausgabe_'+iso+'_'+Date.now()+Math.floor(Math.random()*1000);
   // Betrag+Währung in nachricht: "amount|currency"
-  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString()}).select();
+  const {data,error}=await sb.from('kommentare').insert({ort:uid,name:cat+'|'+label,nachricht:amount+'|'+cur,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID}).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
   return data&&data[0]?data[0].id:null;
 }
@@ -1449,7 +1472,7 @@ async function sbSavePlanCost(pc){
   const uid='plankost_'+Date.now()+Math.floor(Math.random()*1000);
   const {data,error}=await sb.from('kommentare').insert({
     ort:uid, name:pc.cat+'|'+pc.label, nachricht:pc.amount+'|'+pc.cur+'|'+(pc.datum||'')+'|'+(pc.info||''),
-    created_at:new Date().toISOString()
+    created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID
   }).select();
   if(error){toast('Fehler beim Speichern: '+(error.message||''));return null;}
   return data&&data[0]?data[0].id:null;
