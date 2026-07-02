@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reise-Route mit Landumriss · Entwurf 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;500;600&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0e1015;color:#f4f4f8;font-family:'Inter',sans-serif;padding:24px 16px;min-height:100vh;}
+.wrap{max-width:640px;margin:0 auto;}
+.intro{text-align:center;margin-bottom:22px;}
+.intro h1{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:600;margin-bottom:6px;}
+.intro p{color:#9a9aad;font-size:.9rem;}
+.routemap{position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(160deg,#f3ecdd,#e8ddc6);box-shadow:0 12px 40px rgba(0,0,0,.4);aspect-ratio:4/5;}
+.map-eyebrow{position:absolute;top:16px;left:0;right:0;text-align:center;font-family:'Caveat',cursive;font-size:1.6rem;color:#6b5836;z-index:5;}
+.map-sub{position:absolute;top:48px;left:0;right:0;text-align:center;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:#8a7a58;z-index:5;}
+svg.route{position:absolute;inset:0;width:100%;height:100%;z-index:2;}
+.status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Caveat',cursive;font-size:1.3rem;color:#8a7a58;z-index:1;}
+.legend{position:absolute;bottom:14px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:flex-end;z-index:6;}
+.legend .stat b{font-family:'Playfair Display',serif;font-size:1.3rem;color:#5a4a2e;}
+.legend .stat span{display:block;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#8a7a58;margin-top:2px;}
+.note{margin-top:20px;padding:16px;background:#181b23;border:1px solid #2a2f3c;border-radius:12px;font-size:.85rem;color:#9a9aad;line-height:1.6;}
+.note b{color:#f4f4f8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intro">
+    <h1>Entwurf 2 · mit echtem Landumriss</h1>
+    <p>Der Umriss wird automatisch geladen – hier: Kroatien</p>
+  </div>
+  <div class="routemap" id="map">
+    <div class="map-eyebrow">Kroatien 2026</div>
+    <div class="map-sub">Unsere Route</div>
+    <div class="status" id="status">Landkarte wird geladen …</div>
+    <svg class="route" id="svg" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="legend">
+      <div class="stat"><b id="stat-n">–</b><span>Stationen</span></div>
+      <div class="stat" style="text-align:right"><b id="stat-km">–</b><span>Luftlinie</span></div>
+    </div>
+  </div>
+  <div class="note"><b>So funktioniert es:</b> Der echte Umriss des Reiselandes wird automatisch aus offenen Kartendaten geladen und in Papier-Optik gezeichnet. Deine Tagesorte werden präzise darauf platziert, verbunden mit einer Fußspur. Funktioniert für jedes Land – der Umriss kommt automatisch.</div>
+</div>
+
+<script>
+var orte=[
+  {name:'Insel Pag',   tag:1, lat:44.44, lon:15.06},
+  {name:'Zadar',       tag:2, lat:44.12, lon:15.23},
+  {name:'Plitvice',    tag:3, lat:44.88, lon:15.62},
+  {name:'Krk',         tag:4, lat:45.03, lon:14.58},
+  {name:'Rovinj',      tag:5, lat:45.08, lon:13.64}
+];
+var LAND='Croatia'; // im echten Einbau automatisch aus den Orten bestimmt
+
+var svg=document.getElementById('svg'), status=document.getElementById('status');
+var W=400,H=500,pad=40;
+var NS='http://www.w3.org/2000/svg';
+function el(t,a){var e=document.createElementNS(NS,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+// Mercator-artige simple Projektion für kleine Länder reicht linear
+var bounds=null;
+function computeBounds(polys, extraPts){
+  var minLat=90,maxLat=-90,minLon=180,maxLon=-180;
+  polys.forEach(function(ring){ring.forEach(function(c){
+    if(c[0]<minLon)minLon=c[0];if(c[0]>maxLon)maxLon=c[0];
+    if(c[1]<minLat)minLat=c[1];if(c[1]>maxLat)maxLat=c[1];
+  });});
+  extraPts.forEach(function(o){
+    if(o.lon<minLon)minLon=o.lon;if(o.lon>maxLon)maxLon=o.lon;
+    if(o.lat<minLat)minLat=o.lat;if(o.lat>maxLat)maxLat=o.lat;
+  });
+  return {minLat:minLat,maxLat:maxLat,minLon:minLon,maxLon:maxLon};
+}
+function proj(lon,lat){
+  var spanLon=bounds.maxLon-bounds.minLon, spanLat=bounds.maxLat-bounds.minLat;
+  // Seitenverhältnis wahren
+  var scale=Math.min((W-2*pad)/spanLon,(H-2*pad)/spanLat);
+  var cx=(W)/2, cy=(H)/2;
+  var mlon=(bounds.minLon+bounds.maxLon)/2, mlat=(bounds.minLat+bounds.maxLat)/2;
+  var x=cx+(lon-mlon)*scale;
+  var y=cy-(lat-mlat)*scale;
+  return {x:x,y:y};
+}
+function ringToPath(ring){
+  var d='';
+  ring.forEach(function(c,i){var p=proj(c[0],c[1]);d+=(i===0?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1);});
+  return d+'Z';
+}
+function haversine(a,b){
+  var R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+
+function draw(polys){
+  bounds=computeBounds(polys, orte);
+  status.style.display='none';
+  // Landfläche
+  polys.forEach(function(ring){
+    svg.appendChild(el('path',{d:ringToPath(ring),fill:'#ded0b0',stroke:'#a8946a','stroke-width':'1.2','stroke-linejoin':'round'}));
+  });
+  // Route
+  var pts=orte.map(function(o){return proj(o.lon,o.lat);});
+  var d='M'+pts[0].x+' '+pts[0].y;
+  for(var i=1;i<pts.length;i++){
+    var pr=pts[i-1],cu=pts[i],mx=(pr.x+cu.x)/2,my=(pr.y+cu.y)/2;
+    d+=' Q'+pr.x+' '+pr.y+' '+mx+' '+my+' T'+cu.x+' '+cu.y;
+  }
+  var route=el('path',{d:d,fill:'none',stroke:'#b06a3a','stroke-width':'2.5','stroke-dasharray':'2 9','stroke-linecap':'round'});
+  svg.appendChild(route);
+  // Fußabdrücke
+  var L=route.getTotalLength(), steps=Math.max(1,Math.floor(L/24));
+  for(var s=0;s<=steps;s++){
+    var pos=route.getPointAtLength(s/steps*L);
+    var nx=route.getPointAtLength(Math.min((s+0.5)/steps*L,L));
+    var ang=Math.atan2(nx.y-pos.y,nx.x-pos.x)*180/Math.PI+90;
+    var side=(s%2===0)?3.5:-3.5;
+    var ox=Math.cos((ang-90)*Math.PI/180)*side, oy=Math.sin((ang-90)*Math.PI/180)*side;
+    svg.appendChild(el('ellipse',{cx:pos.x+ox,cy:pos.y+oy,rx:'2',ry:'3.2',fill:'#8a5a30',opacity:'0.5',transform:'rotate('+ang+' '+(pos.x+ox)+' '+(pos.y+oy)+')'}));
+  }
+  // Stationen
+  pts.forEach(function(p,i){
+    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:'6.5',fill:'#fff',stroke:'#b06a3a','stroke-width':'2.5'}));
+    svg.appendChild(el('circle',{cx:p.x,cy:p.y,r:'2.8',fill:'#b06a3a'}));
+    var num=el('text',{x:p.x,y:p.y-11,'text-anchor':'middle','font-family':'Inter','font-size':'9','font-weight':'700',fill:'#5a4a2e'});num.textContent=orte[i].tag;svg.appendChild(num);
+    var lbl=el('text',{x:p.x,y:p.y+19,'text-anchor':'middle','font-family':'Playfair Display','font-size':'10.5',fill:'#4a3a20'});lbl.textContent=orte[i].name;svg.appendChild(lbl);
+  });
+  // Statistik
+  document.getElementById('stat-n').textContent=orte.length;
+  var km=0;for(var k=1;k<orte.length;k++)km+=haversine(orte[k-1],orte[k]);
+  document.getElementById('stat-km').textContent='~'+Math.round(km)+' km';
+}
+
+// Landumriss laden (Nominatim, polygon_geojson)
+async function loadLand(){
+  try{
+    var url='https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&country='+encodeURIComponent(LAND);
+    var r=await fetch(url,{headers:{'Accept':'application/json'}});
+    var d=await r.json();
+    if(!d||!d.length||!d[0].geojson){status.textContent='Umriss nicht gefunden';return;}
+    var g=d[0].geojson, polys=[];
+    if(g.type==='Polygon'){g.coordinates.forEach(function(ring){polys.push(ring);});}
+    else if(g.type==='MultiPolygon'){g.coordinates.forEach(function(poly){poly.forEach(function(ring){polys.push(ring);});});}
+    // sehr kleine Inseln/Ringe rausfiltern, damit die Hauptform dominiert
+    polys=polys.filter(function(ring){return ring.length>20;});
+    draw(polys);
+  }catch(e){status.textContent='Konnte Umriss nicht laden';}
+}
+loadLand();
+</script>
+</body>
+</html>

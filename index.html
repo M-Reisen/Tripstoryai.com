@@ -22,7 +22,7 @@ a{color:inherit;text-decoration:none;}
 header{position:sticky;top:0;z-index:100;background:rgba(14,16,21,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
 .header-inner{max-width:1120px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;}
 .brand{display:flex;align-items:center;gap:11px;}
-.brand-mark{width:36px;height:36px;flex:0 0 auto;filter:drop-shadow(0 0 12px var(--violet-glow));}
+.brand-mark{width:38px;height:38px;flex:0 0 auto;border-radius:50%;object-fit:cover;background:#fff;padding:2px;box-shadow:0 0 0 1px rgba(255,255,255,.15),0 0 12px var(--violet-glow);}
 .brand-txt{display:flex;flex-direction:column;line-height:1;}
 .brand-name{font-family:'Sora',sans-serif;font-weight:700;font-size:1.3rem;letter-spacing:-.02em;color:#f3f1ea;}
 .brand-slogan{font-size:.6rem;letter-spacing:.1em;font-weight:600;margin-top:4px;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;color:transparent;}
@@ -87,20 +87,7 @@ main{padding:26px 0 90px;}
 <header>
   <div class="header-inner">
     <a class="brand" href="index.html">
-      <svg class="brand-mark" width="36" height="36" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-        <defs>
-          <linearGradient id="sgrad" x1="15" y1="12" x2="85" y2="88" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stop-color="#9d8bf7"/>
-            <stop offset="0.5" stop-color="#6c5ce7"/>
-            <stop offset="1" stop-color="#4a3fd6"/>
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="42" stroke="url(#sgrad)" stroke-width="8"/>
-        <g transform="rotate(-30 50 50)">
-          <path d="M16 58 Q38 40 50 50 Q62 60 84 42" stroke="url(#sgrad)" stroke-width="6.5" stroke-linecap="round"/>
-          <path d="M16 70 Q38 52 50 62 Q62 72 84 54" stroke="url(#sgrad)" stroke-width="6.5" stroke-linecap="round"/>
-        </g>
-      </svg>
+      <img class="brand-mark" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-mark.png.jpg" alt="Travona" width="36" height="36">
       <span class="brand-txt">
         <span class="brand-name">Travona</span>
         <span class="brand-slogan">Travel. Share. Remember.</span>
