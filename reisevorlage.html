@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Reisetagebuch · Travona</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -293,9 +291,9 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 <main>
   <!-- TAG FÜR TAG -->
   <div class="section active" id="section-tage">
-    <div id="reisekarte-wrap" style="display:none;margin-bottom:18px;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(28,26,22,.12);position:relative;">
-      <div id="reisekarte" style="height:260px;width:100%;background:#dfe8ea;"></div>
-      <div id="karte-status" style="position:absolute;bottom:8px;left:8px;z-index:500;background:rgba(255,255,255,.9);border-radius:8px;padding:4px 10px;font-size:.72rem;color:var(--fog);pointer-events:none;"></div>
+    <div id="reisekarte-wrap" style="display:none;margin-bottom:18px;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(28,26,22,.18);position:relative;background:linear-gradient(160deg,#f3ecdd,#e8ddc6);">
+      <svg id="reisekarte-svg" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid meet" style="width:100%;display:block;aspect-ratio:4/5;"></svg>
+      <div id="karte-status" style="position:absolute;bottom:8px;left:8px;z-index:5;background:rgba(255,255,255,.82);border-radius:8px;padding:4px 10px;font-size:.72rem;color:#6b5836;pointer-events:none;"></div>
     </div>
     <div id="tage-content"></div>
   </div>
@@ -2060,7 +2058,7 @@ function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('d
 
 // ── INIT ────────────────────────────────────────────────────────────────────
 // ── REISEKARTE ────────────────────────────────────────────────────────────────
-var _map=null, _mapLayer=null, _geoCache={}, _geoOverrides={}, _geoKorrekturIso=null;
+var _geoCache={}, _geoOverrides={}, _geoKorrekturIso=null;
 var _tagOrte={}; // manuell eingetippter Kartenort pro Tag (iso -> ortsname)
 function ortFuerTag(iso){
   // 1) manuell eingetippter Kartenort hat Vorrang
@@ -2120,54 +2118,118 @@ async function coordForDay(iso){
   if(_geoCache[key])return _geoCache[key];
   return await geocode(ort);
 }
+var _landCache={}; // land-name -> polys
+var NSVG='http://www.w3.org/2000/svg';
+function svgEl(t,a){var e=document.createElementNS(NSVG,t);for(var k in a)e.setAttribute(k,a[k]);return e;}
+function haversineKm(a,b){
+  var R=6371,dLat=(b.lat-a.lat)*Math.PI/180,dLon=(b.lon-a.lon)*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.asin(Math.sqrt(x));
+}
+// Land aus erster Koordinate per Reverse-Geocoding bestimmen
+async function landFuerKoord(pt){
+  try{
+    var url='https://nominatim.openstreetmap.org/reverse?format=json&lat='+pt.lat+'&lon='+pt.lon+'&accept-language=en';
+    var r=await fetch(url,{headers:{'Accept':'application/json'}});
+    var d=await r.json();
+    if(d&&d.address&&d.address.country)return d.address.country;
+  }catch(e){}
+  return null;
+}
+// Landumriss (GeoJSON-Polygone) laden, gecacht
+async function landUmriss(land){
+  if(_landCache[land])return _landCache[land];
+  try{
+    var url='https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&limit=1&country='+encodeURIComponent(land);
+    var r=await fetch(url,{headers:{'Accept':'application/json'}});
+    var d=await r.json();
+    if(!d||!d.length||!d[0].geojson)return null;
+    var g=d[0].geojson, polys=[];
+    if(g.type==='Polygon')g.coordinates.forEach(function(ring){polys.push(ring);});
+    else if(g.type==='MultiPolygon')g.coordinates.forEach(function(poly){poly.forEach(function(ring){polys.push(ring);});});
+    polys=polys.filter(function(ring){return ring.length>20;});
+    _landCache[land]=polys;
+    return polys;
+  }catch(e){return null;}
+}
+
 async function renderKarte(){
   var wrap=document.getElementById('reisekarte-wrap');
   var status=document.getElementById('karte-status');
-  if(typeof L==='undefined')return;
+  var svg=document.getElementById('reisekarte-svg');
+  if(!wrap||!svg)return;
   var days=buildDays();
   if(!days.length){wrap.style.display='none';return;}
   wrap.style.display='block';
-  if(!_map){
-    _map=L.map('reisekarte',{scrollWheelZoom:false});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(_map);
-    _map.setView([20,0],2);
-    _map.on('click',onKarteClick);
-  }
-  if(_mapLayer)_map.removeLayer(_mapLayer);
-  _mapLayer=L.layerGroup().addTo(_map);
   status.textContent='Orte werden ermittelt…';
-  var punkte=[], fehl=0, nr=0;
+  // Koordinaten aller Tage sammeln
+  var stationen=[], fehl=0, nr=0;
   for(var i=0;i<days.length;i++){
     var iso=days[i];
     var pt=await coordForDay(iso);
     if(pt){
       nr++;
-      var d=new Date(iso+'T12:00:00');
-      var label=d.toLocaleDateString('de-DE',{day:'numeric',month:'short'});
       var stay=stayForDay(iso);
       var ortName=stay?(parseInfo(stay.info).text||stay.label).split('·')[0].trim():'';
-      var marker=L.circleMarker([pt.lat,pt.lon],{radius:9,fillColor:'#e07b3f',color:'#fff',weight:2,fillOpacity:1}).addTo(_mapLayer);
-      marker.bindPopup('<b>Tag '+nr+' · '+label+'</b><br>'+esc(ortName));
-      (function(isoLocal){marker.on('click',function(){if(canEdit&&editMode){_geoKorrekturIso=isoLocal;status.textContent='Tippe auf die Karte, um diesen Punkt zu korrigieren.';}});})(iso);
-      punkte.push([pt.lat,pt.lon]);
-    }else{fehl++;}
-    await sleep(120);
+      stationen.push({lat:pt.lat,lon:pt.lon,tag:nr,name:ortName,iso:iso});
+    }else fehl++;
+    await sleep(60);
   }
-  if(punkte.length>1)L.polyline(punkte,{color:'#1a6b8a',weight:3,opacity:.7,dashArray:'6,6'}).addTo(_mapLayer);
-  if(punkte.length){_map.fitBounds(punkte,{padding:[30,30],maxZoom:9});status.textContent=nr+(nr===1?' Ort':' Orte')+' auf der Karte'+(fehl?(' · '+fehl+' nicht gefunden'):'');}
-  else status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';
-  setTimeout(function(){if(_map)_map.invalidateSize();},200);
+  if(!stationen.length){svg.innerHTML='';status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';return;}
+  // Land bestimmen (aus erster Station) + Umriss laden
+  status.textContent='Landkarte wird geladen…';
+  var land=await landFuerKoord(stationen[0]);
+  var polys=land?await landUmriss(land):null;
+  drawKarte(svg,stationen,polys,land);
+  status.textContent=nr+(nr===1?' Station':' Stationen')+(land?(' · '+land):'')+(fehl?(' · '+fehl+' ohne Ort'):'');
 }
-async function onKarteClick(e){
-  if(!_geoKorrekturIso||!canEdit||!editMode)return;
-  var iso=_geoKorrekturIso;_geoKorrekturIso=null;
-  var la=e.latlng.lat, lo=e.latlng.lng;
-  _geoOverrides[iso]={lat:la,lon:lo};
-  try{
-    await sb.from('kommentare').upsert({ort:PFX+'geo_'+iso,name:'geo',nachricht:la+','+lo,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
-    toast('Punkt korrigiert!');
-  }catch(e2){toast('Konnte Punkt nicht speichern.');}
-  renderKarte();
+
+function drawKarte(svg,stationen,polys,land){
+  var W=400,H=500,pad=44;
+  svg.innerHTML='';
+  // Bounds aus Umriss + Stationen
+  var minLat=90,maxLat=-90,minLon=180,maxLon=-180;
+  function acc(lon,lat){if(lon<minLon)minLon=lon;if(lon>maxLon)maxLon=lon;if(lat<minLat)minLat=lat;if(lat>maxLat)maxLat=lat;}
+  if(polys)polys.forEach(function(r){r.forEach(function(c){acc(c[0],c[1]);});});
+  stationen.forEach(function(s){acc(s.lon,s.lat);});
+  // Falls kein Umriss: etwas Rand um die Route
+  if(!polys){var dLat=(maxLat-minLat)||1,dLon=(maxLon-minLon)||1;minLat-=dLat*0.15;maxLat+=dLat*0.15;minLon-=dLon*0.15;maxLon+=dLon*0.15;}
+  var spanLon=(maxLon-minLon)||1, spanLat=(maxLat-minLat)||1;
+  var scale=Math.min((W-2*pad)/spanLon,(H-2*pad)/spanLat);
+  var mlon=(minLon+maxLon)/2, mlat=(minLat+maxLat)/2;
+  function proj(lon,lat){return {x:W/2+(lon-mlon)*scale, y:H/2-(lat-mlat)*scale};}
+  // Landfläche
+  if(polys){
+    polys.forEach(function(ring){
+      var d='';ring.forEach(function(c,i){var p=proj(c[0],c[1]);d+=(i===0?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1);});d+='Z';
+      svg.appendChild(svgEl('path',{d:d,fill:'#ded0b0',stroke:'#a8946a','stroke-width':'1.1','stroke-linejoin':'round'}));
+    });
+  }
+  // Route-Pfad
+  var pts=stationen.map(function(s){return proj(s.lon,s.lat);});
+  if(pts.length>1){
+    var d='M'+pts[0].x+' '+pts[0].y;
+    for(var i=1;i<pts.length;i++){var pr=pts[i-1],cu=pts[i],mx=(pr.x+cu.x)/2,my=(pr.y+cu.y)/2;d+=' Q'+pr.x+' '+pr.y+' '+mx+' '+my+' T'+cu.x+' '+cu.y;}
+    var route=svgEl('path',{d:d,fill:'none',stroke:'#b06a3a','stroke-width':'2.4','stroke-dasharray':'2 9','stroke-linecap':'round'});
+    svg.appendChild(route);
+    // Fußabdrücke
+    var Ln=route.getTotalLength(), steps=Math.max(1,Math.floor(Ln/24));
+    for(var s2=0;s2<=steps;s2++){
+      var pos=route.getPointAtLength(s2/steps*Ln);
+      var nx=route.getPointAtLength(Math.min((s2+0.5)/steps*Ln,Ln));
+      var ang=Math.atan2(nx.y-pos.y,nx.x-pos.x)*180/Math.PI+90;
+      var side=(s2%2===0)?3.4:-3.4;
+      var ox=Math.cos((ang-90)*Math.PI/180)*side, oy=Math.sin((ang-90)*Math.PI/180)*side;
+      svg.appendChild(svgEl('ellipse',{cx:pos.x+ox,cy:pos.y+oy,rx:'2',ry:'3.2',fill:'#8a5a30',opacity:'0.5',transform:'rotate('+ang+' '+(pos.x+ox)+' '+(pos.y+oy)+')'}));
+    }
+  }
+  // Stationen
+  pts.forEach(function(p,i){
+    svg.appendChild(svgEl('circle',{cx:p.x,cy:p.y,r:'6.5',fill:'#fff',stroke:'#b06a3a','stroke-width':'2.4'}));
+    svg.appendChild(svgEl('circle',{cx:p.x,cy:p.y,r:'2.8',fill:'#b06a3a'}));
+    var num=svgEl('text',{x:p.x,y:p.y-11,'text-anchor':'middle','font-family':'Inter,sans-serif','font-size':'9','font-weight':'700',fill:'#5a4a2e'});num.textContent=stationen[i].tag;svg.appendChild(num);
+    if(stationen[i].name){var lbl=svgEl('text',{x:p.x,y:p.y+19,'text-anchor':'middle','font-family':'Playfair Display,serif','font-size':'10.5',fill:'#4a3a20'});lbl.textContent=stationen[i].name;svg.appendChild(lbl);}
+  });
 }
 // Manuell eingetippten Kartenort für einen Tag speichern
 async function saveTagOrt(iso){
