@@ -13,12 +13,12 @@
   --bush:#8b7cf6;--paper:#0e1015;--ink:#f4f4f8;--fog:#9a9aad;
   --white:#181b23;--radius:16px;--shadow:0 8px 32px rgba(0,0,0,.4);
   --planned:#c79030;--running:#8b7cf6;--done:#7db4f0;
-  --surface2:#1f232e;--line:#2a2f3c;--violet:#6c5ce7;--violet-lite:#8b7cf6;--violet-glow:rgba(108,92,231,.35);
+  --bg:#0e1015;--surface2:#1f232e;--line:#2a2f3c;--violet:#6c5ce7;--violet-lite:#8b7cf6;--violet-glow:rgba(108,92,231,.35);
 }
 body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
 
 /* HEADER */
-header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
+header{background:var(--surface2);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
 .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
 .logo{display:flex;align-items:center;gap:9px;}
 .logo .mark{font-size:1.9rem;line-height:1;}
@@ -31,7 +31,7 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .btn-sm{padding:6px 12px;font-size:.76rem;}
 
 /* HERO — Nachthimmel, „Logbuch" */
-.hero{position:relative;overflow:hidden;background:radial-gradient(120% 130% at 50% -10%,#16314a 0%,#0d1f33 45%,#0a1626 100%);padding:64px 24px 56px;text-align:center;color:var(--sand);}
+.hero{position:relative;overflow:hidden;background:radial-gradient(70% 60% at 50% -5%,rgba(108,92,231,.28),transparent 70%),var(--bg);padding:64px 24px 56px;text-align:center;color:var(--sand);}
 .hero-stars{position:absolute;inset:0;pointer-events:none;
   background-image:
     radial-gradient(1.5px 1.5px at 12% 24%,rgba(255,255,220,.8),transparent),
@@ -59,7 +59,7 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 /* FILTER */
 .filters{display:flex;gap:7px;flex-wrap:wrap;}
 .filter-chip{font-size:.78rem;font-weight:500;padding:6px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);color:var(--fog);cursor:pointer;transition:all .16s;}
-.filter-chip.active{background:var(--ink);color:var(--sand);border-color:var(--ink);}
+.filter-chip.active{background:var(--violet);color:#fff;border-color:var(--violet);}
 .filter-chip:hover:not(.active){border-color:var(--sunset);color:var(--sunset);}
 
 /* GRID */
@@ -78,7 +78,10 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .trip-cover-fallback .big{font-size:3.4rem;opacity:.9;filter:drop-shadow(0 3px 8px rgba(0,0,0,.3));}
 
 /* Stempel-Status */
-.stamp{position:absolute;top:13px;right:13px;z-index:3;font-family:'Caveat',cursive;font-weight:700;font-size:.9rem;letter-spacing:.02em;padding:5px 12px;border-radius:6px;border:2px solid;transform:rotate(5deg);text-transform:uppercase;background:rgba(255,255,255,.14);backdrop-filter:blur(2px);}
+.stamp{position:absolute;top:13px;right:13px;z-index:3;font-family:'Inter',sans-serif;font-weight:600;font-size:.65rem;letter-spacing:.06em;padding:5px 11px;border-radius:100px;border:1px solid rgba(255,255,255,.25);transform:none;text-transform:uppercase;background:rgba(14,16,21,.55);backdrop-filter:blur(6px);color:#fff;}
+.stamp.stamp-planned{border-color:rgba(139,124,246,.6);}
+.stamp.stamp-running{border-color:rgba(125,180,240,.6);}
+.stamp.stamp-done{border-color:rgba(255,255,255,.3);}
 .stamp-planned{color:#fcd9b0;border-color:#fcd9b0;}
 .stamp-running{color:#9ff0e6;border-color:#9ff0e6;}
 .stamp-done{color:#cfe3b3;border-color:#cfe3b3;}
@@ -187,21 +190,20 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 
 <header>
   <div class="header-inner">
-    <div class="logo">
-      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" aria-hidden="true" style="flex:0 0 auto;filter:drop-shadow(0 0 8px var(--violet-glow));">
+    <a class="logo" href="index.html" style="text-decoration:none;">
+      <svg width="32" height="32" viewBox="0 0 100 100" fill="none" aria-hidden="true" style="flex:0 0 auto;filter:drop-shadow(0 0 10px var(--violet-glow));">
         <defs><linearGradient id="mkgrad1" x1="15" y1="12" x2="85" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9d8bf7"/><stop offset="0.5" stop-color="#6c5ce7"/><stop offset="1" stop-color="#4a3fd6"/></linearGradient></defs>
         <circle cx="50" cy="50" r="42" stroke="url(#mkgrad1)" stroke-width="8"/>
         <g transform="rotate(-30 50 50)"><path d="M16 58 Q38 40 50 50 Q62 60 84 42" stroke="url(#mkgrad1)" stroke-width="6.5" stroke-linecap="round"/><path d="M16 70 Q38 52 50 62 Q62 72 84 54" stroke="url(#mkgrad1)" stroke-width="6.5" stroke-linecap="round"/></g>
       </svg>
       <span style="display:flex;flex-direction:column;line-height:1.05;">
-        <span class="txt" style="font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em;"><em>T</em>ravona</span>
-        <span style="font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.06em;font-weight:600;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">Travel. Share. Remember.</span>
+        <span style="font-family:'Sora',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:-.02em;color:#f3f1ea;">Travona</span>
+        <span style="font-family:'Inter',sans-serif;font-size:.58rem;letter-spacing:.06em;font-weight:600;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">Travel. Share. Remember.</span>
       </span>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-      <span id="user-email" style="display:none;"></span>
-      <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">🌍 Community</a>
-      <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">✏️ Bearbeiten</button>
+    </a>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+      <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">Community</a>
+      <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">Bearbeiten</button>
       <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none;">Abmelden</button>
     </div>
   </div>
@@ -209,7 +211,7 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Meine Reisen · V4 dunkel</div>
+  <div class="hero-eyebrow">Meine Reisen</div>
   <h1>Wohin als <em>Nächstes</em>?</h1>
   <div class="hero-sub">Jede Reise bekommt ihr eigenes Tagebuch — mit Fotos, Tagesberichten und Erinnerungen. Hier sammeln sich alle an einem Ort.</div>
   <div class="hero-stats">
@@ -523,9 +525,9 @@ function cardHTML(t){
 }
 
 function coverGradient(st){
-  if(st==='laeuft') return 'linear-gradient(140deg,#0d6e63,#0a3d4a)';
-  if(st==='fertig') return 'linear-gradient(140deg,#4a6534,#2a3d1a)';
-  return 'linear-gradient(140deg,#b4651f,#7a3d10)';  // geplant
+  if(st==='laeuft') return 'linear-gradient(140deg,#6c5ce7,#3a2f8f)';
+  if(st==='fertig') return 'linear-gradient(140deg,#4a5568,#252b38)';
+  return 'linear-gradient(140deg,#7d6ef0,#4a3fd6)';  // geplant
 }
 
 function updateStats(){
