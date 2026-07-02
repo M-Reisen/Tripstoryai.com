@@ -596,6 +596,17 @@ async function doLogout(){
   await sb.auth.signOut();
   location.href='index.html';
 }
+// ── KI über sichere Edge Function ───────────────────────────
+var AI_PROXY_URL=SUPABASE_URL+'/functions/v1/ai-proxy';
+async function aiAuthHeaders(){
+  var h={'Content-Type':'application/json'};
+  try{
+    var s=await sb.auth.getSession();
+    var tok=(s.data.session&&s.data.session.access_token)?s.data.session.access_token:'';
+    if(tok)h['Authorization']='Bearer '+tok;
+  }catch(e){}
+  return h;
+}
 
 async function sbLoadEntries(){
   const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
@@ -1117,15 +1128,15 @@ async function aiFormuliere(){
   const titel=document.getElementById('f-titel').value.trim();
   const kat=document.getElementById('f-kategorie').value;
   if(!notizen){toast('Bitte erst Stichpunkte eingeben.');return;}
-  if(!_apiKey){_apiKey=loadApiKey();}
-  if(!_apiKey){document.getElementById('apikey-overlay').style.display='flex';toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!currentUser){toast('Bitte zuerst anmelden.');return;}
   const box=document.getElementById('ai-formbox'),res=document.getElementById('ai-form-result');
   box.style.display='block';res.className='ai-result loading';res.textContent='KI schreibt euren Australien-Eintrag …';
   const prompt=`Du bist ein enthusiastischer Reiseblogger auf Australien-Reise durch Queensland. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 150–200 Wörter). Wir-Form (Pärchen). Stil: warm, bildhaft, authentisch.\n\nOrt: ${ort||'Queensland'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}\nStichpunkte:\n${notizen}\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.`;
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const headers=await aiAuthHeaders();
+    const r=await fetch(AI_PROXY_URL,{method:'POST',headers:headers,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     const d=await r.json();
-    if(d.error){res.className='ai-result';res.textContent='Fehler: '+(d.error.message||'API-Fehler');if(d.error.type==='authentication_error'){_apiKey='';}return;}
+    if(d.error){res.className='ai-result';res.textContent='Fehler: '+((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');return;}
     res.className='ai-result';res.textContent=d.content?d.content.map(c=>c.text||'').join(''):'Keine Antwort.';
   }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
 }
@@ -1326,16 +1337,16 @@ async function polishReviewText(){
   var ta=document.getElementById('rev-text');
   var raw=ta.value.trim();
   if(!raw){toast('Bitte erst Text eingeben.');return;}
-  if(!_apiKey){_apiKey=loadApiKey();}
-  if(!_apiKey){document.getElementById('apikey-overlay').style.display='flex';toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!currentUser){toast('Bitte zuerst anmelden.');return;}
   var orig=raw;ta.disabled=true;ta.value='✨ Text wird verbessert…';
   var hotel=document.getElementById('rev-hotel-name').textContent;
   var prompt='Du verbesserst eine Hotelbewertung. Mache den folgenden Text flüssiger, lebendiger und ansprechender, aber behalte alle inhaltlichen Aussagen bei. Antworte auf Deutsch und gib NUR den verbesserten Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+orig;
   try{
-    var resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
+    var headers=await aiAuthHeaders();
+    var resp=await fetch(AI_PROXY_URL,{method:'POST',headers:headers,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
     var d=await resp.json();
     ta.disabled=false;
-    if(d.error){ta.value=orig;toast('Fehler: '+(d.error.message||'API-Fehler'));if(d.error.type==='authentication_error'){_apiKey='';}return;}
+    if(d.error){ta.value=orig;toast('Fehler: '+((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler'));return;}
     var out=d.content?d.content.map(function(c){return c.text||'';}).join('').trim():'';
     if(out){ta.value=out;toast('✓ Text verbessert!');}
     else{ta.value=orig;toast('Keine Antwort erhalten.');}

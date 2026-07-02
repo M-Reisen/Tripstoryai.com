@@ -318,7 +318,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V8 · Logout ergänzt</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V9 · KI über sicheren Server</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1282,24 +1282,35 @@ function openApiKey(){
 }
 function closeApiKey(){document.getElementById('apikey-overlay').classList.remove('open');}
 function ensureApiKey(){
-  if(!_apiKey)_apiKey=loadApiKey();
-  if(!_apiKey){openApiKey();return false;}
+  // KI läuft jetzt über die Edge Function – es genügt, eingeloggt zu sein.
+  if(!currentUser){toast('Bitte melde dich an, um die KI-Funktionen zu nutzen.');return false;}
   return true;
 }
 
-// ── KI: Eintrag aus Stichpunkten / Text verschönern ───────────────────────────
+// ── KI über sichere Edge Function (kein Nutzer-Key mehr nötig) ───────────────
+var AI_PROXY_URL=SUPABASE_URL+'/functions/v1/ai-proxy';
+async function aiAuthHeaders(){
+  var h={'Content-Type':'application/json'};
+  try{
+    var s=await sb.auth.getSession();
+    var tok=(s.data.session&&s.data.session.access_token)?s.data.session.access_token:'';
+    if(tok)h['Authorization']='Bearer '+tok;
+  }catch(e){}
+  return h;
+}
 async function aiCall(prompt,maxTokens){
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
+  const headers=await aiAuthHeaders();
+  const r=await fetch(AI_PROXY_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    headers:headers,
     body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1000,messages:[{role:'user',content:prompt}]})
   });
   const d=await r.json();
-  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  if(d.error){throw new Error((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');}
   return d.content?d.content.map(c=>c.text||'').join(''):'';
 }
 async function aiWriteEntry(){
-  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
   const notes=val('entry-notes').trim();
   if(!notes){toast('Bitte erst Stichpunkte eingeben.');return;}
   const ort=val('entry-ort').trim()||(tripHead.sub||tripHead.title||'unsere Reise');
@@ -1312,7 +1323,7 @@ async function aiWriteEntry(){
   btn.textContent=orig;btn.disabled=false;
 }
 async function aiPolishReview(){
-  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
   const raw=val('rev-text').trim();
   if(!raw){toast('Bitte erst Text eingeben.');return;}
   const hotel=document.getElementById('rev-hotel-name').textContent;
@@ -1374,17 +1385,18 @@ async function aiCallWithFile(promptText,file,maxTokens){
     if(!/^image\//.test(mt))mt='image/jpeg';
     fileBlock={type:'image',source:{type:'base64',media_type:mt,data:base64}};
   }
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
+  const headers=await aiAuthHeaders();
+  const r=await fetch(AI_PROXY_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':_apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    headers:headers,
     body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens||1500,messages:[{role:'user',content:[fileBlock,{type:'text',text:promptText}]}]})
   });
   const d=await r.json();
-  if(d.error){if(d.error.type==='authentication_error')_apiKey='';throw new Error(d.error.message||'API-Fehler');}
+  if(d.error){throw new Error((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');}
   return d.content?d.content.map(c=>c.text||'').join(''):'';
 }
 function openBeleg(){
-  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
   _belegVorschlag=null;
   document.getElementById('beleg-status').innerHTML='';
   document.getElementById('beleg-result').style.display='none';
@@ -1394,7 +1406,7 @@ function openBeleg(){
 function closeBelegModal(){document.getElementById('beleg-modal').classList.remove('open');}
 async function handleBelegFile(ev){
   const file=ev.target.files[0];if(!file)return;
-  if(!ensureApiKey()){toast('Bitte zuerst API-Key eingeben.');return;}
+  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
   const status=document.getElementById('beleg-status');
   status.innerHTML='<div style="color:var(--fog);font-size:.85rem;padding:10px 0">⏳ Beleg wird ausgelesen… (kann 10–20 Sek. dauern)</div>';
   document.getElementById('beleg-result').style.display='none';
