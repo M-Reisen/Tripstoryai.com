@@ -321,7 +321,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V13 · Fußspur-Karte</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V14 · Karte mehrere Länder</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -2173,20 +2173,33 @@ async function renderKarte(){
     await sleep(60);
   }
   if(!stationen.length){svg.innerHTML='';status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';return;}
-  // Länder aller Stationen bestimmen (jede Koordinate)
   status.textContent='Landkarte wird geladen…';
+  // Bounding-Box aller Stationen
+  var laMin=90,laMax=-90,loMin=180,loMax=-180;
+  stationen.forEach(function(s){if(s.lat<laMin)laMin=s.lat;if(s.lat>laMax)laMax=s.lat;if(s.lon<loMin)loMin=s.lon;if(s.lon>loMax)loMax=s.lon;});
+  // Raster über die Box abtasten → alle enthaltenen Länder (füllt Zwischenländer)
   var laender=[];
-  for(var li=0;li<stationen.length;li++){
-    var lnd=await landFuerKoord(stationen[li]);
-    if(lnd&&laender.indexOf(lnd)<0)laender.push(lnd);
-    await sleep(60);
+  var GR=4; // Rasterdichte pro Achse
+  var stepLa=(laMax-laMin)/GR, stepLo=(loMax-loMin)/GR;
+  for(var gi=0;gi<=GR;gi++){
+    for(var gj=0;gj<=GR;gj++){
+      var plat=laMin+stepLa*gi, plon=loMin+stepLo*gj;
+      var lnd=await landFuerKoord({lat:plat,lon:plon});
+      if(lnd&&laender.indexOf(lnd)<0)laender.push(lnd);
+      await sleep(40);
+    }
   }
-  // Umrisse aller betroffenen Länder laden und zusammenführen
+  // sicherheitshalber die exakten Stationsländer auch prüfen
+  for(var li=0;li<stationen.length;li++){
+    var lnd2=await landFuerKoord(stationen[li]);
+    if(lnd2&&laender.indexOf(lnd2)<0)laender.push(lnd2);
+  }
+  // Umrisse aller gefundenen Länder laden und zusammenführen
   var allePolys=[];
   for(var ui=0;ui<laender.length;ui++){
     var p=await landUmriss(laender[ui]);
     if(p)allePolys=allePolys.concat(p);
-    await sleep(60);
+    await sleep(40);
   }
   drawKarte(svg,stationen,allePolys.length?allePolys:null,laender.join(' · '));
   status.textContent=nr+(nr===1?' Station':' Stationen')+(laender.length?(' · '+laender.join(', ')):'')+(fehl?(' · '+fehl+' ohne Ort'):'');
