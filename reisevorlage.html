@@ -318,7 +318,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V9 · KI über sicheren Server</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V10 · Kosten für Besitzer scharf</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1638,7 +1638,7 @@ function saveFxRate(cur){
 
 // ── KOSTEN UI ─────────────────────────────────────────────────────────────────
 function renderCosts(){
-  const pc=editMode?'':'price-blur';
+  const pc=canEdit?'':'price-blur';
   const bb=document.getElementById('beleg-btn');if(bb)bb.style.display=editMode?'inline-flex':'none';
   let total=0,html='';
   PLAN_CATS.forEach(function(cat){
@@ -1827,7 +1827,7 @@ function renderAusfluege(){
       +'<div class="ausflug-title">🎟️ '+esc(c.label)+'</div>'
       +(pi.text?'<div class="ausflug-info">'+esc(pi.text)+'</div>':'')
       +(meta.length?'<div class="ausflug-meta">'+meta.join(' · ')+'</div>':'')
-      +'<div class="ausflug-price '+(editMode?'':'price-blur')+'">'+amtStr+'</div>'
+      +'<div class="ausflug-price '+(canEdit?'':'price-blur')+'">'+amtStr+'</div>'
       +btns
       +'</div></div>';
   }).join('')+'</div>';
