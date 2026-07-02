@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Reisetagebuch · M-Reisen</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -284,6 +286,10 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 <main>
   <!-- TAG FÜR TAG -->
   <div class="section active" id="section-tage">
+    <div id="reisekarte-wrap" style="display:none;margin-bottom:18px;border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(28,26,22,.12);position:relative;">
+      <div id="reisekarte" style="height:260px;width:100%;background:#dfe8ea;"></div>
+      <div id="karte-status" style="position:absolute;bottom:8px;left:8px;z-index:500;background:rgba(255,255,255,.9);border-radius:8px;padding:4px 10px;font-size:.72rem;color:var(--fog);pointer-events:none;"></div>
+    </div>
     <div id="tage-content"></div>
   </div>
 
@@ -318,7 +324,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V10 · Kosten für Besitzer scharf</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V11 · Reisekarte</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1500,7 +1506,7 @@ async function applyBeleg(){
     }
   }
   closeBelegModal();
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();renderRoute();
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();renderRoute();if(typeof renderKarte==='function')renderKarte();
   toast(done.length?('✓ '+done.join(' & ')+' angelegt!'):'Nichts ausgewählt.');
 }
 function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -1763,7 +1769,7 @@ async function delCostEl(btn){
   const ok=await sbDeleteCost(c.id);
   if(!ok){toast('Löschen fehlgeschlagen.');return;}
   costs=costs.filter(x=>String(x.id)!==String(id));
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();toast('Position gelöscht.');
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();if(typeof renderKarte==='function')renderKarte();toast('Position gelöscht.');
 }
 function updateCostPreview(){
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
@@ -1795,7 +1801,7 @@ async function saveCost(){
     toast('Position hinzugefügt!');
   }
   document.getElementById('cost-modal').classList.remove('open');
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();
+  renderCosts();renderHead();buildDaySlides();renderAusfluege();if(typeof renderKarte==='function')renderKarte();
 }
 function closeCostModal(){document.getElementById('cost-modal').classList.remove('open');}
 
@@ -2040,6 +2046,105 @@ async function createPhotobook(){
 function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
 
 // ── INIT ────────────────────────────────────────────────────────────────────
+// ── REISEKARTE ────────────────────────────────────────────────────────────────
+var _map=null, _mapLayer=null, _geoCache={}, _geoOverrides={}, _geoKorrekturIso=null;
+function ortFuerTag(iso){
+  var stay=stayForDay(iso);
+  if(!stay)return null;
+  var pi=parseInfo(stay.info);
+  var ort=(pi.text&&pi.text.split('·')[0].trim())||stay.label.split('·')[0].trim();
+  return ort||null;
+}
+async function loadGeoCache(){
+  try{
+    var r=await sb.from('geo_cache').select('ort,lat,lon');
+    if(r.data){r.data.forEach(function(g){_geoCache[g.ort.toLowerCase()]={lat:g.lat,lon:g.lon};});}
+  }catch(e){}
+  try{
+    var r2=await sb.from('kommentare').select('ort,nachricht').like('ort',PFX+'geo\\_%');
+    if(r2.data){r2.data.forEach(function(row){
+      var iso=row.ort.substring((PFX+'geo_').length);
+      var p=(row.nachricht||'').split(',');
+      if(p.length===2){var la=parseFloat(p[0]),lo=parseFloat(p[1]);if(!isNaN(la)&&!isNaN(lo))_geoOverrides[iso]={lat:la,lon:lo};}
+    });}
+  }catch(e){}
+}
+async function geocode(ort){
+  if(!ort)return null;
+  var key=ort.toLowerCase();
+  if(_geoCache[key])return _geoCache[key];
+  try{
+    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(ort);
+    var r=await fetch(url,{headers:{'Accept':'application/json'}});
+    var d=await r.json();
+    if(d&&d.length){
+      var pt={lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
+      _geoCache[key]=pt;
+      if(currentUser){try{await sb.from('geo_cache').upsert({ort:ort,lat:pt.lat,lon:pt.lon});}catch(e){}}
+      return pt;
+    }
+  }catch(e){}
+  return null;
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+async function coordForDay(iso){
+  if(_geoOverrides[iso])return _geoOverrides[iso];
+  var ort=ortFuerTag(iso);
+  if(!ort)return null;
+  var key=ort.toLowerCase();
+  if(_geoCache[key])return _geoCache[key];
+  return await geocode(ort);
+}
+async function renderKarte(){
+  var wrap=document.getElementById('reisekarte-wrap');
+  var status=document.getElementById('karte-status');
+  if(typeof L==='undefined')return;
+  var days=buildDays();
+  if(!days.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  if(!_map){
+    _map=L.map('reisekarte',{scrollWheelZoom:false});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(_map);
+    _map.setView([20,0],2);
+    _map.on('click',onKarteClick);
+  }
+  if(_mapLayer)_map.removeLayer(_mapLayer);
+  _mapLayer=L.layerGroup().addTo(_map);
+  status.textContent='Orte werden ermittelt…';
+  var punkte=[], fehl=0, nr=0;
+  for(var i=0;i<days.length;i++){
+    var iso=days[i];
+    var pt=await coordForDay(iso);
+    if(pt){
+      nr++;
+      var d=new Date(iso+'T12:00:00');
+      var label=d.toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+      var stay=stayForDay(iso);
+      var ortName=stay?(parseInfo(stay.info).text||stay.label).split('·')[0].trim():'';
+      var marker=L.circleMarker([pt.lat,pt.lon],{radius:9,fillColor:'#e07b3f',color:'#fff',weight:2,fillOpacity:1}).addTo(_mapLayer);
+      marker.bindPopup('<b>Tag '+nr+' · '+label+'</b><br>'+esc(ortName));
+      (function(isoLocal){marker.on('click',function(){if(canEdit&&editMode){_geoKorrekturIso=isoLocal;status.textContent='Tippe auf die Karte, um diesen Punkt zu korrigieren.';}});})(iso);
+      punkte.push([pt.lat,pt.lon]);
+    }else{fehl++;}
+    await sleep(120);
+  }
+  if(punkte.length>1)L.polyline(punkte,{color:'#1a6b8a',weight:3,opacity:.7,dashArray:'6,6'}).addTo(_mapLayer);
+  if(punkte.length){_map.fitBounds(punkte,{padding:[30,30],maxZoom:9});status.textContent=nr+(nr===1?' Ort':' Orte')+' auf der Karte'+(fehl?(' · '+fehl+' nicht gefunden'):'');}
+  else status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';
+  setTimeout(function(){if(_map)_map.invalidateSize();},200);
+}
+async function onKarteClick(e){
+  if(!_geoKorrekturIso||!canEdit||!editMode)return;
+  var iso=_geoKorrekturIso;_geoKorrekturIso=null;
+  var la=e.latlng.lat, lo=e.latlng.lng;
+  _geoOverrides[iso]={lat:la,lon:lo};
+  try{
+    await sb.from('kommentare').upsert({ort:PFX+'geo_'+iso,name:'geo',nachricht:la+','+lo,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
+    toast('Punkt korrigiert!');
+  }catch(e2){toast('Konnte Punkt nicht speichern.');}
+  renderKarte();
+}
+
 async function init(){
   if(!REISE){
     document.getElementById('hero-eyebrow').textContent='Hinweis';
@@ -2073,6 +2178,8 @@ async function init(){
   try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
   _apiKey=loadApiKey();
   renderHead();renderTage();
+  // Reisekarte laden (Geocache zuerst, dann zeichnen)
+  try{await loadGeoCache();renderKarte();}catch(e){console.error('Karte:',e);}
 }
 init();
 </script>
