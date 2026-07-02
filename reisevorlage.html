@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Reisetagebuch · M-Reisen</title>
+<title>Reisetagebuch · Soreva</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -253,7 +253,10 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
   <div class="header-inner">
     <a class="logo" href="index.html">
       <span class="mark">🧳</span>
-      <span class="txt"><em>M</em>-Reisen</span>
+      <span style="display:flex;flex-direction:column;line-height:1.05;">
+        <span class="txt"><em>S</em>oreva</span>
+        <span style="font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.08em;color:rgba(240,230,204,.6);text-transform:uppercase;">Travel. Share. Remember.</span>
+      </span>
     </a>
     <div class="header-actions">
       <a class="btn btn-ghost btn-sm" href="index.html">← Übersicht</a>
@@ -324,7 +327,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">M-Reisen · Vorlage V11 · Reisekarte</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Soreva · Vorlage V12 · Soreva + Kartenort-Feld</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1116,6 +1119,12 @@ function renderDayCard(days){
     +bannerHTML
     +revHTML
     +`<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">📍 ${esc(loc)}</div></div>`
+    +(editMode?('<div style="background:#f3ede2;border-radius:10px;padding:10px 12px;margin:8px 0;">'
+        +'<label style="font-size:.72rem;color:var(--fog);display:block;margin-bottom:4px;">🗺️ Ort für die Karte <span style="opacity:.7">(z.B. Stadt – überschreibt die Unterkunft)</span></label>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<input id="tagort-input" type="text" value="'+escAttr(_tagOrte[iso]||'')+'" placeholder="'+escAttr(ortFuerTag(iso)||'Ort eingeben')+'" style="flex:1;padding:7px 10px;border:1px solid #d8cfc2;border-radius:8px;font-size:.85rem;">'
+        +'<button class="btn btn-primary btn-sm" onclick="saveTagOrt(\''+iso+'\')">Setzen</button>'
+        +'</div></div>'):'')
     +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
     +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
@@ -1978,7 +1987,7 @@ async function createPhotobook(){
     else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
   }
   const stations=Array.from(new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label.split('·')[0].trim()))).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">M-Reisen · tripstoryai.com</div></div>';
+  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Soreva · tripstoryai.com</div></div>';
   // ── CSS ──
   const css='<style>'
     +'@page{size:A4 landscape;margin:0;}'
@@ -2048,7 +2057,11 @@ function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('d
 // ── INIT ────────────────────────────────────────────────────────────────────
 // ── REISEKARTE ────────────────────────────────────────────────────────────────
 var _map=null, _mapLayer=null, _geoCache={}, _geoOverrides={}, _geoKorrekturIso=null;
+var _tagOrte={}; // manuell eingetippter Kartenort pro Tag (iso -> ortsname)
 function ortFuerTag(iso){
+  // 1) manuell eingetippter Kartenort hat Vorrang
+  if(_tagOrte[iso]&&_tagOrte[iso].trim())return _tagOrte[iso].trim();
+  // 2) sonst aus Unterkunft ableiten
   var stay=stayForDay(iso);
   if(!stay)return null;
   var pi=parseInfo(stay.info);
@@ -2066,6 +2079,14 @@ async function loadGeoCache(){
       var iso=row.ort.substring((PFX+'geo_').length);
       var p=(row.nachricht||'').split(',');
       if(p.length===2){var la=parseFloat(p[0]),lo=parseFloat(p[1]);if(!isNaN(la)&&!isNaN(lo))_geoOverrides[iso]={lat:la,lon:lo};}
+    });}
+  }catch(e){}
+  // manuell eingetippte Kartenorte laden (PFX+'ort_<iso>')
+  try{
+    var r3=await sb.from('kommentare').select('ort,nachricht').like('ort',PFX+'ort\\_%');
+    if(r3.data){r3.data.forEach(function(row){
+      var iso=row.ort.substring((PFX+'ort_').length);
+      if(row.nachricht)_tagOrte[iso]=row.nachricht;
     });}
   }catch(e){}
 }
@@ -2142,6 +2163,22 @@ async function onKarteClick(e){
     await sb.from('kommentare').upsert({ort:PFX+'geo_'+iso,name:'geo',nachricht:la+','+lo,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
     toast('Punkt korrigiert!');
   }catch(e2){toast('Konnte Punkt nicht speichern.');}
+  renderKarte();
+}
+// Manuell eingetippten Kartenort für einen Tag speichern
+async function saveTagOrt(iso){
+  var inp=document.getElementById('tagort-input');
+  if(!inp)return;
+  var wert=inp.value.trim();
+  _tagOrte[iso]=wert;
+  // Override löschen, damit der neue Ort frisch geocodiert wird
+  delete _geoOverrides[iso];
+  try{
+    await sb.from('kommentare').upsert({ort:PFX+'ort_'+iso,name:'ort',nachricht:wert,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE});
+    // auch evtl. alten Geo-Override in DB entfernen
+    try{await sb.from('kommentare').delete().eq('ort',PFX+'geo_'+iso);}catch(e3){}
+    toast(wert?'Kartenort gespeichert!':'Kartenort entfernt.');
+  }catch(e2){toast('Konnte Ort nicht speichern.');}
   renderKarte();
 }
 
