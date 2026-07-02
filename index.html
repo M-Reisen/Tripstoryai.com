@@ -269,6 +269,21 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
         <input type="text" id="t-img" placeholder="https://…">
         <div class="help">Leer lassen für einen Emoji-Hintergrund.</div>
       </div>
+      <div class="field">
+        <label>Sichtbarkeit</label>
+        <div class="status-pick" id="vis-pick">
+          <div class="status-opt" data-v="private" onclick="pickVis('private')">🔒 Privat</div>
+          <div class="status-opt" data-v="link" onclick="pickVis('link')">🔗 Per Link</div>
+          <div class="status-opt" data-v="public" onclick="pickVis('public')">🌍 Öffentlich</div>
+        </div>
+        <div class="help" id="vis-help">Privat: nur du. Per Link: jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
+        <div id="share-box" style="display:none;margin-top:10px;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="share-link" readonly style="flex:1;font-size:.78rem;background:var(--paper);">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="copyShareLink()" style="white-space:nowrap;">📋 Kopieren</button>
+          </div>
+        </div>
+      </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeTripModal()">Abbrechen</button>
         <button class="btn-save" onclick="saveTrip()">Reise speichern</button>
@@ -294,6 +309,7 @@ var adminMode = false;   // hier: "Bearbeiten-Modus" für eingeloggten Besitzer
 var activeFilter = 'alle';
 var editingId = null;
 var pickedStatus = '';
+var pickedVis = 'private';
 
 // ── AUTH ─────────────────────────────────────────────────────────────────
 function showAuthMsg(txt,ok){
@@ -541,6 +557,7 @@ function openNewTrip(){
   setField('t-loc',''); setField('t-from',''); setField('t-to','');
   setField('t-note',''); setField('t-url',''); setField('t-img','');
   pickStatus('');
+  pickVis('private');
   document.getElementById('trip-modal').classList.add('open');
 }
 function editTrip(ev,id){
@@ -553,6 +570,7 @@ function editTrip(ev,id){
   setField('t-loc',t.loc||''); setField('t-from',t.from||''); setField('t-to',t.to||'');
   setField('t-note',t.note||''); setField('t-url',t.url||''); setField('t-img',t.img||'');
   pickStatus(t.status||'');
+  pickVis(t.visibility||'private');
   document.getElementById('trip-modal').classList.add('open');
 }
 function delTrip(ev,id){
@@ -568,9 +586,47 @@ function closeTripModal(){ document.getElementById('trip-modal').classList.remov
 
 function pickStatus(s){
   pickedStatus = s;
-  document.querySelectorAll('.status-opt').forEach(function(o){
+  document.querySelectorAll('#status-pick .status-opt').forEach(function(o){
     o.classList.toggle('sel', o.getAttribute('data-s')===s);
   });
+}
+function pickVis(v){
+  pickedVis = v;
+  document.querySelectorAll('#vis-pick .status-opt').forEach(function(o){
+    o.classList.toggle('sel', o.getAttribute('data-v')===v);
+  });
+  updateShareBox();
+}
+function tripShareUrl(){
+  var id=val('t-id');
+  var url=val('t-url').trim();
+  var page=url||'reisevorlage.html?reise='+encodeURIComponent(id);
+  // absolute URL bauen
+  var base=location.href.replace(/[^/]*$/,'');
+  return base+page;
+}
+function updateShareBox(){
+  var box=document.getElementById('share-box');
+  var help=document.getElementById('vis-help');
+  if(pickedVis==='private'){
+    box.style.display='none';
+    help.textContent='Privat: nur du siehst diese Reise.';
+  }else{
+    var id=val('t-id');
+    if(!id){ box.style.display='none'; help.textContent=(pickedVis==='public'?'Öffentlich: für alle sichtbar.':'Per Link: jeder mit dem Link kann sie ansehen.')+' Der Teilen-Link erscheint nach dem ersten Speichern.'; return; }
+    box.style.display='block';
+    document.getElementById('share-link').value=tripShareUrl();
+    help.textContent=(pickedVis==='public')?'Öffentlich: für alle sichtbar und im Community-Bereich auffindbar.':'Per Link: nur wer den Link hat, kann die Reise ansehen.';
+  }
+}
+function copyShareLink(){
+  var inp=document.getElementById('share-link');
+  inp.select(); inp.setSelectionRange(0,99999);
+  try{
+    navigator.clipboard.writeText(inp.value).then(function(){toast('Link kopiert!');},function(){document.execCommand('copy');toast('Link kopiert!');});
+  }catch(e){
+    try{document.execCommand('copy');toast('Link kopiert!');}catch(e2){toast('Bitte manuell kopieren.');}
+  }
 }
 
 function saveTrip(){
@@ -595,7 +651,7 @@ function saveTrip(){
     note: val('t-note').trim(),
     url: url,
     img: val('t-img').trim(),
-    visibility: (editingId ? (trips.find(function(x){return x.id===editingId;})||{}).visibility : 'private') || 'private'
+    visibility: pickedVis || 'private'
   };
 
   if(editingId){
