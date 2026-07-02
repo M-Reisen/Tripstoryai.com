@@ -3,16 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>M-Reisen · Unsere Reisetagebücher</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<title>Travona · Unsere Reisetagebücher</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --ocean:#1a6b8a;--reef:#0d9488;--sand:#f0e6cc;--sunset:#e07b3f;
-  --bush:#5a7a40;--paper:#faf7f2;--ink:#1c1a16;--fog:#7a7167;
-  --white:#fff;--radius:16px;--shadow:0 4px 28px rgba(28,26,22,.10);
-  --planned:#b45309;--running:#0d9488;--done:#5a7a40;
+  --ocean:#8b7cf6;--reef:#6c5ce7;--sand:#f4f4f8;--sunset:#6c5ce7;
+  --bush:#8b7cf6;--paper:#0e1015;--ink:#f4f4f8;--fog:#9a9aad;
+  --white:#181b23;--radius:16px;--shadow:0 8px 32px rgba(0,0,0,.4);
+  --planned:#c79030;--running:#8b7cf6;--done:#7db4f0;
+  --surface2:#1f232e;--line:#2a2f3c;--violet:#6c5ce7;--violet-lite:#8b7cf6;--violet-glow:rgba(108,92,231,.35);
 }
 body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
 
@@ -21,7 +22,7 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
 .logo{display:flex;align-items:center;gap:9px;}
 .logo .mark{font-size:1.9rem;line-height:1;}
-.logo .txt{font-family:'Playfair Display',serif;font-size:1.15rem;color:var(--sand);}
+.logo .txt{font-family:'Sora',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:-.02em;color:var(--sand);}
 .logo .txt em{color:var(--sunset);font-style:italic;}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
 .btn-ghost{background:transparent;color:var(--sand);border:1px solid rgba(255,255,255,.22);}
@@ -57,7 +58,7 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 
 /* FILTER */
 .filters{display:flex;gap:7px;flex-wrap:wrap;}
-.filter-chip{font-size:.78rem;font-weight:500;padding:6px 14px;border-radius:20px;border:1.5px solid rgba(28,26,22,.14);background:var(--white);color:var(--fog);cursor:pointer;transition:all .16s;}
+.filter-chip{font-size:.78rem;font-weight:500;padding:6px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--white);color:var(--fog);cursor:pointer;transition:all .16s;}
 .filter-chip.active{background:var(--ink);color:var(--sand);border-color:var(--ink);}
 .filter-chip:hover:not(.active){border-color:var(--sunset);color:var(--sunset);}
 
@@ -92,13 +93,13 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .trip-open{font-size:.82rem;font-weight:600;color:var(--ocean);display:inline-flex;align-items:center;gap:5px;}
 .trip-admin-btns{display:none;gap:6px;}
 .trip-admin-btns.show{display:flex;}
-.icon-btn{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:all .15s;}
+.icon-btn{background:var(--paper);border:1.5px solid var(--line);border-radius:7px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:all .15s;}
 .icon-btn:hover{border-color:var(--sunset);}
-.icon-btn.del:hover{border-color:#dc2626;background:#fef2f2;}
+.icon-btn.del:hover{border-color:#dc2626;background:rgba(220,38,38,.15);}
 
 /* ADD CARD */
-.add-card{border:2px dashed rgba(28,26,22,.2);border-radius:var(--radius);background:transparent;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--fog);transition:all .18s;font-family:'Inter',sans-serif;}
-.add-card:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
+.add-card{border:2px dashed var(--line);border-radius:var(--radius);background:transparent;min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer;color:var(--fog);transition:all .18s;font-family:'Inter',sans-serif;}
+.add-card:hover{border-color:var(--sunset);color:var(--sunset);background:var(--surface2);}
 .add-card .plus{font-size:2.6rem;line-height:1;}
 .add-card .lbl{font-size:.9rem;font-weight:500;}
 
@@ -109,39 +110,39 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 /* PIN OVERLAY */
 .overlay{display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:500;align-items:center;justify-content:center;padding:20px;}
 .overlay.open{display:flex;}
-.pin-box{background:#fff;border-radius:18px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.pin-box{background:var(--white);border-radius:18px;padding:28px 22px;max-width:300px;width:100%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.3);}
 .pin-box .ic{font-size:1.9rem;margin-bottom:10px;}
 .pin-box h3{font-family:'Playfair Display',serif;font-size:1.15rem;margin-bottom:4px;}
 .pin-box p{font-size:.8rem;color:var(--fog);margin-bottom:18px;}
 .pin-dots{display:flex;justify-content:center;gap:11px;margin-bottom:18px;}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(28,26,22,.2);transition:all .16s;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px dashed var(--line);transition:all .16s;}
 .pin-dot.filled{background:var(--sunset);border-color:var(--sunset);}
 .pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
-.pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:11px;padding:14px;font-size:1.15rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
+.pin-key{background:var(--paper);border:1.5px solid var(--line);border-radius:11px;padding:14px;font-size:1.15rem;font-weight:500;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif;}
 .pin-key:hover{background:var(--sunset);color:#fff;border-color:var(--sunset);}
 .pin-err{color:#dc2626;font-size:.77rem;margin-top:10px;min-height:16px;}
 
 /* FORM MODAL */
-.modal-box{background:#fff;border-radius:18px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.modal-box{background:var(--white);border-radius:18px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);}
 .modal-box .mb-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;}
 .modal-box .mb-title{font-family:'Playfair Display',serif;font-size:1.3rem;}
 .modal-box .mb-body{padding:18px 24px 24px;}
 .mb-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--fog);line-height:1;}
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;}
-.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid rgba(28,26,22,.15);border-radius:9px;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:#fff;}
+.field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid var(--line);border-radius:9px;font-family:'Inter',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:var(--surface2);}
 .field textarea{resize:vertical;min-height:64px;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .help{font-size:.72rem;color:var(--fog);margin-top:4px;line-height:1.4;}
 .status-pick{display:flex;gap:8px;}
-.status-opt{flex:1;text-align:center;padding:9px 6px;border:1.5px solid rgba(28,26,22,.15);border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;background:var(--paper);}
+.status-opt{flex:1;text-align:center;padding:9px 6px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;background:var(--paper);}
 .status-opt.sel{color:#fff;border-color:transparent;}
 .status-opt.sel[data-s="geplant"]{background:var(--planned);}
 .status-opt.sel[data-s="laeuft"]{background:var(--running);}
 .status-opt.sel[data-s="fertig"]{background:var(--done);}
 .modal-actions{display:flex;gap:10px;margin-top:8px;}
-.modal-actions .btn-cancel{flex:1;padding:11px;border:1.5px solid rgba(28,26,22,.18);border-radius:9px;background:none;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;}
+.modal-actions .btn-cancel{flex:1;padding:11px;border:1.5px solid var(--line);border-radius:9px;background:none;color:var(--fog);cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;}
 .modal-actions .btn-save{flex:2;padding:11px;background:var(--sunset);border:none;border-radius:9px;color:#fff;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;font-size:.85rem;}
 
 /* TOAST */
@@ -163,10 +164,15 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 
 <!-- LOGIN-SCREEN (wenn nicht eingeloggt) -->
 <div id="auth-screen" style="display:none;position:fixed;inset:0;z-index:1000;background:linear-gradient(160deg,#1a2744,#0d1628);align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
-  <div style="background:#fff;border-radius:20px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.4);margin:auto;">
+  <div style="background:var(--white);border-radius:20px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.4);margin:auto;">
     <div style="text-align:center;margin-bottom:22px;">
-      <div style="font-size:2.4rem;">🧳</div>
-      <div style="font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-top:6px;"><em>M</em>-Reisen</div>
+      <svg width="56" height="56" viewBox="0 0 100 100" fill="none" aria-hidden="true" style="filter:drop-shadow(0 0 14px var(--violet-glow));">
+        <defs><linearGradient id="mkgrad2" x1="15" y1="12" x2="85" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9d8bf7"/><stop offset="0.5" stop-color="#6c5ce7"/><stop offset="1" stop-color="#4a3fd6"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#mkgrad2)" stroke-width="8"/>
+        <g transform="rotate(-30 50 50)"><path d="M16 58 Q38 40 50 50 Q62 60 84 42" stroke="url(#mkgrad2)" stroke-width="6.5" stroke-linecap="round"/><path d="M16 70 Q38 52 50 62 Q62 72 84 54" stroke="url(#mkgrad2)" stroke-width="6.5" stroke-linecap="round"/></g>
+      </svg>
+      <div style="font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.02em;margin-top:6px;"><em>T</em>ravona</div>
+      <div style="font-family:'Inter',sans-serif;font-size:.64rem;letter-spacing:.06em;font-weight:600;margin-top:3px;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">Travel. Share. Remember.</div>
       <div id="auth-subtitle" style="font-size:.85rem;color:var(--fog);margin-top:4px;">Melde dich an, um deine Reisetagebücher zu sehen</div>
     </div>
     <div class="field"><label>E-Mail</label><input type="email" id="auth-email" placeholder="du@beispiel.de" autocomplete="email"></div>
@@ -182,8 +188,15 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 <header>
   <div class="header-inner">
     <div class="logo">
-      <span class="mark">🧳</span>
-      <span class="txt"><em>M</em>-Reisen</span>
+      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" aria-hidden="true" style="flex:0 0 auto;filter:drop-shadow(0 0 8px var(--violet-glow));">
+        <defs><linearGradient id="mkgrad1" x1="15" y1="12" x2="85" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9d8bf7"/><stop offset="0.5" stop-color="#6c5ce7"/><stop offset="1" stop-color="#4a3fd6"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#mkgrad1)" stroke-width="8"/>
+        <g transform="rotate(-30 50 50)"><path d="M16 58 Q38 40 50 50 Q62 60 84 42" stroke="url(#mkgrad1)" stroke-width="6.5" stroke-linecap="round"/><path d="M16 70 Q38 52 50 62 Q62 72 84 54" stroke="url(#mkgrad1)" stroke-width="6.5" stroke-linecap="round"/></g>
+      </svg>
+      <span style="display:flex;flex-direction:column;line-height:1.05;">
+        <span class="txt" style="font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em;"><em>T</em>ravona</span>
+        <span style="font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.06em;font-weight:600;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">Travel. Share. Remember.</span>
+      </span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
       <span id="user-email" style="display:none;"></span>
@@ -196,7 +209,7 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 
 <div class="hero">
   <div class="hero-stars"></div>
-  <div class="hero-eyebrow">Meine Reisen · V3</div>
+  <div class="hero-eyebrow">Meine Reisen · V4 dunkel</div>
   <h1>Wohin als <em>Nächstes</em>?</h1>
   <div class="hero-sub">Jede Reise bekommt ihr eigenes Tagebuch — mit Fotos, Tagesberichten und Erinnerungen. Hier sammeln sich alle an einem Ort.</div>
   <div class="hero-stats">
@@ -220,7 +233,7 @@ footer .v{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
 </main>
 
 <footer>
-  Mit Liebe gemacht für unsere Abenteuer · <span class="v">M-Reisen V1</span>
+  Mit Liebe gemacht für unsere Abenteuer · <span class="v">Travona V1</span>
 </footer>
 
 <!-- PIN OVERLAY -->

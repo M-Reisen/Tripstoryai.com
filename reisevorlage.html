@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Reisetagebuch · Soreva</title>
+<title>Reisetagebuch · Travona</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -23,7 +23,7 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
 .logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
 .logo .mark{font-size:1.9rem;line-height:1;}
-.logo .txt{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--sand);}
+.logo .txt{font-family:'Sora',sans-serif;font-weight:700;font-size:1.2rem;letter-spacing:-.02em;color:var(--sand);}
 .logo .txt em{color:var(--sunset);font-style:italic;}
 .header-actions{display:flex;gap:8px;}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;text-decoration:none;}
@@ -252,10 +252,14 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 <header>
   <div class="header-inner">
     <a class="logo" href="index.html">
-      <span class="mark">🧳</span>
+      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" aria-hidden="true" style="flex:0 0 auto;filter:drop-shadow(0 0 8px rgba(108,92,231,.35));">
+        <defs><linearGradient id="mkgrad3" x1="15" y1="12" x2="85" y2="88" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#9d8bf7"/><stop offset="0.5" stop-color="#6c5ce7"/><stop offset="1" stop-color="#4a3fd6"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="42" stroke="url(#mkgrad3)" stroke-width="8"/>
+        <g transform="rotate(-30 50 50)"><path d="M16 58 Q38 40 50 50 Q62 60 84 42" stroke="url(#mkgrad3)" stroke-width="6.5" stroke-linecap="round"/><path d="M16 70 Q38 52 50 62 Q62 72 84 54" stroke="url(#mkgrad3)" stroke-width="6.5" stroke-linecap="round"/></g>
+      </svg>
       <span style="display:flex;flex-direction:column;line-height:1.05;">
-        <span class="txt"><em>S</em>oreva</span>
-        <span style="font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.08em;color:rgba(240,230,204,.6);text-transform:uppercase;">Travel. Share. Remember.</span>
+        <span class="txt" style="font-family:'Sora',sans-serif;font-weight:700;letter-spacing:-.02em;color:#f3f1ea;"><em style="color:#f3f1ea;font-style:normal;">T</em>ravona</span>
+        <span style="font-family:'Inter',sans-serif;font-size:.6rem;letter-spacing:.06em;font-weight:600;background:linear-gradient(95deg,#7db4f0,#8b7cf6 55%,#a855c9);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;">Travel. Share. Remember.</span>
       </span>
     </a>
     <div class="header-actions">
@@ -327,7 +331,7 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Soreva · Vorlage V12 · Soreva + Kartenort-Feld</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V12 · Travona + Kartenort-Feld</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1987,7 +1991,7 @@ async function createPhotobook(){
     else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
   }
   const stations=Array.from(new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label.split('·')[0].trim()))).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Soreva · tripstoryai.com</div></div>';
+  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Travona · travona.de</div></div>';
   // ── CSS ──
   const css='<style>'
     +'@page{size:A4 landscape;margin:0;}'
