@@ -2119,13 +2119,18 @@ function haversineKm(a,b){
   return 2*R*Math.asin(Math.sqrt(x));
 }
 // Land aus erster Koordinate per Reverse-Geocoding bestimmen
+var _koordLandCache={};
 async function landFuerKoord(pt){
+  // grob runden, damit nahe Orte denselben Cache-Treffer haben
+  var key=pt.lat.toFixed(1)+','+pt.lon.toFixed(1);
+  if(_koordLandCache[key]!==undefined)return _koordLandCache[key];
   try{
-    var url='https://nominatim.openstreetmap.org/reverse?format=json&lat='+pt.lat+'&lon='+pt.lon+'&accept-language=en';
+    var url='https://nominatim.openstreetmap.org/reverse?format=json&lat='+pt.lat+'&lon='+pt.lon+'&accept-language=en&zoom=5';
     var r=await fetch(url,{headers:{'Accept':'application/json'}});
     var d=await r.json();
-    if(d&&d.address&&d.address.country)return d.address.country;
+    if(d&&d.address&&d.address.country){_koordLandCache[key]=d.address.country;return d.address.country;}
   }catch(e){}
+  _koordLandCache[key]=null;
   return null;
 }
 // Landumriss (GeoJSON-Polygone) laden, gecacht
@@ -2168,12 +2173,23 @@ async function renderKarte(){
     await sleep(60);
   }
   if(!stationen.length){svg.innerHTML='';status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';return;}
-  // Land bestimmen (aus erster Station) + Umriss laden
+  // Länder aller Stationen bestimmen (jede Koordinate)
   status.textContent='Landkarte wird geladen…';
-  var land=await landFuerKoord(stationen[0]);
-  var polys=land?await landUmriss(land):null;
-  drawKarte(svg,stationen,polys,land);
-  status.textContent=nr+(nr===1?' Station':' Stationen')+(land?(' · '+land):'')+(fehl?(' · '+fehl+' ohne Ort'):'');
+  var laender=[];
+  for(var li=0;li<stationen.length;li++){
+    var lnd=await landFuerKoord(stationen[li]);
+    if(lnd&&laender.indexOf(lnd)<0)laender.push(lnd);
+    await sleep(60);
+  }
+  // Umrisse aller betroffenen Länder laden und zusammenführen
+  var allePolys=[];
+  for(var ui=0;ui<laender.length;ui++){
+    var p=await landUmriss(laender[ui]);
+    if(p)allePolys=allePolys.concat(p);
+    await sleep(60);
+  }
+  drawKarte(svg,stationen,allePolys.length?allePolys:null,laender.join(' · '));
+  status.textContent=nr+(nr===1?' Station':' Stationen')+(laender.length?(' · '+laender.join(', ')):'')+(fehl?(' · '+fehl+' ohne Ort'):'');
 }
 
 function drawKarte(svg,stationen,polys,land){
