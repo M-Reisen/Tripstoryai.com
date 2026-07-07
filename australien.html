@@ -273,6 +273,26 @@ textarea{resize:vertical;min-height:100px;}
 .fs-num{display:block;font-family:'Playfair Display',serif;font-size:32px;font-weight:400;color:var(--ink);line-height:1;margin-bottom:8px;}
 .fs-lbl{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);}
 @media(max-width:820px){.figma-stats-inner{grid-template-columns:repeat(3,1fr);}.figma-stat{border-bottom:1px solid var(--rule);padding:22px 12px;}.fs-num{font-size:24px;}}
+/* FIGMA JOURNAL */
+.fig-journal{display:flex;flex-direction:column;gap:2px;}
+.fig-journal-entry{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.fig-journal-entry.rev .fj-img{order:2;}
+.fig-journal-entry.rev .fj-text{order:1;}
+.fj-img{position:relative;aspect-ratio:4/3;background:#c8c0b4;overflow:hidden;}
+.fj-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;}
+.fj-img:hover img{transform:scale(1.03);}
+.fj-noimg{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fog);font-size:13px;gap:8px;background:#e3dccf;}
+.fj-tag{position:absolute;top:20px;left:20px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--terra);padding:4px 10px;}
+.fj-text{background:#fff;padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
+.fj-day{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--fog);margin:0 0 8px;}
+.fj-loc{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--ink);margin:0 0 6px;line-height:1.15;}
+.fj-date{font-size:11px;color:var(--fog);margin:0 0 24px;letter-spacing:.05em;}
+.fj-body{font-size:15px;line-height:1.85;color:var(--ink);opacity:.85;margin:0;white-space:pre-wrap;}
+@media(max-width:820px){
+  .fig-journal-entry,.fig-journal-entry.rev{grid-template-columns:1fr;}
+  .fig-journal-entry.rev .fj-img{order:1;}.fig-journal-entry.rev .fj-text{order:2;}
+  .fj-text{padding:32px 24px;}
+}
 </style>
 </head>
 <body>
@@ -314,6 +334,7 @@ textarea{resize:vertical;min-height:100px;}
 <div class="tabs">
   <a class="tab-btn" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
   <a class="tab-btn" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
+  <a class="tab-btn" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
   <a class="tab-btn" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
   <a class="tab-btn" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
   <a class="tab-btn" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
@@ -347,6 +368,17 @@ textarea{resize:vertical;min-height:100px;}
   <div class="timeline">
     <div id="timeline-items"></div>
   </div>
+</div>
+
+<div class="section" id="section-journal">
+  <div style="margin-bottom:48px">
+    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
+      <p style="font-size:13px;color:var(--fog);max-width:220px;line-height:1.7;text-align:right;margin:0">Die schönsten Einträge deiner Reise</p>
+    </div>
+  </div>
+  <div id="journal-entries"></div>
 </div>
 
 <div class="section" id="section-ausfluege">
@@ -1082,6 +1114,7 @@ function renderAll(){
   try{buildDaySlides();}catch(e){console.error(e);}
   try{renderTimeline();}catch(e){console.error(e);}
   try{renderAuKarte();}catch(e){console.error(e);}
+  try{renderJournal();}catch(e){console.error(e);}
   try{renderActivities();}catch(e){console.error(e);}
   try{renderCosts();}catch(e){console.error(e);}
   try{renderTips();}catch(e){console.error(e);}
@@ -1285,10 +1318,47 @@ function renderAuKarte(){
   setTimeout(function(){map.invalidateSize();},200);
 }
 
+async function renderJournal(){
+  var c=document.getElementById('journal-entries');
+  if(!c)return;
+  // Alle Einträge mit Text sammeln, chronologisch
+  var withText=entries.filter(function(e){return e.text&&e.text.trim();});
+  withText.sort(function(a,b){return (a.datum||'')<(b.datum||'')?-1:1;});
+  if(!withText.length){
+    c.innerHTML='<div style="padding:40px 0;color:var(--fog);font-size:14px">Noch keine Tagebucheinträge. Schreibe bei den Tagen einen Eintrag – die schönsten Momente erscheinen hier.</div>';
+    return;
+  }
+  // Fotos für diese Tage laden (falls noch nicht geladen)
+  for(var k=0;k<withText.length;k++){
+    var iso=withText[k].datum;
+    if(iso && !photos[iso]){
+      try{photos[iso]=loadPhotoOrder(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
+    }
+  }
+  c.innerHTML='<div class="fig-journal">'+withText.map(function(e,idx){
+    var iso=e.datum;
+    var d=iso?new Date(iso+'T12:00:00'):null;
+    var dateStr=d?d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';
+    var foto=(photos[iso]&&photos[iso].length)?photos[iso][0]:null;
+    var dayIdx=DAYS.findIndex(function(x){return x.iso===iso;});
+    var tagNr=dayIdx>=0?(dayIdx+1):'';
+    var titel=(e.titel||'').replace(/^[^\wÄÖÜäöü]+/,'').trim()||('Tag '+tagNr);
+    var rev=(idx%2===1)?' rev':'';
+    var img=foto
+      ? '<div class="fj-img"><img src="'+esc(foto)+'" alt="'+esc(titel)+'"><div class="fj-tag">'+(tagNr?'Tag '+tagNr:'Moment')+'</div></div>'
+      : '<div class="fj-img fj-noimg"><div class="fj-tag">'+(tagNr?'Tag '+tagNr:'Moment')+'</div><span>Kein Foto</span></div>';
+    var text='<div class="fj-text">'
+      +(tagNr?'<p class="fj-day">Tag '+tagNr+'</p>':'')
+      +'<h3 class="fj-loc">'+esc(titel)+'</h3>'
+      +(dateStr?'<p class="fj-date">'+dateStr+'</p>':'')
+      +'<p class="fj-body">'+esc(e.text.trim())+'</p></div>';
+    return '<div class="fig-journal-entry'+rev+'">'+img+text+'</div>';
+  }).join('')+'</div>';
+}
+
 function renderTimeline(){
   const c=document.getElementById('timeline-items');
-  c.innerHTML=TIMELINE.map(item=>{
-    if(item.type==='transport'){const dc=DOT_T[item.cls]||'var(--fog)';return `<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:${dc};background:${dc}"></div></div><div class="tl-transport-card ${item.cls}"><span class="transport-icon">${item.icon}</span><div class="transport-detail"><div class="transport-name">${item.name}</div><div class="transport-info">${item.info}</div></div></div></div>`;}
+  c.innerHTML=TIMELINE.map(item=>{    if(item.type==='transport'){const dc=DOT_T[item.cls]||'var(--fog)';return `<div class="tl-transport"><div class="tl-dot"><div class="dot" style="color:${dc};background:${dc}"></div></div><div class="tl-transport-card ${item.cls}"><span class="transport-icon">${item.icon}</span><div class="transport-detail"><div class="transport-name">${item.name}</div><div class="transport-info">${item.info}</div></div></div></div>`;}
     if(item.type==='tour'){const a=ACTIVITIES.find(x=>x.id===item.ref);if(!a)return'';return `<div class="tl-tour"><div class="tl-dot"><div class="dot dot-tour"></div></div><div class="tl-tour-card"><span class="tour-icon">${a.emoji}</span><div class="tour-detail"><div class="tour-name">🎟️ ${a.name}</div><div class="tour-info">${a.dateStr}</div></div></div></div>`;}
     const b=item;const entry=entries.find(e=>e.datum===b.datum);
     const eHtml=entry?`<div class="tl-write-btn"><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.15)" onclick="openModal('${b.datum}')">Lesen</button></div>`:(editMode?`<div class="tl-write-btn"><button class="btn btn-reef btn-sm" onclick="startEntryForDate('${b.datum}')">✍️ Eintrag</button></div>`:'');
