@@ -672,7 +672,7 @@ async function aiAuthHeaders(){
 }
 
 async function sbLoadEntries(){
-  const {data,error}=await sb.from('kommentare').select('*').order('created_at',{ascending:false});
+  const {data,error}=await sb.from('kommentare').select('*').eq('trip_id',REISE_ID).order('created_at',{ascending:false});
   if(error){console.error(error);return[];}
   return data||[];
 }
