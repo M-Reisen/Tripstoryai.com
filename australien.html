@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -275,7 +277,7 @@ textarea{resize:vertical;min-height:100px;}
 <header>
   <div class="header-inner">
     <a class="logo" href="index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
-      <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:30px;width:auto;object-fit:contain;">
+      <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:34px;width:auto;object-fit:contain;background:#fff;padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);">
     </a>
     <div class="header-actions">
       <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">← Übersicht</a>
@@ -337,8 +339,10 @@ textarea{resize:vertical;min-height:100px;}
     <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Vollständige Reiseroute</div>
     <div style="font-size:.83rem;color:var(--fog)">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
   </div>
+  <div id="au-karte-wrap" style="margin-bottom:32px;border:1px solid var(--rule);border-radius:4px;overflow:hidden;position:relative;">
+    <div id="au-karte-map" style="width:100%;height:460px;background:#EDE8E0;"></div>
+  </div>
   <div class="timeline">
-    <div class="timeline-line"></div>
     <div id="timeline-items"></div>
   </div>
 </div>
@@ -1058,7 +1062,7 @@ function showTab(tab){
   document.getElementById('section-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='tage'){buildDaySlides();setTimeout(()=>loadCommentsForDay(DAYS[currentDay].iso),200);}
-  if(tab==='route')renderTimeline();
+  if(tab==='route'){renderTimeline();renderAuKarte();}
   if(tab==='kosten')renderCosts();
   if(tab==='ausfluege')renderActivities();
   if(tab==='planer')renderTips();
@@ -1227,6 +1231,40 @@ function renderCosts(){
   document.getElementById('grand-total-box').innerHTML=`<div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.05rem;padding:14px 0 0;border-top:2px solid var(--sunset);margin-top:10px;color:var(--sunset);"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
 }
 function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
+
+var _auMap=null;
+var AU_STOPS=[
+  {name:'Port Douglas',lat:-16.4837,lng:145.4656,days:'Tag 1–4',note:'Daintree Regenwald'},
+  {name:'Yungaburra',lat:-17.2641,lng:145.5868,days:'Tag 5–6',note:'Atherton Tablelands'},
+  {name:'Undara',lat:-18.2000,lng:144.6167,days:'Tag 7',note:'Lavaröhren'},
+  {name:'Townsville',lat:-19.2576,lng:146.8181,days:'Tag 8–9',note:'Museum of Tropical Queensland'},
+  {name:'Magnetic Island',lat:-19.1300,lng:146.8700,days:'Tag 10–11',note:'Koalas, Schnorcheln'},
+  {name:'Airlie Beach',lat:-20.2687,lng:148.7183,days:'Tag 12–13',note:'Tor zu den Whitsundays'},
+  {name:'Whitsundays',lat:-20.0760,lng:148.9574,days:'Tag 14–16',note:'Whitehaven Beach'},
+  {name:'Cape Hillsborough',lat:-20.9067,lng:149.0531,days:'Tag 17',note:'Kängurus am Strand'},
+  {name:'Eungella',lat:-21.1333,lng:148.4833,days:'Tag 18–19',note:'Platypus-Beobachtung'},
+  {name:'Brisbane',lat:-27.4698,lng:153.0251,days:'Tag 20–22',note:'South Bank, Lone Pine'},
+  {name:'Sydney',lat:-33.8688,lng:151.2093,days:'Tag 23–27',note:'Opera House, Bondi Beach'}
+];
+function renderAuKarte(){
+  var mapEl=document.getElementById('au-karte-map');
+  if(!mapEl||typeof L==='undefined')return;
+  if(_auMap){setTimeout(function(){_auMap.invalidateSize();},200);return;}
+  var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false});
+  _auMap=map;
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  var coords=AU_STOPS.map(function(s){return [s.lat,s.lng];});
+  L.polyline(coords,{color:'#B5714A',weight:2,opacity:.6,dashArray:'6 6'}).addTo(map);
+  AU_STOPS.forEach(function(s,idx){
+    var big=idx===0||idx===AU_STOPS.length-1;
+    var icon=L.divIcon({className:'',html:'<div style="width:'+(big?14:10)+'px;height:'+(big?14:10)+'px;border-radius:50%;background:'+(big?'#B5714A':'#2C5F6A')+';border:2px solid #F4EFE8;box-shadow:0 1px 4px rgba(0,0,0,.25);"></div>',iconSize:[big?14:10,big?14:10],iconAnchor:[big?7:5,big?7:5]});
+    L.marker([s.lat,s.lng],{icon:icon}).addTo(map)
+      .bindPopup('<div style="font-family:\'Playfair Display\',serif;font-size:15px;color:#1A1714">'+s.name+'</div><div style="font-size:11px;color:#6B6560;margin-top:2px">'+s.days+' · '+s.note+'</div>');
+  });
+  map.fitBounds(coords,{padding:[40,40]});
+  setTimeout(function(){map.invalidateSize();},200);
+}
 
 function renderTimeline(){
   const c=document.getElementById('timeline-items');
