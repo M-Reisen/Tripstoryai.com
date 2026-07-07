@@ -4,12 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&family=Sora:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
-  --ocean:#1a6b8a;--reef:#0d9488;--sand:#f0e6cc;--sunset:#e07b3f;
+  --ocean:#1a6b8a;--reef:#6c5ce7;--sand:#f0e6cc;--sunset:#e07b3f;
   --bush:#5a7a40;--paper:#faf7f2;--ink:#1c1a16;--fog:#7a7167;
   --white:#fff;--radius:14px;--shadow:0 4px 28px rgba(28,26,22,.10);
   --flight:#7c3aed;--bus:#16a34a;--car:#b45309;--tour:#be185d;--ferry:#0369a1;
@@ -17,7 +17,7 @@
 body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;font-weight:300;min-height:100vh;}
 header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(0,0,0,.35);}
 .header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
-.logo{font-family:'Playfair Display',serif;font-size:1.25rem;color:var(--sand);}
+.logo{font-family:'Sora',sans-serif;font-size:1.25rem;color:var(--sand);}
 .logo em{color:var(--sunset);font-style:italic;}
 .header-actions{display:flex;gap:8px;}
 .btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
@@ -28,13 +28,13 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 .btn-sm{padding:6px 12px;font-size:.76rem;}
 .hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#0a1a2e 0%,#0d2a1a 35%,#1a3a0a 60%,#2a1505 100%);padding:52px 24px 44px;text-align:center;color:var(--sand);}
 .hero-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1px 1px at 15% 20%,rgba(255,255,200,.7) 0%,transparent 100%),radial-gradient(1px 1px at 60% 10%,rgba(255,255,200,.5) 0%,transparent 100%),radial-gradient(1.5px 1.5px at 80% 30%,rgba(255,255,200,.6) 0%,transparent 100%),radial-gradient(1px 1px at 30% 70%,rgba(255,255,200,.4) 0%,transparent 100%);}
-.hero-eyebrow{font-family:'Caveat',cursive;font-size:1.15rem;color:var(--sunset);margin-bottom:10px;}
-.hero h1{font-family:'Playfair Display',serif;font-size:clamp(2rem,7vw,3.8rem);font-weight:400;line-height:1.1;margin-bottom:10px;}
+.hero-eyebrow{font-family:'Inter',sans-serif;font-size:1.15rem;color:var(--sunset);margin-bottom:10px;}
+.hero h1{font-family:'Sora',sans-serif;font-size:clamp(2rem,7vw,3.8rem);font-weight:400;line-height:1.1;margin-bottom:10px;}
 .hero h1 em{color:var(--sunset);font-style:italic;}
-.hero-dates{font-family:'Caveat',cursive;font-size:1.3rem;color:rgba(240,230,204,.7);margin-bottom:6px;}
+.hero-dates{font-family:'Inter',sans-serif;font-size:1.3rem;color:rgba(240,230,204,.7);margin-bottom:6px;}
 .hero-sub{font-size:.88rem;color:rgba(240,230,204,.5);margin-bottom:28px;}
 .hero-stats{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:28px;}
-.hero-stat .num{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--sunset);display:block;}
+.hero-stat .num{font-family:'Sora',sans-serif;font-size:1.7rem;color:var(--sunset);display:block;}
 .hero-stat .lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,230,204,.5);}
 .tabs{max-width:1140px;margin:28px auto 0;padding:0 24px;display:flex;gap:4px;border-bottom:2px solid rgba(28,26,22,.1);overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
@@ -44,7 +44,7 @@ header{background:var(--ink);position:sticky;top:0;z-index:100;box-shadow:0 2px 
 main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .section{display:none;}.section.active{display:block;}
 .days-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;}
-.days-nav-title{font-family:'Playfair Display',serif;font-size:1.2rem;text-align:center;flex:1;}
+.days-nav-title{font-family:'Sora',sans-serif;font-size:1.2rem;text-align:center;flex:1;}
 .days-nav-title small{display:block;font-family:'Inter',sans-serif;font-size:.75rem;color:var(--fog);font-weight:400;margin-top:2px;}
 .nav-arrow{background:var(--white);border:1.5px solid rgba(28,26,22,.15);border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.1rem;flex-shrink:0;transition:all .18s;box-shadow:var(--shadow);}
 .nav-arrow:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
@@ -55,13 +55,13 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .days-swipe-wrap{overflow:hidden;position:relative;touch-action:pan-y;}
 .days-swipe-track{display:flex;transition:transform .35s cubic-bezier(.4,0,.2,1);}
 .day-slide{min-width:100%;padding:0 2px;}
-.day-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.day-card-header{padding:20px 22px 16px;border-bottom:1px solid rgba(28,26,22,.07);}
-.day-card-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
+.day-card{background:#181b23;border:1px solid #2a2f3c;border-radius:18px;box-shadow:0 12px 40px rgba(0,0,0,.35);overflow:hidden;max-width:760px;margin:0 auto;color:#f4f4f8;}
+.day-card-header{padding:20px 26px 16px;border-bottom:1px solid #2a2f3c;}
+.day-card-date{font-family:'Sora',sans-serif;font-weight:600;font-size:1.15rem;color:#f4f4f8;letter-spacing:-.01em;}
 .day-card-loc{font-size:.8rem;color:var(--fog);margin-top:2px;}
 .day-card-loc::before{content:'📍 ';}
-.photo-strip{padding:14px 22px;border-bottom:1px solid rgba(28,26,22,.07);}
-.photo-strip-label{font-size:.72rem;font-weight:500;color:var(--fog);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.photo-strip{padding:16px 26px;border-bottom:1px solid #2a2f3c;}
+.photo-strip-label{font-size:.68rem;font-weight:600;color:#9a9aad;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
 .photo-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
 .photo-cell{position:relative;width:100%;height:110px;overflow:hidden;background:#e8e0d4;cursor:pointer;}
 .photo-cell img{width:100%;height:110px;object-fit:cover;display:block;}
@@ -73,8 +73,8 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .photo-move-r{left:32px;}
 .photo-add-cell{height:110px;border:2px dashed rgba(28,26,22,.2);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--paper);gap:4px;font-size:.65rem;color:var(--fog);}
 .photo-add-cell-icon{font-size:1.4rem;}
-.day-entry-area{padding:18px 22px;}
-.day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:14px;}
+.day-entry-area{padding:20px 26px;}
+.day-entry-text{font-size:.92rem;line-height:1.8;color:#e8e8ef;white-space:pre-wrap;margin-bottom:14px;}
 .day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:14px;}
 .day-transport{display:flex;flex-wrap:wrap;gap:6px;padding:10px 22px;background:rgba(28,26,22,.03);border-top:1px solid rgba(28,26,22,.06);}
 .day-transport-badge{font-size:.73rem;padding:3px 10px;border-radius:12px;font-weight:500;}
@@ -134,19 +134,19 @@ main{max-width:1140px;margin:0 auto;padding:28px 24px 80px;}
 .tl-card.sunset-border{border-left-color:var(--sunset);}
 .tl-card.bush-border{border-left-color:var(--bush);}
 .tl-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;}
-.tl-date{font-family:'Caveat',cursive;font-size:.95rem;color:var(--sunset);}
+.tl-date{font-family:'Inter',sans-serif;font-size:.95rem;color:var(--sunset);}
 .tl-badge{font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;}
 .badge-nature{background:#dcfce7;color:#15803d;}
 .badge-city{background:#fef9c3;color:#854d0e;}
 .badge-island{background:#f0fdf4;color:#065f46;}
 .badge-beach{background:#e0f2fe;color:#0369a1;}
-.tl-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;margin:4px 0 2px;}
+.tl-name{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;margin:4px 0 2px;}
 .tl-loc{font-size:.77rem;color:var(--fog);}
 .tl-loc::before{content:'📍 ';}
 .tl-note{font-size:.78rem;color:var(--fog);margin-top:4px;font-style:italic;}
 .tl-write-btn{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(28,26,22,.12);display:flex;gap:8px;flex-wrap:wrap;}
 .form-card{background:var(--white);border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);max-width:700px;margin:0 auto;}
-.form-title{font-family:'Playfair Display',serif;font-size:1.35rem;margin-bottom:3px;}
+.form-title{font-family:'Sora',sans-serif;font-size:1.35rem;margin-bottom:3px;}
 .form-subtitle{font-size:.83rem;color:var(--fog);margin-bottom:22px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;}
 .form-full{grid-column:1/-1;}
@@ -166,14 +166,14 @@ textarea{resize:vertical;min-height:100px;}
 .activity-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
 .activity-stripe{height:5px;background:var(--tour);}
 .activity-body{padding:16px 18px;}
-.activity-date{font-family:'Caveat',cursive;font-size:.93rem;color:var(--tour);margin-bottom:4px;}
+.activity-date{font-family:'Inter',sans-serif;font-size:.93rem;color:var(--tour);margin-bottom:4px;}
 .activity-location{font-size:.74rem;color:var(--fog);margin-bottom:6px;}
 .activity-location::before{content:'📍 ';}
-.activity-title{font-family:'Playfair Display',serif;font-size:1.04rem;font-weight:700;margin-bottom:6px;line-height:1.3;}
+.activity-title{font-family:'Sora',sans-serif;font-size:1.04rem;font-weight:700;margin-bottom:6px;line-height:1.3;}
 .activity-detail{font-size:.82rem;line-height:1.6;color:#4a3d30;}
 .activity-footer{padding:10px 18px;border-top:1px solid rgba(28,26,22,.07);display:flex;gap:6px;justify-content:flex-end;}
 .cost-card{background:var(--white);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);max-width:680px;margin:0 auto;}
-.cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:16px;}
+.cost-title{font-family:'Sora',sans-serif;font-size:1.3rem;margin-bottom:16px;}
 .cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:12px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;}
 .cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(28,26,22,.06);font-size:.85rem;gap:12px;}
 .cost-group-total{display:flex;justify-content:space-between;font-weight:600;font-size:.85rem;padding:8px 0 4px;border-top:1px solid rgba(28,26,22,.15);margin-top:4px;}
@@ -190,7 +190,7 @@ textarea{resize:vertical;min-height:100px;}
 .hotel-banner-slide{min-width:100%;height:180px;scroll-snap-align:start;overflow:hidden;}
 .hotel-banner-slide img{width:100%;height:180px;object-fit:cover;display:block;}
 .hotel-banner-placeholder{width:100%;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;position:relative;overflow:hidden;}
-.hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.3;}
+.hotel-banner-name{font-family:'Sora',sans-serif;font-size:1.05rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.3;}
 .hotel-banner-loc{font-size:.72rem;color:rgba(255,255,255,.75);text-align:center;position:relative;z-index:1;}
 .hotel-banner-emoji-bg{font-size:3.5rem;opacity:.25;position:absolute;bottom:-8px;right:10px;z-index:0;}
 .hotel-banner-nights{font-size:.68rem;background:rgba(255,255,255,.2);color:#fff;padding:2px 8px;border-radius:10px;margin-top:2px;position:relative;z-index:1;}
@@ -217,10 +217,10 @@ textarea{resize:vertical;min-height:100px;}
 .modal-stripe{height:6px;border-radius:var(--radius) var(--radius) 0 0;}
 .modal-body{padding:24px 28px 28px;}
 .modal-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;}
-.modal-date{font-family:'Caveat',cursive;font-size:1.1rem;color:var(--sunset);}
+.modal-date{font-family:'Inter',sans-serif;font-size:1.1rem;color:var(--sunset);}
 .modal-loc{font-size:.77rem;color:var(--fog);}
 .modal-loc::before{content:'📍 ';}
-.modal-title{font-family:'Playfair Display',serif;font-size:1.5rem;font-weight:700;margin-bottom:13px;line-height:1.25;}
+.modal-title{font-family:'Sora',sans-serif;font-size:1.5rem;font-weight:700;margin-bottom:13px;line-height:1.25;}
 .modal-text{font-size:.9rem;line-height:1.82;color:#3a2d22;white-space:pre-wrap;}
 .modal-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--fog);padding:2px 6px;flex-shrink:0;}
 .pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:20px;}
@@ -230,14 +230,14 @@ textarea{resize:vertical;min-height:100px;}
 .pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .18s;font-family:'Inter',sans-serif;}
 .pin-key:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
 .sb-loading{text-align:center;padding:14px;color:var(--fog);font-size:.82rem;}
-.comments-section{padding:16px 22px;border-top:1px solid rgba(28,26,22,.07);}
-.comments-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--fog);margin-bottom:10px;}
+.comments-section{padding:18px 26px;border-top:1px solid #2a2f3c;}
+.comments-title{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#9a9aad;margin-bottom:12px;}
 .comment-item{background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.84rem;}
 .comment-name{font-weight:600;font-size:.78rem;color:var(--sunset);margin-bottom:3px;}
 .comment-text{line-height:1.6;color:#3a2d22;}
 .comment-date{font-size:.68rem;color:var(--fog);margin-top:4px;}
 .comment-form{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
-.comment-form input,.comment-form textarea{font-size:.84rem;padding:8px 12px;}
+.comment-form input,.comment-form textarea{font-size:.84rem;padding:9px 12px;background:#0e1015;border:1px solid #2a2f3c;border-radius:8px;color:#f4f4f8;outline:none;}
 .comment-form textarea{min-height:60px;}
 #toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:10px 22px;border-radius:8px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:400;white-space:nowrap;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -308,7 +308,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="section" id="section-route">
   <div style="margin-bottom:22px">
-    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:3px">Vollständige Reiseroute</div>
+    <div style="font-family:'Sora',sans-serif;font-size:1.3rem;margin-bottom:3px">Vollständige Reiseroute</div>
     <div style="font-size:.83rem;color:var(--fog)">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
   </div>
   <div class="timeline">
@@ -319,7 +319,7 @@ textarea{resize:vertical;min-height:100px;}
 
 <div class="section" id="section-ausfluege">
   <div style="margin-bottom:20px">
-    <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:4px">🎟️ Gebuchte Ausflüge & Touren</div>
+    <div style="font-family:'Sora',sans-serif;font-size:1.3rem;margin-bottom:4px">🎟️ Gebuchte Ausflüge & Touren</div>
   </div>
   <div class="activities-grid" id="activities-grid"></div>
 </div>
@@ -387,7 +387,7 @@ textarea{resize:vertical;min-height:100px;}
 </div>
 
 <div class="section" id="section-planer">
-  <div style="font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:6px">✨ Tipps & Empfehlungen</div>
+  <div style="font-family:'Sora',sans-serif;font-size:1.3rem;margin-bottom:6px">✨ Tipps & Empfehlungen</div>
   <div style="font-size:.83rem;color:var(--fog);margin-bottom:24px">Handverlesene Empfehlungen für jeden Stop eurer Reise.</div>
   <div style="display:flex;flex-direction:column;gap:16px" id="tips-list"></div>
 </div>
@@ -429,7 +429,7 @@ textarea{resize:vertical;min-height:100px;}
 <div id="caption-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:flex-end;justify-content:center;padding:0;" onclick="if(event.target===this)closeCaptionModal()">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.2);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1rem;">Foto-Kommentar</div>
+      <div style="font-family:'Sora',sans-serif;font-size:1rem;">Foto-Kommentar</div>
       <button onclick="closeCaptionModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--fog);">✕</button>
     </div>
     <input id="caption-input" type="text" placeholder="z.B. Sonnenaufgang am Whitehaven Beach..." style="width:100%;padding:10px 14px;border:1.5px solid rgba(28,26,22,.15);border-radius:10px;font-family:'Inter',sans-serif;font-size:.9rem;background:var(--paper);margin-bottom:12px;">
@@ -445,7 +445,7 @@ textarea{resize:vertical;min-height:100px;}
 <div id="rev-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeRevModal()">
   <div style="background:#fff;border-radius:16px;padding:24px 20px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">Hotelbewertung</div>
+      <div style="font-family:'Sora',sans-serif;font-size:1.1rem;">Hotelbewertung</div>
       <button onclick="closeRevModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--fog);">✕</button>
     </div>
     <div id="rev-hotel-name" style="font-size:.8rem;color:var(--fog);margin-bottom:14px;"></div>
@@ -464,7 +464,7 @@ textarea{resize:vertical;min-height:100px;}
 <div id="expense-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeExpenseModal()">
   <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.1rem;">Ausgabe erfassen</div>
+      <div style="font-family:'Sora',sans-serif;font-size:1.1rem;">Ausgabe erfassen</div>
       <div id="exp-date-lbl" style="font-size:.8rem;color:var(--fog);"></div>
     </div>
     <div style="margin-bottom:12px;">
@@ -507,7 +507,7 @@ textarea{resize:vertical;min-height:100px;}
 <div id="plankost-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closePlanCostModal()">
   <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);max-height:92vh;overflow-y:auto;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div id="pk-modal-title" style="font-family:'Playfair Display',serif;font-size:1.1rem;">Position hinzufügen</div>
+      <div id="pk-modal-title" style="font-family:'Sora',sans-serif;font-size:1.1rem;">Position hinzufügen</div>
       <button onclick="closePlanCostModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--fog);line-height:1;">✕</button>
     </div>
     <div style="margin-bottom:12px;">
@@ -560,7 +560,7 @@ textarea{resize:vertical;min-height:100px;}
 <div id="apikey-overlay" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.72);z-index:600;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:340px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);">
     <div style="font-size:1.6rem;text-align:center;margin-bottom:10px;">🔑</div>
-    <div style="font-family:'Playfair Display',serif;font-size:1.1rem;margin-bottom:6px;text-align:center;">API-Key eingeben</div>
+    <div style="font-family:'Sora',sans-serif;font-size:1.1rem;margin-bottom:6px;text-align:center;">API-Key eingeben</div>
     <div style="font-size:.78rem;color:var(--fog);margin-bottom:16px;text-align:center;line-height:1.5;">Für KI-Textgenerierung (optional).</div>
     <input id="apikey-input" type="password" placeholder="sk-ant-api03-..." style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.2);border-radius:8px;font-family:'Inter',sans-serif;font-size:.82rem;background:var(--paper);margin-bottom:14px;">
     <div style="display:flex;gap:10px;">
@@ -792,7 +792,7 @@ async function initApp(){
   let allowed=true;
   try{allowed=await initAuth();}catch(e){console.error('Auth:',e);}
   if(!allowed){
-    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Playfair Display,serif;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
+    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Sora,sans-serif;font-weight:700;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
     return;
   }
   // Bearbeiten-Button nur für Besitzer
@@ -873,7 +873,7 @@ function buildDayHTML(day,i){
   const entry=entries.find(e=>e.datum===day.iso);
   const _esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   const entryHTML=entry
-    ?`<div class="day-entry-text">${_esc(entry.text.substring(0,200))}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">📖 Volltext lesen</button>${editMode?`<button class="btn btn-ghost btn-sm" style="color:var(--sunset);border-color:var(--sunset);margin-top:4px;margin-left:6px" onclick="editEntry('${day.iso}')">✏️ Bearbeiten</button>`:''}`
+    ?`<div class="day-entry-text">${_esc(entry.text.substring(0,200))}${entry.text.length>200?'…':''}</div><button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-top:4px" onclick="openModal('${day.iso}')">Volltext lesen</button>${editMode?`<button class="btn btn-ghost btn-sm" style="color:var(--sunset);border-color:var(--sunset);margin-top:4px;margin-left:6px" onclick="editEntry('${day.iso}')">✏️ Bearbeiten</button>`:''}`
     :`<div class="day-entry-empty">Noch kein Eintrag für diesen Tag.</div>${editMode?`<button class="btn btn-primary btn-sm" onclick="startEntryForDate('${day.iso}')">✍️ Eintrag schreiben</button>`:''}`;
   const dayPhotos=photos[day.iso]||[];
   const photoItems=dayPhotos.map((src,pi)=>{
@@ -882,7 +882,7 @@ function buildDayHTML(day,i){
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
-  const comments=`<div class="comments-section"><div class="comments-title">💬 Kommentare</div><div id="comment-list-${day.iso}"><div class="sb-loading">Lädt…</div></div><div class="comment-form"><input type="text" placeholder="Dein Name" id="cn-${day.iso}" maxlength="50"><textarea placeholder="Dein Kommentar…" id="ct-${day.iso}" rows="2"></textarea><button class="btn btn-reef btn-sm" onclick="submitComment('${day.iso}')">💬 Kommentar senden</button></div></div>`;
+  const comments=`<div class="comments-section"><div class="comments-title">Kommentare</div><div id="comment-list-${day.iso}"><div class="sb-loading">Lädt…</div></div><div class="comment-form"><input type="text" placeholder="Dein Name" id="cn-${day.iso}" maxlength="50"><textarea placeholder="Dein Kommentar…" id="ct-${day.iso}" rows="2"></textarea><button class="btn btn-reef btn-sm" onclick="submitComment('${day.iso}')">Kommentar senden</button></div></div>`;
   // Hotel-Banner
   const stayItem=day.stay;
   let hotelBannerHTML='';
@@ -901,7 +901,7 @@ function buildDayHTML(day,i){
     const revAct=editMode?`<div class="hotel-review-actions"><button class="btn btn-reef btn-sm" data-bid="${stayItem.id}" data-hotel="${stayItem.name}" data-stars="${rev.stars}" onclick="genReviewEl(this)">✍️ Bewertung</button>${rev.text?`<button class="btn btn-ghost btn-sm" style="color:var(--fog)" data-bid="${stayItem.id}" onclick="clearReviewEl(this)">Löschen</button>`:''}</div>`:'';
     hotelBannerHTML+=`<div class="hotel-review"><div class="hotel-review-stars">${starsHTML}</div>${revTxt}${revAct}</div>`;
   }
-  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
+  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
     const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const amtStr=e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;return `<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>${amtStr}</b></span></div>`;}).join('');
@@ -1228,7 +1228,7 @@ const TIPS=[
 ];
 function renderTips(){
   const c=document.getElementById('tips-list');if(!c)return;
-  c.innerHTML=TIPS.map((t,i)=>`<div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden"><div style="background:${t.color};padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleTip(${i})"><div><div style="font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--white);font-weight:700">${t.stop}</div><div style="font-size:.75rem;color:rgba(255,255,255,.75);margin-top:2px">${t.dates}</div></div><div id="tip-arrow-${i}" style="color:rgba(255,255,255,.8);font-size:1.1rem;transition:transform .25s">▼</div></div><div id="tip-body-${i}" style="display:none;padding:18px 20px"><div style="font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);margin-bottom:10px">🌟 Top Must-Dos</div>${t.mustdos.map(m=>`<div style="margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(28,26,22,.07)"><div style="font-weight:600;font-size:.87rem;margin-bottom:3px">${m.title}</div><div style="font-size:.82rem;line-height:1.65;color:#4a3d30">${m.text}</div></div>`).join('')}<div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.secret}</div><div style="background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.food}</div><div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.65">${t.tip}</div></div></div>`).join('');
+  c.innerHTML=TIPS.map((t,i)=>`<div style="background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden"><div style="background:${t.color};padding:14px 20px;display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleTip(${i})"><div><div style="font-family:'Sora',sans-serif;font-size:1.1rem;color:var(--white);font-weight:700">${t.stop}</div><div style="font-size:.75rem;color:rgba(255,255,255,.75);margin-top:2px">${t.dates}</div></div><div id="tip-arrow-${i}" style="color:rgba(255,255,255,.8);font-size:1.1rem;transition:transform .25s">▼</div></div><div id="tip-body-${i}" style="display:none;padding:18px 20px"><div style="font-size:.71rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);margin-bottom:10px">🌟 Top Must-Dos</div>${t.mustdos.map(m=>`<div style="margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(28,26,22,.07)"><div style="font-weight:600;font-size:.87rem;margin-bottom:3px">${m.title}</div><div style="font-size:.82rem;line-height:1.65;color:#4a3d30">${m.text}</div></div>`).join('')}<div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.secret}</div><div style="background:linear-gradient(135deg,#fdf2f8,#fce7f3);border-radius:10px;padding:12px 14px;margin-bottom:9px;font-size:.82rem;line-height:1.65">${t.food}</div><div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:10px;padding:12px 14px;font-size:.82rem;line-height:1.65">${t.tip}</div></div></div>`).join('');
 }
 function toggleTip(i){const body=document.getElementById('tip-body-'+i),arrow=document.getElementById('tip-arrow-'+i);const open=body.style.display!=='none';body.style.display=open?'none':'block';arrow.style.transform=open?'':'rotate(180deg)';}
 
