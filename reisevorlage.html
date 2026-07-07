@@ -282,6 +282,30 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fig-ex-price{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);text-align:right;padding-top:4px;}
 .fig-ex-actions{display:flex;gap:8px;margin-top:12px;}
 @media(max-width:820px){.fig-excursion{grid-template-columns:40px 1fr;gap:12px;}.fig-ex-meta,.fig-ex-price{grid-column:2;text-align:left;padding-top:8px;}}
+/* FIGMA GRAND TOTAL */
+.fig-grandtotal{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:28px;border-top:2px solid var(--terra);}
+.fig-gt-label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);}
+.fig-gt-value{font-family:'Playfair Display',serif;font-size:36px;font-weight:400;color:var(--ink);}
+/* FIGMA JOURNAL */
+.fig-journal{display:flex;flex-direction:column;gap:2px;}
+.fig-journal-entry{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
+.fig-journal-entry.rev .fj-img{order:2;}
+.fig-journal-entry.rev .fj-text{order:1;}
+.fj-img{position:relative;aspect-ratio:4/3;background:#c8c0b4;overflow:hidden;}
+.fj-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;}
+.fj-img:hover img{transform:scale(1.03);}
+.fj-noimg{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fog);font-size:13px;gap:8px;background:#e3dccf;}
+.fj-tag{position:absolute;top:20px;left:20px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--terra);padding:4px 10px;}
+.fj-text{background:#fff;padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
+.fj-day{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--fog);margin:0 0 8px;}
+.fj-loc{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--ink);margin:0 0 6px;line-height:1.15;}
+.fj-date{font-size:11px;color:var(--fog);margin:0 0 24px;letter-spacing:.05em;}
+.fj-body{font-size:15px;line-height:1.85;color:var(--ink);opacity:.85;margin:0;white-space:pre-wrap;}
+@media(max-width:820px){
+  .fig-journal-entry,.fig-journal-entry.rev{grid-template-columns:1fr;}
+  .fig-journal-entry.rev .fj-img{order:1;}.fig-journal-entry.rev .fj-text{order:2;}
+  .fj-text{padding:32px 24px;}
+}
 @media(max-width:820px){
   .figma-hero{height:56vh;min-height:340px;}.figma-hero-content{padding:32px 22px;}
   .figma-stats-inner{grid-template-columns:repeat(3,1fr);}.figma-stat{border-bottom:1px solid var(--rule);padding:22px 12px;}.fs-num{font-size:24px;}
@@ -324,6 +348,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 <div class="tabs">
   <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">Tag für Tag</button>
   <button class="tab-btn" onclick="showTab('route')" id="tab-route">Route</button>
+  <button class="tab-btn" onclick="showTab('journal')" id="tab-journal">Journal</button>
   <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">Ausflüge</button>
   <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">Kosten</button>
   <button class="tab-btn tab-action" onclick="createPhotobook()" id="tab-fotobuch">Fotobuch</button>
@@ -348,6 +373,15 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
     <div class="timeline"><div class="timeline-line"></div><div id="timeline-items"></div></div>
   </div>
 
+  <!-- JOURNAL -->
+  <div class="section" id="section-journal">
+    <div style="margin-bottom:48px">
+      <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch</p>
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
+    </div>
+    <div id="journal-entries"></div>
+  </div>
+
   <!-- AUSFLÜGE -->
   <div class="section" id="section-ausfluege">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
@@ -359,11 +393,14 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 
   <!-- KOSTEN -->
   <div class="section" id="section-kosten">
-    <div class="cost-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-        <div class="cost-title" style="margin:0;font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:400">Reisekosten</div>
+    <div style="margin-bottom:40px">
+      <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisekosten</p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+        <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Gesamt-<br><em>übersicht</em></h2>
         <button id="beleg-btn" class="btn btn-sm" style="background:var(--reef);color:#fff;display:none" onclick="openBeleg()">Beleg auslesen</button>
       </div>
+    </div>
+    <div class="cost-card">
       <div id="fx-settings"></div>
       <div id="cost-list"></div>
       <div id="grand-total-box"></div>
@@ -1703,13 +1740,13 @@ function renderCosts(){
   PLAN_CATS.forEach(function(cat){
     const items=costs.filter(c=>c.cat===cat.key);
     if(!items.length && !editMode) return;
-    html+=`<div class="cost-section-title">${cat.emoji} ${cat.label}</div>`;
+    html+=`<div class="cost-section-title">${esc(cat.label)}</div>`;
     let sum=0;
     items.forEach(function(c){
       const eur=toEUR(c.amount,c.cur);sum+=eur;total+=eur;
       const amtStr=(c.cur!=='EUR')?`${fmt(c.amount)} ${c.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
-      const dateChip=c.datum?`<div class="date-chip">📅 ${new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</div>`:'';
-      const btns=editMode?`<button class="cost-edit-btn" data-id="${c.id}" onclick="editCostEl(this)">✏️</button><button class="cost-del-btn" data-id="${c.id}" onclick="delCostEl(this)">✕</button>`:'';
+      const dateChip=c.datum?`<div class="date-chip">${new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})}</div>`:'';
+      const btns=editMode?`<button class="cost-edit-btn" data-id="${c.id}" onclick="editCostEl(this)">Bearb.</button><button class="cost-del-btn" data-id="${c.id}" onclick="delCostEl(this)">✕</button>`:'';
       html+=`<div class="cost-row"><div style="flex:1"><div>${esc(c.label)}</div>${infoDisplay(c)?`<div class="info">${esc(infoDisplay(c))}</div>`:''}${dateChip}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${btns}</div></div>`;
     });
     if(editMode)html+=`<button class="cost-add-btn" onclick="addCost('${cat.key}')">+ Position in ${cat.label} hinzufügen</button>`;
@@ -1726,7 +1763,7 @@ function renderCosts(){
     list.forEach(function(e){const amtStr=(e.cur!=='EUR')?`${fmt(e.amount)} ${e.cur}`:`EUR ${fmt(e.amount)}`;tagHtml+=`<div class="cost-row" style="padding-left:14px;font-size:.8rem"><div>${e.cat} ${esc(e.label)}</div><div class="${pc}">${amtStr}</div></div>`;tag+=toEUR(e.amount,e.cur);});
   });
   if(tag>0){
-    html+='<div class="cost-section-title">💶 Tagesausgaben vor Ort</div>'+tagHtml;
+    html+='<div class="cost-section-title">Tagesausgaben vor Ort</div>'+tagHtml;
     total+=tag;
     html+=`<div class="cost-group-total"><span>Summe Tagesausgaben</span><span class="${pc}">EUR ${fmt(tag)}</span></div>`;
   }
@@ -1738,7 +1775,7 @@ function renderCosts(){
     return;
   }
   document.getElementById('cost-list').innerHTML=html;
-  document.getElementById('grand-total-box').innerHTML=`<div class="grand-total"><span>Gesamtkosten</span><span class="${pc}">EUR ${fmt(total)}</span></div>`;
+  document.getElementById('grand-total-box').innerHTML=`<div class="fig-grandtotal"><span class="fig-gt-label">Gesamtkosten</span><span class="fig-gt-value ${pc}">€ ${fmt(total)}</span></div>`;
 }
 function toggleAusflugFields(){
   const cat=val('c-cat');
@@ -1940,8 +1977,42 @@ function showTab(tab){
   if(tab==='tage')renderTage();
   if(tab==='ausfluege')renderAusfluege();
   if(tab==='route')renderRoute();
+  if(tab==='journal')renderJournal();
 }
 function buildDaySlides(){renderTage();}
+
+function renderJournal(){
+  var c=document.getElementById('journal-entries');
+  if(!c)return;
+  var days=buildDays();
+  var items=[];
+  for(var i=0;i<days.length;i++){
+    var iso=days[i];
+    var e=entries[iso];
+    var ph=(photos[iso]||[]);
+    // Nur Tage mit Text (Foto optional, aber schöner)
+    if(e&&e.text&&e.text.trim()){
+      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,foto:ph.length?ph[0]:null});
+    }
+  }
+  if(!items.length){
+    c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
+    return;
+  }
+  c.innerHTML='<div class="fig-journal">'+items.map(function(e,idx){
+    var d=new Date(e.iso+'T12:00:00');
+    var dateStr=d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    var rev=(idx%2===1)?' rev':'';
+    var img=e.foto
+      ? '<div class="fj-img"><img src="'+esc(e.foto)+'" alt="'+esc(e.ort||e.titel)+'"><div class="fj-tag">Tag '+e.tag+'</div></div>'
+      : '<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
+    var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+'</p>'
+      +'<h3 class="fj-loc">'+esc(e.titel||e.ort||('Tag '+e.tag))+'</h3>'
+      +'<p class="fj-date">'+dateStr+(e.ort?' · '+esc(e.ort):'')+'</p>'
+      +'<p class="fj-body">'+esc(e.text)+'</p></div>';
+    return '<div class="fig-journal-entry'+rev+'">'+img+text+'</div>';
+  }).join('')+'</div>';
+}
 
 // ── ADMIN / PIN ─────────────────────────────────────────────────────────────
 // ── BEARBEITEN-MODUS (nur Besitzer) ──────────────────────────────────────────
