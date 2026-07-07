@@ -1321,6 +1321,7 @@ function renderAuKarte(){
 async function renderJournal(){
   var c=document.getElementById('journal-entries');
   if(!c)return;
+  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   // Alle Einträge mit Text sammeln, chronologisch
   var withText=entries.filter(function(e){return e.text&&e.text.trim();});
   withText.sort(function(a,b){return (a.datum||'')<(b.datum||'')?-1:1;});
