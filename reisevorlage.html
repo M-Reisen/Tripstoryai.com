@@ -729,6 +729,15 @@ async function initAuth(){
   }
   return true;
 }
+// Tag-für-Tag nur für Besitzer/Admin sichtbar; Besucher sehen nur das schicke Design
+function applyViewMode(){
+  var isAdmin=canEdit||editMode;
+  var sec=document.getElementById('section-tage');
+  if(sec)sec.style.display=isAdmin?'block':'none';
+  document.querySelectorAll('.fnav-link').forEach(function(a){
+    if(a.getAttribute('href')==='#section-tage')a.style.display=isAdmin?'':'none';
+  });
+}
 async function doLogout(){
   await sb.auth.signOut();
   location.href='index.html';
@@ -2026,6 +2035,7 @@ function renderAll(){
   try{renderJournal();}catch(e){console.error(e);}
   try{renderAusfluege();}catch(e){console.error(e);}
   try{renderCosts();}catch(e){console.error(e);}
+  try{applyViewMode();}catch(e){console.error(e);}
 }
 function buildDaySlides(){renderTage();}
 
@@ -2076,6 +2086,7 @@ function toggleAdmin(){
     b.style.background='';
   }
   renderHead();renderCosts();renderTage();renderAusfluege();renderRoute();
+  try{applyViewMode();}catch(e){}
 }
 
 // ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────

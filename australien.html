@@ -706,6 +706,16 @@ async function initAuth(){
   if(tripVisibility==='private' && !isOwner)return false;
   return true;
 }
+// Tag-für-Tag nur für Besitzer/Admin sichtbar; Besucher sehen nur das schicke Design
+function applyViewMode(){
+  var isAdmin=canEdit||editMode;
+  var sec=document.getElementById('section-tage');
+  if(sec)sec.style.display=isAdmin?'block':'none';
+  // Nav-Link "Tag für Tag" mit ausblenden
+  document.querySelectorAll('.fnav-link').forEach(function(a){
+    if(a.getAttribute('href')==='#section-tage')a.style.display=isAdmin?'':'none';
+  });
+}
 async function doLogout(){
   await sb.auth.signOut();
   location.href='index.html';
@@ -1174,6 +1184,7 @@ function renderAll(){
   try{renderActivities();}catch(e){console.error(e);}
   try{renderCosts();}catch(e){console.error(e);}
   try{renderTips();}catch(e){console.error(e);}
+  try{applyViewMode();}catch(e){console.error(e);}
   setTimeout(function(){try{loadCommentsForDay(DAYS[currentDay].iso);}catch(e){}},300);
 }
 
@@ -1473,7 +1484,7 @@ function toggleEditMode(){
     document.getElementById('edit-toggle-btn').style.background='';
     document.getElementById('tab-neu').style.display='none';
     const at=document.querySelector('.tab-btn.active');if(at&&at.id==='tab-neu')showTab('tage');
-    buildDaySlides();try{renderCosts();}catch(e){}
+    buildDaySlides();try{renderCosts();}catch(e){}try{applyViewMode();}catch(e){}
   }else{
     editMode=true;
     document.getElementById('edit-toggle-btn').textContent='✓ Fertig';
@@ -1489,7 +1500,7 @@ function epDel(){editPinBuffer=editPinBuffer.slice(0,-1);updateEpDots();}
 function updateEpDots(){for(var i=0;i<4;i++)document.getElementById('epd'+i).classList.toggle('filled',i<editPinBuffer.length);}
 function closeEditPin(){document.getElementById('edit-pin-overlay').style.display='none';editPinBuffer='';}
 function checkEditPin(){
-  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();try{renderCosts();}catch(e){}toast('Admin-Modus aktiv!');
+  if(editPinBuffer===CORRECT_PIN){document.getElementById('edit-pin-overlay').style.display='none';editMode=true;document.getElementById('edit-toggle-btn').textContent='Admin aktiv';document.getElementById('edit-toggle-btn').style.background='var(--sunset)';document.getElementById('tab-neu').style.display='block';document.getElementById('tab-kosten').style.display='block';buildDaySlides();try{renderCosts();}catch(e){}try{applyViewMode();}catch(e){}toast('Admin-Modus aktiv!');
     // API-Key laden oder abfragen
     if(!_apiKey){var saved=loadApiKey();if(saved){_apiKey=saved;}else{setTimeout(()=>{document.getElementById('apikey-overlay').style.display='flex';},400);}}
   }
