@@ -400,7 +400,7 @@ textarea{resize:vertical;min-height:100px;}
 <main>
 <div class="section" id="section-journal">
   <div style="margin-bottom:48px">
-    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch · NEU</p>
+    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch</p>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
       <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
       <p style="font-size:13px;color:var(--fog);max-width:220px;line-height:1.7;text-align:right;margin:0">Die schönsten Einträge deiner Reise</p>
@@ -475,7 +475,6 @@ textarea{resize:vertical;min-height:100px;}
     <div style="margin-top:13px">
       <button class="btn btn-reef" onclick="aiFormuliere()">KI formuliert den Eintrag</button>
       <button class="btn btn-bush" onclick="startDictationEntry()" id="dictate-btn" style="margin-left:8px">Diktieren</button>
-      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('apikey-overlay').style.display='flex'" style="color:var(--fog);border-color:rgba(0,0,0,.18);margin-left:8px">API-Key</button>
       <div class="ai-box" id="ai-formbox" style="display:none;margin-top:11px">
         <div class="ai-box-title">KI-Formulierung</div>
         <div class="ai-result" id="ai-form-result"></div>
@@ -493,6 +492,7 @@ textarea{resize:vertical;min-height:100px;}
     </div>
     <div class="form-actions">
       <button class="btn btn-ghost" style="color:var(--fog);border-color:rgba(0,0,0,.15)" onclick="showTab('tage')">Abbrechen</button>
+      <button class="btn btn-ghost" id="entry-delete-btn" style="color:#c0392b;border-color:rgba(192,57,43,.35);display:none" onclick="deleteEntry()">Löschen</button>
       <button class="btn btn-primary" onclick="saveEntry()">Speichern</button>
     </div>
   </div>
@@ -1217,7 +1217,28 @@ async function saveEntry(){
   if(idx>=0)setTimeout(()=>goToDay(idx),100);
   toast('✓ Eintrag gespeichert!');
 }
-function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';}
+function resetForm(){['f-datum','f-ort','f-titel','f-notizen','f-text'].forEach(id=>document.getElementById(id).value='');document.getElementById('ai-formbox').style.display='none';document.getElementById('f-kategorie').value='Strand';var db=document.getElementById('entry-delete-btn');if(db)db.style.display='none';}
+async function sbDeleteEntry(datum){
+  const {error}=await sb.from('kommentare').delete().eq('ort',datum).eq('trip_id',REISE_ID);
+  return !error;
+}
+async function deleteEntry(){
+  const datum=document.getElementById('f-datum').value;
+  if(!datum){toast('Kein Eintrag ausgewählt.');return;}
+  if(!confirm('Diesen Tagebucheintrag wirklich komplett löschen?'))return;
+  const btn=document.getElementById('entry-delete-btn');
+  if(btn){btn.textContent='⏳…';btn.disabled=true;}
+  const ok=await sbDeleteEntry(datum);
+  if(btn){btn.textContent='Löschen';btn.disabled=false;}
+  if(!ok){toast('Fehler beim Löschen.');return;}
+  const ix=entries.findIndex(e=>e.datum===datum);
+  if(ix>=0)entries.splice(ix,1);
+  resetForm();showTab('tage');
+  const idx=DAYS.findIndex(d=>d.iso===datum);
+  if(idx>=0)setTimeout(()=>goToDay(idx),100);
+  try{renderJournal();}catch(e){}
+  toast('Eintrag gelöscht.');
+}
 function startEntryForDate(iso){document.getElementById('f-datum').value=iso;const s=BOOKINGS.find(b=>{const st=new Date(b.datum+'T12:00:00');const e=new Date(st);e.setDate(e.getDate()+b.nights);const c=new Date(iso+'T12:00:00');return c>=st&&c<e;});if(s)document.getElementById('f-ort').value=s.loc.split(',')[0];showTab('neu');}
 
 function editEntry(iso){
@@ -1228,6 +1249,7 @@ function editEntry(iso){
   document.getElementById('f-titel').value=e.titel||'';
   if(document.getElementById('f-kategorie'))document.getElementById('f-kategorie').value=e.kat||'Sonstiges';
   document.getElementById('f-text').value=e.text||'';
+  var db=document.getElementById('entry-delete-btn');if(db)db.style.display='';
   const md=document.getElementById('modal');if(md)md.classList.remove('open');
   showTab('neu');
   toast('✏️ Eintrag wird bearbeitet');
