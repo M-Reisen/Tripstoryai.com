@@ -1928,28 +1928,19 @@ const MAPSTOPS=[
 ];
 const AUS_PATH='M120,150 Q90,140 80,170 Q60,200 75,240 Q70,290 110,320 Q120,370 170,385 Q230,410 300,390 Q350,375 355,330 Q360,290 345,250 Q360,210 350,170 Q345,120 300,95 Q260,70 220,80 Q180,75 160,110 Q140,135 120,150 Z';
 function drawAusMap(upToBid){
-  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-  // Echte Koordinaten aus AU_STOPS auf SVG projizieren (Mercator-artig, einfach linear)
+  // Echte Landkarte als Bild (kostenloser OSM Static Map Dienst)
   var stops=AU_STOPS;
-  var lats=stops.map(function(s){return s.lat;}), lngs=stops.map(function(s){return s.lng;});
-  var minLa=Math.min.apply(null,lats), maxLa=Math.max.apply(null,lats);
-  var minLo=Math.min.apply(null,lngs), maxLo=Math.max.apply(null,lngs);
-  var W=200,H=280,pad=30;
-  function px(lo){return pad+(lo-minLo)/(maxLo-minLo||1)*(W-2*pad);}
-  function py(la){return pad+(maxLa-la)/(maxLa-minLa||1)*(H-2*pad);}
-  // Index der aktuellen Station (nach bid → über MAPSTOPS-Reihenfolge)
   var idx=stops.length-1;
   if(upToBid){var mi=MAPSTOPS.findIndex(function(s){return s.bid===upToBid;});if(mi>=0)idx=Math.min(mi,stops.length-1);}
-  var pts=stops.map(function(s){return {x:px(s.lng),y:py(s.lat),name:s.name};});
-  var line='<polyline points="'+pts.map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#B5714A" stroke-width="1.5" stroke-dasharray="4,4" stroke-linecap="round"/>';
-  var dots=pts.map(function(p,i){
-    var isCur=i===idx, isDone=i<=idx;
-    var r=isCur?5:3.5;
-    var fill=isCur?'#B5714A':(isDone?'#2C5F6A':'#D8D0C4');
-    var lbl=isCur?'<text x="'+(p.x+8)+'" y="'+(p.y+3)+'" font-size="10" fill="#1A1714" font-family="Playfair Display,serif">'+esc(p.name)+'</text>':'';
-    return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="#F4EFE8" stroke-width="1.5"/>'+lbl;
-  }).join('');
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg">'+line+dots+'</svg>';
+  // Routen-Pfad (alle Stationen), Format lon,lat
+  var pathPts=stops.map(function(s){return s.lng.toFixed(4)+','+s.lat.toFixed(4);}).join('|');
+  var url='https://staticmap.openstreetmap.de/staticmap.php?size=500x640&maptype=mapnik';
+  url+='&path='+encodeURIComponent('color:0xB5714Aff|weight:2|'+pathPts);
+  // Marker der bisher besuchten Stationen
+  stops.forEach(function(s,i){
+    if(i<=idx){url+='&markers='+encodeURIComponent(s.lat.toFixed(4)+','+s.lng.toFixed(4)+',ol-marker');}
+  });
+  return '<img class="ausmap-img" src="'+url+'" alt="Reisekarte" crossorigin="anonymous">';
 }
 
 async function createPhotobook(){
@@ -2135,6 +2126,7 @@ async function createPhotobook(){
     +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6mm;padding-bottom:2mm;}'
     +'.ho-map-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#B5714A;}'
     +'.ausmap-svg{width:44mm;height:auto;}'
+    +'.ausmap-img{width:70mm;height:auto;border:1px solid #D8D0C4;border-radius:2px;display:block;}'
     // Textseite (Querformat) - clean
     +'.pb-textpage{background:#F4EFE8;display:flex;align-items:center;justify-content:center;}'
     +'.tp-frame{position:relative;width:100%;height:170mm;border:1px solid #D8D0C4;padding:18mm 26mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fff;}'
