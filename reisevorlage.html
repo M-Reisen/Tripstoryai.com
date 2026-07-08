@@ -294,6 +294,12 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fig-journal-entry.rev .fj-img{order:2;}
 .fig-journal-entry.rev .fj-text{order:1;}
 .fj-img{position:relative;aspect-ratio:4/3;background:#c8c0b4;overflow:hidden;}
+.fj-gallery{aspect-ratio:4/3;}
+.fj-scroll{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none;}
+.fj-scroll::-webkit-scrollbar{display:none;}
+.fj-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;}
+.fj-slide img{width:100%;height:100%;object-fit:cover;display:block;}
+.fj-count{position:absolute;bottom:14px;right:14px;background:rgba(26,23,20,.7);color:#fff;font-size:11px;letter-spacing:.05em;padding:4px 10px;border-radius:20px;pointer-events:none;}
 .fj-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;}
 .fj-img:hover img{transform:scale(1.03);}
 .fj-noimg{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fog);font-size:13px;gap:8px;background:#e3dccf;}
@@ -2042,10 +2048,18 @@ function renderAll(){
 }
 function buildDaySlides(){renderTage();}
 
-function renderJournal(){
+async function renderJournal(){
   var c=document.getElementById('journal-entries');
   if(!c)return;
   var days=buildDays();
+  // Fotos aller Tage mit Text laden (falls noch nicht geladen)
+  for(var j=0;j<days.length;j++){
+    var jiso=days[j];
+    var je=entries[jiso];
+    if(je&&je.text&&je.text.trim()&&photos[jiso]===undefined){
+      try{photos[jiso]=orderedPhotos(jiso,await sbLoadPhotos(jiso));}catch(e){photos[jiso]=[];}
+    }
+  }
   var items=[];
   for(var i=0;i<days.length;i++){
     var iso=days[i];
@@ -2053,7 +2067,7 @@ function renderJournal(){
     var ph=(photos[iso]||[]);
     // Nur Tage mit Text (Foto optional, aber schöner)
     if(e&&e.text&&e.text.trim()){
-      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,foto:ph.length?ph[0]:null});
+      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice()});
     }
   }
   if(!items.length){
@@ -2064,9 +2078,17 @@ function renderJournal(){
     var d=new Date(e.iso+'T12:00:00');
     var dateStr=d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
     var rev=(idx%2===1)?' rev':'';
-    var img=e.foto
-      ? '<div class="fj-img"><img src="'+esc(e.foto)+'" alt="'+esc(e.ort||e.titel)+'"><div class="fj-tag">Tag '+e.tag+'</div></div>'
-      : '<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
+    var fotos=e.fotos||[];
+    var img;
+    if(fotos.length>1){
+      img='<div class="fj-img fj-gallery"><div class="fj-tag">Tag '+e.tag+'</div><div class="fj-scroll">'
+        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(e.ort||e.titel)+'"></div>';}).join('')
+        +'</div><div class="fj-count">1 / '+fotos.length+'</div></div>';
+    }else if(fotos.length===1){
+      img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(e.ort||e.titel)+'"><div class="fj-tag">Tag '+e.tag+'</div></div>';
+    }else{
+      img='<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
+    }
     var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+'</p>'
       +'<h3 class="fj-loc">'+esc(e.titel||e.ort||('Tag '+e.tag))+'</h3>'
       +'<p class="fj-date">'+dateStr+(e.ort?' · '+esc(e.ort):'')+'</p>'

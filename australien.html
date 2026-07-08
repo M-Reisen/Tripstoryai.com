@@ -323,6 +323,12 @@ textarea{resize:vertical;min-height:100px;}
 .fig-journal-entry.rev .fj-img{order:2;}
 .fig-journal-entry.rev .fj-text{order:1;}
 .fj-img{position:relative;aspect-ratio:4/3;background:#c8c0b4;overflow:hidden;}
+.fj-gallery{aspect-ratio:4/3;}
+.fj-scroll{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none;}
+.fj-scroll::-webkit-scrollbar{display:none;}
+.fj-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;}
+.fj-slide img{width:100%;height:100%;object-fit:cover;display:block;}
+.fj-count{position:absolute;bottom:14px;right:14px;background:rgba(26,23,20,.7);color:#fff;font-size:11px;letter-spacing:.05em;padding:4px 10px;border-radius:20px;pointer-events:none;}
 .fj-img img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s ease;}
 .fj-img:hover img{transform:scale(1.03);}
 .fj-noimg{display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fog);font-size:13px;gap:8px;background:#e3dccf;}
@@ -1409,14 +1415,22 @@ async function renderJournal(){
     var iso=e.datum;
     var d=iso?new Date(iso+'T12:00:00'):null;
     var dateStr=d?d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';
-    var foto=(photos[iso]&&photos[iso].length)?photos[iso][0]:null;
-    var dayIdx=DAYS.findIndex(function(x){return x.iso===iso;});
-    var tagNr=dayIdx>=0?(dayIdx+1):'';
+    var fotos=(photos[iso]&&photos[iso].length)?photos[iso]:[];
+    var tagNr=DAYS.findIndex(function(x){return x.iso===iso;});
+    tagNr=tagNr>=0?(tagNr+1):'';
     var titel=(e.titel||'').replace(/^[^\wÄÖÜäöü]+/,'').trim()||('Tag '+tagNr);
     var rev=(idx%2===1)?' rev':'';
-    var img=foto
-      ? '<div class="fj-img"><img src="'+esc(foto)+'" alt="'+esc(titel)+'"><div class="fj-tag">'+(tagNr?'Tag '+tagNr:'Moment')+'</div></div>'
-      : '<div class="fj-img fj-noimg"><div class="fj-tag">'+(tagNr?'Tag '+tagNr:'Moment')+'</div><span>Kein Foto</span></div>';
+    var tagLbl=(tagNr?'Tag '+tagNr:'Moment');
+    var img;
+    if(fotos.length>1){
+      img='<div class="fj-img fj-gallery"><div class="fj-tag">'+tagLbl+'</div><div class="fj-scroll">'
+        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(titel)+'"></div>';}).join('')
+        +'</div><div class="fj-count">1 / '+fotos.length+'</div></div>';
+    }else if(fotos.length===1){
+      img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(titel)+'"><div class="fj-tag">'+tagLbl+'</div></div>';
+    }else{
+      img='<div class="fj-img fj-noimg"><div class="fj-tag">'+tagLbl+'</div><span>Kein Foto</span></div>';
+    }
     var text='<div class="fj-text">'
       +(tagNr?'<p class="fj-day">Tag '+tagNr+'</p>':'')
       +'<h3 class="fj-loc">'+esc(titel)+'</h3>'
@@ -1448,14 +1462,11 @@ function renderTimeline(){
         +'</div>';
     }
     // stay
-    const b=item;const entry=entries.find(e=>e.datum===b.datum);
-    const eBtn=entry
-      ? '<button class="fig-route-btn" onclick="openModal(\''+b.datum+'\')">Lesen</button>'
-      : (editMode?'<button class="fig-route-btn" onclick="startEntryForDate(\''+b.datum+'\')">Eintrag</button>':'');
+    const b=item;
     return '<div class="fig-route-row">'
       +'<div class="fig-route-days">'+esc(b.dateStr||fdate(b.datum))+'<span class="fig-route-cat">Unterkunft'+(b.nights?' · '+b.nights+' Nacht'+(b.nights>1?'e':''):'')+'</span></div>'
       +'<div class="fig-route-name">'+esc(b.name)+(b.loc?'<span class="fig-route-loc">'+esc(b.loc)+'</span>':'')+'</div>'
-      +'<div class="fig-route-note">'+esc(b.note||'')+(eBtn?'<div style="margin-top:10px">'+eBtn+'</div>':'')+'</div>'
+      +'<div class="fig-route-note">'+esc(b.note||'')+'</div>'
       +'</div>';
   }).join('')+'</div>';
 }
