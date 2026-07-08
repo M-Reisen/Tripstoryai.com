@@ -711,9 +711,12 @@ function applyViewMode(){
   var isAdmin=canEdit||editMode;
   var sec=document.getElementById('section-tage');
   if(sec)sec.style.display=isAdmin?'block':'none';
-  // Nav-Link "Tag für Tag" mit ausblenden
+  var secK=document.getElementById('section-kosten');
+  if(secK)secK.style.display=isAdmin?'block':'none';
+  // Nav-Links "Tag für Tag" und "Kosten" mit ausblenden
   document.querySelectorAll('.fnav-link').forEach(function(a){
-    if(a.getAttribute('href')==='#section-tage')a.style.display=isAdmin?'':'none';
+    var h=a.getAttribute('href');
+    if(h==='#section-tage'||h==='#section-kosten')a.style.display=isAdmin?'':'none';
   });
 }
 async function doLogout(){
