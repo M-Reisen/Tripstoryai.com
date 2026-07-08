@@ -58,8 +58,10 @@ header{background:rgba(244,239,232,.95);backdrop-filter:blur(12px);position:stic
 .tab-btn:hover:not(.active){color:var(--ink);background:rgba(0,0,0,.04);}
 
 main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
-.section{display:none;}
-.section.active{display:block;}
+.section{display:block;scroll-margin-top:110px;padding-bottom:70px;border-bottom:1px solid var(--rule);}
+.section:last-of-type{border-bottom:none;}
+.section#section-neu{display:none;border:none;padding-bottom:0;}
+.section#section-neu.active{display:block;}
 
 /* EMPTY STATES */
 .empty{text-align:center;padding:50px 20px;color:var(--fog);}
@@ -310,22 +312,57 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
   .figma-hero{height:56vh;min-height:340px;}.figma-hero-content{padding:32px 22px;}
   .figma-stats-inner{grid-template-columns:repeat(3,1fr);}.figma-stat{border-bottom:1px solid var(--rule);padding:22px 12px;}.fs-num{font-size:24px;}
 }
+/* FIGMA NAV */
+.figma-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:14px 32px;transition:background .4s,backdrop-filter .4s,border-color .4s,box-shadow .4s;background:transparent;border-bottom:1px solid transparent;}
+.figma-nav.scrolled{background:rgba(244,239,232,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule);box-shadow:0 2px 20px rgba(26,23,20,.06);}
+.fnav-logo{display:flex;align-items:center;text-decoration:none;flex:0 0 auto;}
+.fnav-logo-img{height:34px;width:auto;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.14);}
+.fnav-right{display:flex;align-items:center;gap:22px;flex-wrap:nowrap;}
+.fnav-link{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.8);text-decoration:none;transition:color .2s;white-space:nowrap;cursor:pointer;}
+.fnav-link:hover{color:#fff;}
+.figma-nav.scrolled .fnav-link{color:var(--ink-muted);}
+.figma-nav.scrolled .fnav-link:hover{color:var(--ink);}
+.fnav-sep{width:1px;height:18px;background:rgba(255,255,255,.3);}
+.figma-nav.scrolled .fnav-sep{background:var(--rule);}
+.fnav-action{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:7px 12px;cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap;}
+.fnav-action:hover{background:rgba(255,255,255,.2);color:#fff;}
+.figma-nav.scrolled .fnav-action{color:var(--ink-muted);background:transparent;border-color:var(--rule);}
+.figma-nav.scrolled .fnav-action:hover{background:var(--paper);color:var(--ink);}
+.fnav-burger{display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:18px;line-height:1;padding:8px 12px;border-radius:6px;cursor:pointer;}
+.figma-nav.scrolled .fnav-burger{background:transparent;border-color:var(--rule);color:var(--ink);}
+@media(max-width:900px){
+  .figma-nav{padding:12px 16px;flex-wrap:wrap;}
+  .fnav-burger{display:block;}
+  .fnav-right{display:none;flex-basis:100%;flex-direction:column;align-items:flex-start;gap:4px;margin-top:12px;background:rgba(244,239,232,.98);border-radius:8px;padding:12px;box-shadow:0 8px 30px rgba(26,23,20,.15);}
+  .fnav-right.open{display:flex;}
+  .fnav-link{font-size:13px;letter-spacing:.05em;color:var(--ink-muted);padding:8px 4px;width:100%;}
+  .fnav-link:hover{color:var(--ink);}
+  .fnav-sep{width:100%;height:1px;background:var(--rule);margin:6px 0;}
+  .fnav-action{color:var(--ink-muted);background:transparent;border-color:var(--rule);width:100%;text-align:left;}
+  .fnav-action:hover{background:var(--paper);color:var(--ink);}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <a class="logo" href="index.html">
-      <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:34px;width:auto;max-width:58vw;object-fit:contain;background:#fff;padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);">
-    </a>
-    <div class="header-actions">
-      <a class="btn btn-ghost btn-sm" href="index.html">← Übersicht</a>
-      <button class="btn btn-ghost btn-sm" id="admin-btn" onclick="toggleAdmin()" style="display:none">✏️ Bearbeiten</button>
-      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
-    </div>
+<nav class="figma-nav" id="figma-nav">
+  <a class="fnav-logo" href="index.html">
+    <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona" class="fnav-logo-img">
+  </a>
+  <button class="fnav-burger" id="fnav-burger" onclick="toggleNavMenu()" aria-label="Menü">☰</button>
+  <div class="fnav-right" id="fnav-right">
+    <a class="fnav-link" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
+    <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
+    <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')">Journal</a>
+    <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
+    <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
+    <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
+    <span class="fnav-sep"></span>
+    <a class="fnav-action" href="index.html">Übersicht</a>
+    <button class="fnav-action" id="admin-btn" onclick="toggleAdmin()" style="display:none">Bearbeiten</button>
+    <button class="fnav-action" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
   </div>
-</header>
+</nav>
 
 <section class="figma-hero">
   <img id="hero-bg-img" src="https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1800&h=1000&fit=crop&auto=format" alt="Reise">
@@ -345,13 +382,8 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 </div>
 <div class="hero-dates" id="hero-dates" style="display:none;"></div>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="showTab('tage')" id="tab-tage">Tag für Tag</button>
-  <button class="tab-btn" onclick="showTab('route')" id="tab-route">Route</button>
-  <button class="tab-btn" onclick="showTab('journal')" id="tab-journal">Journal</button>
-  <button class="tab-btn" onclick="showTab('ausfluege')" id="tab-ausfluege">Ausflüge</button>
-  <button class="tab-btn" onclick="showTab('kosten')" id="tab-kosten">Kosten</button>
-  <button class="tab-btn tab-action" onclick="createPhotobook()" id="tab-fotobuch">Fotobuch</button>
+<div class="tabs-hidden" style="display:none;">
+  <button id="tab-tage"></button><button id="tab-route"></button><button id="tab-journal"></button><button id="tab-ausfluege"></button><button id="tab-kosten"></button><button id="tab-fotobuch"></button>
 </div>
 
 <main>
@@ -407,7 +439,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
     </div>
   </div>
 </main>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V16 · Figma-Design komplett</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V17 · Scroll-Layout + Nav</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -1967,17 +1999,29 @@ function renderRoute(){
   }).join('');
 }
 
-// ── TABS ──────────────────────────────────────────────────────────────────────
+// ── NAVIGATION (durchscrollbar) ───────────────────────────────────────────────
 function showTab(tab){
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('section-'+tab).classList.add('active');
-  document.getElementById('tab-'+tab).classList.add('active');
-  if(tab==='kosten')renderCosts();
-  if(tab==='tage')renderTage();
-  if(tab==='ausfluege')renderAusfluege();
-  if(tab==='route')renderRoute();
-  if(tab==='journal')renderJournal();
+  var el=document.getElementById('section-'+tab);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function jumpTo(ev,tab){
+  if(ev)ev.preventDefault();
+  var menu=document.getElementById('fnav-right');
+  if(menu)menu.classList.remove('open');
+  var el=document.getElementById('section-'+tab);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function toggleNavMenu(){
+  var menu=document.getElementById('fnav-right');
+  if(menu)menu.classList.toggle('open');
+}
+function renderAll(){
+  try{renderTage();}catch(e){console.error(e);}
+  try{renderRoute();}catch(e){console.error(e);}
+  try{if(typeof renderKarte==='function')renderKarte();}catch(e){console.error(e);}
+  try{renderJournal();}catch(e){console.error(e);}
+  try{renderAusfluege();}catch(e){console.error(e);}
+  try{renderCosts();}catch(e){console.error(e);}
 }
 function buildDaySlides(){renderTage();}
 
@@ -2032,9 +2076,14 @@ function toggleAdmin(){
 
 // ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
 async function createPhotobook(){
-  toast('📖 Fotobuch wird vorbereitet…');
+  var _ov=document.createElement('div');
+  _ov.id='pb-loading-overlay';
+  _ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(26,23,20,.72);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:\'DM Sans\',sans-serif;';
+  _ov.innerHTML='<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.25);border-top-color:#B5714A;border-radius:50%;animation:pbspin .8s linear infinite;margin-bottom:20px"></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;margin-bottom:8px">Fotobuch wird vorbereitet…</div><div style="font-size:13px;opacity:.75;text-align:center;max-width:280px;line-height:1.5">Alle Fotos werden geladen. Das kann einen Moment dauern – bitte warten.</div>';
+  if(!document.getElementById('pbspin-style')){var st=document.createElement('style');st.id='pbspin-style';st.textContent='@keyframes pbspin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
+  document.body.appendChild(_ov);
   const days=buildDays();
-  if(!days.length){toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
+  if(!days.length){var o0=document.getElementById('pb-loading-overlay');if(o0)o0.remove();toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
   // Alle Fotos aller Tage laden (in gespeicherter Reihenfolge)
   for(const iso of days){
     if(photos[iso]===undefined){
@@ -2157,9 +2206,10 @@ async function createPhotobook(){
     +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
     +'</style>';
   const win=window.open('','_blank');
-  if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+  if(!win){var oP=document.getElementById('pb-loading-overlay');if(oP)oP.remove();toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
   win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
   win.document.close();
+  var oP2=document.getElementById('pb-loading-overlay');if(oP2)oP2.remove();
   toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann über „Drucken → Als PDF" speichern.');
 }
 function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
@@ -2417,10 +2467,20 @@ async function init(){
   try{await sbLoadReviews();}catch(e){console.error(e);}
   try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
   _apiKey=loadApiKey();
-  renderHead();renderTage();
+  renderHead();
+  try{renderAll();}catch(e){console.error('renderAll:',e);}
   // Reisekarte laden (Geocache zuerst, dann zeichnen)
   try{await loadGeoCache();renderKarte();}catch(e){console.error('Karte:',e);}
 }
+// Nav-Hintergrund beim Scrollen (transparent -> cremeweiß)
+(function(){
+  var nav=document.getElementById('figma-nav');
+  if(nav){
+    var onScroll=function(){if(window.scrollY>60)nav.classList.add('scrolled');else nav.classList.remove('scrolled');};
+    window.addEventListener('scroll',onScroll,{passive:true});
+    onScroll();
+  }
+})();
 init();
 </script>
 </body>
