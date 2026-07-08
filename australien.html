@@ -410,7 +410,11 @@ textarea{resize:vertical;min-height:100px;}
     <div style="font-size:.83rem;color:var(--fog)">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
   </div>
   <div id="au-karte-wrap" style="margin-bottom:32px;border:1px solid var(--rule);border-radius:4px;overflow:hidden;position:relative;">
-    <div id="au-karte-map" style="width:100%;height:460px;background:#EDE8E0;"></div>
+    <div id="au-karte-map" style="width:100%;height:460px;background:#EDE8E0;pointer-events:none;"></div>
+    <div style="position:absolute;bottom:12px;right:12px;z-index:600;display:flex;flex-direction:column;gap:4px;">
+      <button onclick="if(_auMap)_auMap.zoomIn()" style="width:36px;height:36px;border:1px solid var(--rule);background:#fff;border-radius:6px;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)">+</button>
+      <button onclick="if(_auMap)_auMap.zoomOut()" style="width:36px;height:36px;border:1px solid var(--rule);background:#fff;border-radius:6px;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)">−</button>
+    </div>
   </div>
   <div class="timeline">
     <div id="timeline-items"></div>
@@ -1357,7 +1361,6 @@ function renderAuKarte(){
   var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false,dragging:false,tap:false,touchZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false});
   _auMap=map;
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
-  L.control.zoom({position:'bottomright'}).addTo(map);
   var coords=AU_STOPS.map(function(s){return [s.lat,s.lng];});
   L.polyline(coords,{color:'#B5714A',weight:2,opacity:.6,dashArray:'6 6'}).addTo(map);
   AU_STOPS.forEach(function(s,idx){
