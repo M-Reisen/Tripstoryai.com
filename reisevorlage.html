@@ -2349,7 +2349,7 @@ async function renderKarte(){
   });
   // Leaflet-Karte aufbauen
   if(_leafletMap){_leafletMap.remove();_leafletMap=null;}
-  var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false});
+  var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false,dragging:false,tap:false,touchZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false});
   _leafletMap=map;
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
   L.control.zoom({position:'bottomright'}).addTo(map);

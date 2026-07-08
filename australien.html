@@ -1354,7 +1354,7 @@ function renderAuKarte(){
   var mapEl=document.getElementById('au-karte-map');
   if(!mapEl||typeof L==='undefined')return;
   if(_auMap){setTimeout(function(){_auMap.invalidateSize();},200);return;}
-  var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false});
+  var map=L.map(mapEl,{zoomControl:false,scrollWheelZoom:false,attributionControl:false,dragging:false,tap:false,touchZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false});
   _auMap=map;
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png',{maxZoom:19}).addTo(map);
   L.control.zoom({position:'bottomright'}).addTo(map);
