@@ -1939,6 +1939,11 @@ function drawAusMap(upToBid){
   var idx=stops.length-1;
   if(upToBid){var mi=MAPSTOPS.findIndex(function(s){return s.bid===upToBid;});if(mi>=0)idx=Math.min(mi,stops.length-1);}
   var pts=stops.map(function(s){return {x:px(s.lng),y:py(s.lat),name:s.name};});
+  // Label-Y-Position entzerren (mind. 9px Abstand), Punkt bleibt an echter Position
+  var labelY=pts.map(function(p){return p.y;});
+  for(var k=1;k<labelY.length;k++){
+    if(labelY[k]-labelY[k-1]<9)labelY[k]=labelY[k-1]+9;
+  }
   // Route-Linie (durchgezogen bis idx, dünn danach)
   var doneLine='<polyline points="'+pts.slice(0,idx+1).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#B5714A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
   var restLine=idx<pts.length-1?'<polyline points="'+pts.slice(idx).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#D8D0C4" stroke-width="1.2" stroke-dasharray="3,4" stroke-linecap="round"/>':'';
@@ -1947,13 +1952,13 @@ function drawAusMap(upToBid){
     var r=isCur?5:3.2;
     var fill=isCur?'#B5714A':(isDone?'#2C5F6A':'#fff');
     var stroke=isDone?'#F4EFE8':'#D8D0C4';
-    var right=p.x<W*0.55;
-    var tx=right?(p.x+7):(p.x-7);
-    var anchor=right?'start':'end';
+    // Labels rechts vom Punkt, entzerrt; feine Verbindungslinie Punkt→Label
+    var tx=p.x+8, ly=labelY[i];
     var lblColor=isCur?'#B5714A':(isDone?'#3a352e':'#9a938a');
     var weight=isCur?'500':'400';
-    var lbl='<text x="'+tx.toFixed(1)+'" y="'+(p.y+2.5).toFixed(1)+'" font-size="6.5" fill="'+lblColor+'" font-family="DM Sans,sans-serif" font-weight="'+weight+'" text-anchor="'+anchor+'">'+esc(p.name)+'</text>';
-    return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.2"/>'+lbl;
+    var leader=(Math.abs(ly-p.y)>2)?'<line x1="'+(p.x+3).toFixed(1)+'" y1="'+p.y.toFixed(1)+'" x2="'+(tx-1).toFixed(1)+'" y2="'+(ly-2).toFixed(1)+'" stroke="#D8D0C4" stroke-width="0.5"/>':'';
+    var lbl='<text x="'+tx.toFixed(1)+'" y="'+(ly-1).toFixed(1)+'" font-size="6.5" fill="'+lblColor+'" font-family="DM Sans,sans-serif" font-weight="'+weight+'" text-anchor="start">'+esc(p.name)+'</text>';
+    return leader+'<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.2"/>'+lbl;
   }).join('');
   return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#EDE8E0" rx="3"/>'+restLine+doneLine+dots+'</svg>';
 }
