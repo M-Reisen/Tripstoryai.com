@@ -353,6 +353,7 @@ textarea{resize:vertical;min-height:100px;}
     <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
     <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
     <a class="fnav-link" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
+    <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
     <span class="fnav-sep"></span>
     <a class="fnav-action" href="index.html">Übersicht</a>
     <button class="fnav-action" id="edit-toggle-btn" onclick="toggleEditMode()" style="display:none">Bearbeiten</button>
