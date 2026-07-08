@@ -1928,19 +1928,35 @@ const MAPSTOPS=[
 ];
 const AUS_PATH='M120,150 Q90,140 80,170 Q60,200 75,240 Q70,290 110,320 Q120,370 170,385 Q230,410 300,390 Q350,375 355,330 Q360,290 345,250 Q360,210 350,170 Q345,120 300,95 Q260,70 220,80 Q180,75 160,110 Q140,135 120,150 Z';
 function drawAusMap(upToBid){
-  // Echte Landkarte als Bild (kostenloser OSM Static Map Dienst)
+  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   var stops=AU_STOPS;
+  var lats=stops.map(function(s){return s.lat;}), lngs=stops.map(function(s){return s.lng;});
+  var minLa=Math.min.apply(null,lats), maxLa=Math.max.apply(null,lats);
+  var minLo=Math.min.apply(null,lngs), maxLo=Math.max.apply(null,lngs);
+  var W=280,H=340,padX=70,padTop=24,padBot=24;
+  function px(lo){return padX+(lo-minLo)/(maxLo-minLo||1)*(W-padX-24);}
+  function py(la){return padTop+(maxLa-la)/(maxLa-minLa||1)*(H-padTop-padBot);}
   var idx=stops.length-1;
   if(upToBid){var mi=MAPSTOPS.findIndex(function(s){return s.bid===upToBid;});if(mi>=0)idx=Math.min(mi,stops.length-1);}
-  // Routen-Pfad (alle Stationen), Format lon,lat
-  var pathPts=stops.map(function(s){return s.lng.toFixed(4)+','+s.lat.toFixed(4);}).join('|');
-  var url='https://staticmap.openstreetmap.de/staticmap.php?size=500x640&maptype=mapnik';
-  url+='&path='+encodeURIComponent('color:0xB5714Aff|weight:2|'+pathPts);
-  // Marker der bisher besuchten Stationen
-  stops.forEach(function(s,i){
-    if(i<=idx){url+='&markers='+encodeURIComponent(s.lat.toFixed(4)+','+s.lng.toFixed(4)+',ol-marker');}
-  });
-  return '<img class="ausmap-img" src="'+url+'" alt="Reisekarte" crossorigin="anonymous">';
+  var pts=stops.map(function(s){return {x:px(s.lng),y:py(s.lat),name:s.name};});
+  // Route-Linie (durchgezogen bis idx, dünn danach)
+  var doneLine='<polyline points="'+pts.slice(0,idx+1).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#B5714A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
+  var restLine=idx<pts.length-1?'<polyline points="'+pts.slice(idx).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#D8D0C4" stroke-width="1.5" stroke-dasharray="3,4" stroke-linecap="round"/>':'';
+  var dots=pts.map(function(p,i){
+    var isCur=i===idx, isDone=i<=idx;
+    var r=isCur?6:4;
+    var fill=isCur?'#B5714A':(isDone?'#2C5F6A':'#fff');
+    var stroke=isDone?'#F4EFE8':'#D8D0C4';
+    // Ortsnamen: links oder rechts je nach Position
+    var right=p.x<W*0.6;
+    var tx=right?(p.x+9):(p.x-9);
+    var anchor=right?'start':'end';
+    var lblColor=isCur?'#B5714A':(isDone?'#3a352e':'#9a938a');
+    var weight=isCur?'500':'400';
+    var lbl='<text x="'+tx.toFixed(1)+'" y="'+(p.y+3).toFixed(1)+'" font-size="8.5" fill="'+lblColor+'" font-family="DM Sans,sans-serif" font-weight="'+weight+'" text-anchor="'+anchor+'">'+esc(p.name)+'</text>';
+    return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.5"/>'+lbl;
+  }).join('');
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#EDE8E0" rx="3"/>'+restLine+doneLine+dots+'</svg>';
 }
 
 async function createPhotobook(){
