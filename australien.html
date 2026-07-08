@@ -273,6 +273,35 @@ textarea{resize:vertical;min-height:100px;}
 .fs-num{display:block;font-family:'Playfair Display',serif;font-size:32px;font-weight:400;color:var(--ink);line-height:1;margin-bottom:8px;}
 .fs-lbl{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);}
 @media(max-width:820px){.figma-stats-inner{grid-template-columns:repeat(3,1fr);}.figma-stat{border-bottom:1px solid var(--rule);padding:22px 12px;}.fs-num{font-size:24px;}}
+/* FIGMA NAV */
+.figma-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:14px 32px;transition:background .4s,backdrop-filter .4s,border-color .4s,box-shadow .4s;background:transparent;border-bottom:1px solid transparent;}
+.figma-nav.scrolled{background:rgba(244,239,232,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule);box-shadow:0 2px 20px rgba(26,23,20,.06);}
+.fnav-logo{display:flex;align-items:center;text-decoration:none;flex:0 0 auto;}
+.fnav-logo-img{height:34px;width:auto;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.14);}
+.fnav-right{display:flex;align-items:center;gap:22px;flex-wrap:nowrap;}
+.fnav-link{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.8);text-decoration:none;transition:color .2s;white-space:nowrap;cursor:pointer;}
+.fnav-link:hover{color:#fff;}
+.figma-nav.scrolled .fnav-link{color:var(--ink-muted);}
+.figma-nav.scrolled .fnav-link:hover{color:var(--ink);}
+.fnav-sep{width:1px;height:18px;background:rgba(255,255,255,.3);}
+.figma-nav.scrolled .fnav-sep{background:var(--rule);}
+.fnav-action{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.75);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:4px;padding:7px 12px;cursor:pointer;text-decoration:none;transition:all .2s;white-space:nowrap;}
+.fnav-action:hover{background:rgba(255,255,255,.2);color:#fff;}
+.figma-nav.scrolled .fnav-action{color:var(--ink-muted);background:transparent;border-color:var(--rule);}
+.figma-nav.scrolled .fnav-action:hover{background:var(--paper);color:var(--ink);}
+.fnav-burger{display:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:18px;line-height:1;padding:8px 12px;border-radius:6px;cursor:pointer;}
+.figma-nav.scrolled .fnav-burger{background:transparent;border-color:var(--rule);color:var(--ink);}
+@media(max-width:900px){
+  .figma-nav{padding:12px 16px;flex-wrap:wrap;}
+  .fnav-burger{display:block;}
+  .fnav-right{display:none;flex-basis:100%;flex-direction:column;align-items:flex-start;gap:4px;margin-top:12px;background:rgba(244,239,232,.98);border-radius:8px;padding:12px;box-shadow:0 8px 30px rgba(26,23,20,.15);}
+  .fnav-right.open{display:flex;}
+  .fnav-link{font-size:13px;letter-spacing:.05em;color:var(--ink-muted);padding:8px 4px;width:100%;}
+  .fnav-link:hover{color:var(--ink);}
+  .fnav-sep{width:100%;height:1px;background:var(--rule);margin:6px 0;}
+  .fnav-action{color:var(--ink-muted);background:transparent;border-color:var(--rule);width:100%;text-align:left;}
+  .fnav-action:hover{background:var(--paper);color:var(--ink);}
+}
 /* FIGMA JOURNAL */
 .fig-journal{display:flex;flex-direction:column;gap:2px;}
 .fig-journal-entry{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
@@ -297,18 +326,24 @@ textarea{resize:vertical;min-height:100px;}
 </head>
 <body>
 
-<header>
-  <div class="header-inner">
-    <a class="logo" href="index.html" style="display:flex;align-items:center;gap:8px;text-decoration:none;">
-      <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:34px;width:auto;object-fit:contain;background:#fff;padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);">
-    </a>
-    <div class="header-actions">
-      <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">← Übersicht</a>
-      <button class="btn btn-ghost btn-sm" id="edit-toggle-btn" onclick="toggleEditMode()" style="display:none">✏️ Bearbeiten</button>
-      <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
-    </div>
+<nav class="figma-nav" id="figma-nav">
+  <a class="fnav-logo" href="index.html">
+    <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona" class="fnav-logo-img">
+  </a>
+  <button class="fnav-burger" id="fnav-burger" onclick="toggleNavMenu()" aria-label="Menü">☰</button>
+  <div class="fnav-right" id="fnav-right">
+    <a class="fnav-link" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
+    <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
+    <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
+    <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
+    <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
+    <a class="fnav-link" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
+    <span class="fnav-sep"></span>
+    <a class="fnav-action" href="index.html">Übersicht</a>
+    <button class="fnav-action" id="edit-toggle-btn" onclick="toggleEditMode()" style="display:none">Bearbeiten</button>
+    <button class="fnav-action" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
   </div>
-</header>
+</nav>
 
 <section class="figma-hero">
   <img src="https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1800&h=1000&fit=crop&auto=format" alt="Great Barrier Reef, Queensland">
@@ -331,7 +366,7 @@ textarea{resize:vertical;min-height:100px;}
   </div>
 </div>
 
-<div class="tabs">
+<div class="tabs-hidden" style="display:none;">
   <a class="tab-btn" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
   <a class="tab-btn" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
   <a class="tab-btn" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
@@ -1106,9 +1141,14 @@ function showTab(tab){
 }
 function jumpTo(ev,tab){
   if(ev)ev.preventDefault();
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  var menu=document.getElementById('fnav-right');
+  if(menu)menu.classList.remove('open');
   var el=document.getElementById('section-'+tab);
   if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function toggleNavMenu(){
+  var menu=document.getElementById('fnav-right');
+  if(menu)menu.classList.toggle('open');
 }
 function renderAll(){
   try{buildDaySlides();}catch(e){console.error(e);}
@@ -2047,6 +2087,15 @@ function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,m
 
 function toast(msg){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';document.body.appendChild(t);}t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
+// Nav-Hintergrund beim Scrollen (transparent -> cremeweiß)
+(function(){
+  var nav=document.getElementById('figma-nav');
+  if(nav){
+    var onScroll=function(){if(window.scrollY>60)nav.classList.add('scrolled');else nav.classList.remove('scrolled');};
+    window.addEventListener('scroll',onScroll,{passive:true});
+    onScroll();
+  }
+})();
 initApp();
 </script>
 <div id="toast"></div>
