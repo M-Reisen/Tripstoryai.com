@@ -237,8 +237,7 @@ textarea{resize:vertical;min-height:100px;}
 .pin-key{background:var(--paper);border:1.5px solid rgba(28,26,22,.12);border-radius:10px;padding:14px;font-size:1.1rem;font-weight:500;cursor:pointer;transition:all .18s;font-family:'DM Sans',sans-serif;}
 .pin-key:hover{background:var(--sunset);color:var(--white);border-color:var(--sunset);}
 .sb-loading{text-align:center;padding:14px;color:var(--fog);font-size:.82rem;}
-.comments-section{padding:20px 28px;border-top:1px solid var(--rule);}
-.comments-title{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#6B6560;margin-bottom:12px;}
+.comments-section{padding:20px 28px;border-top:1px solid var(--rule);}.comments-title{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#6B6560;margin-bottom:12px;}
 .comment-item{background:var(--paper);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:.84rem;}
 .comment-name{font-weight:600;font-size:.78rem;color:var(--sunset);margin-bottom:3px;}
 .comment-text{line-height:1.6;color:#3a2d22;}
@@ -317,6 +316,17 @@ textarea{resize:vertical;min-height:100px;}
   .fig-route-days{flex-direction:row;gap:10px;align-items:baseline;}
   .fig-route-note{padding-top:6px;}
 }
+/* GÄSTEBUCH */
+.gb-form{display:flex;flex-direction:column;gap:12px;max-width:520px;}
+.gb-form input,.gb-form textarea{font-family:'DM Sans',sans-serif;font-size:15px;padding:14px 16px;background:#fff;border:1px solid var(--rule);border-radius:4px;color:var(--ink);outline:none;transition:border-color .2s;}
+.gb-form input:focus,.gb-form textarea:focus{border-color:var(--terra);}
+.gb-form textarea{min-height:90px;resize:vertical;}
+.gb-form button{align-self:flex-start;}
+.gb-entry{padding:20px 0;border-bottom:1px solid var(--rule);}
+.gb-entry-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);margin-bottom:4px;}
+.gb-entry-date{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);margin-bottom:10px;}
+.gb-entry-text{font-size:15px;line-height:1.7;color:var(--ink);opacity:.85;white-space:pre-wrap;}
+.gb-empty{padding:30px 0;color:var(--fog);font-size:14px;font-style:italic;}
 /* FIGMA JOURNAL */
 .fig-journal{display:flex;flex-direction:column;gap:2px;}
 .fig-journal-entry{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
@@ -359,6 +369,7 @@ textarea{resize:vertical;min-height:100px;}
     <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
     <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
     <a class="fnav-link" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
+    <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')">Gästebuch</a>
     <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
     <span class="fnav-sep"></span>
     <a class="fnav-action" href="index.html">Übersicht</a>
@@ -511,6 +522,20 @@ textarea{resize:vertical;min-height:100px;}
   <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Tipps & Empfehlungen</div>
   <div style="font-size:.83rem;color:var(--fog);margin-bottom:24px">Handverlesene Empfehlungen für jeden Stop eurer Reise.</div>
   <div style="display:flex;flex-direction:column;gap:16px" id="tips-list"></div>
+</div>
+
+<div class="section" id="section-gaestebuch">
+  <div style="margin-bottom:32px">
+    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Gästebuch</p>
+    <h2 style="font-family:'Playfair Display',serif;font-size:clamp(30px,4vw,46px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Hinterlasst<br><em>eine Nachricht</em></h2>
+    <p style="font-size:14px;color:var(--fog);margin-top:14px;max-width:440px;line-height:1.7">Schön, dass ihr hier seid! Über einen lieben Gruß freuen wir uns sehr.</p>
+  </div>
+  <div id="gb-list" style="margin-bottom:32px"><div class="sb-loading">Lädt…</div></div>
+  <div class="gb-form">
+    <input type="text" id="gb-name" placeholder="Dein Name" maxlength="50">
+    <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3"></textarea>
+    <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
+  </div>
 </div>
 </main>
 
@@ -1194,6 +1219,7 @@ function renderAll(){
   try{renderCosts();}catch(e){console.error(e);}
   try{renderTips();}catch(e){console.error(e);}
   try{applyViewMode();}catch(e){console.error(e);}
+  try{loadGuestbook();}catch(e){console.error(e);}
   setTimeout(function(){try{loadCommentsForDay(DAYS[currentDay].iso);}catch(e){}},300);
 }
 
@@ -1462,10 +1488,43 @@ async function renderJournal(){
   }).join('')+'</div>';
 }
 
+async function loadGuestbook(){
+  var box=document.getElementById('gb-list');
+  if(!box)return;
+  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  try{
+    var {data,error}=await sb.from('kommentare').select('*').like('ort','gaestebuch_'+REISE_ID+'%').order('created_at',{ascending:false});
+    if(error){box.innerHTML='<div class="gb-empty">Konnte Nachrichten nicht laden.</div>';return;}
+    if(!data||!data.length){box.innerHTML='<div class="gb-empty">Noch keine Nachrichten – sei die erste Person, die einen Gruß hinterlässt!</div>';return;}
+    box.innerHTML=data.map(function(c){
+      var d=c.created_at?new Date(c.created_at):null;
+      var ds=d?d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';
+      return '<div class="gb-entry"><div class="gb-entry-name">'+esc(c.name||'Gast')+'</div>'
+        +(ds?'<div class="gb-entry-date">'+ds+'</div>':'')
+        +'<div class="gb-entry-text">'+esc(c.nachricht||'')+'</div></div>';
+    }).join('');
+  }catch(e){box.innerHTML='<div class="gb-empty">Konnte Nachrichten nicht laden.</div>';}
+}
+async function submitGuestbook(){
+  var name=document.getElementById('gb-name').value.trim();
+  var text=document.getElementById('gb-text').value.trim();
+  if(!name||!text){toast('Bitte Name und Nachricht ausfüllen.');return;}
+  var btn=document.querySelector('#section-gaestebuch .btn-reef');
+  if(btn){btn.textContent='⏳…';btn.disabled=true;}
+  try{
+    var {error}=await sb.from('kommentare').insert({ort:'gaestebuch_'+REISE_ID+'_'+Date.now(),name:name,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
+    if(btn){btn.textContent='Nachricht senden';btn.disabled=false;}
+    if(error){toast('Fehler beim Senden.');return;}
+    document.getElementById('gb-name').value='';
+    document.getElementById('gb-text').value='';
+    toast('✓ Danke für deine Nachricht!');
+    loadGuestbook();
+  }catch(e){if(btn){btn.textContent='Nachricht senden';btn.disabled=false;}toast('Fehler beim Senden.');}
+}
+
 function renderTimeline(){
   const c=document.getElementById('timeline-items');
-  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-  function fdate(iso){if(!iso)return'';var d=new Date(iso+'T12:00:00');return d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});}
+  var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};  function fdate(iso){if(!iso)return'';var d=new Date(iso+'T12:00:00');return d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});}
   c.innerHTML='<div class="fig-route">'+TIMELINE.map(item=>{
     if(item.type==='transport'){
       var kat=({flight:'Flug',bus:'Transfer',car:'Mietwagen',ferry:'Fähre'})[item.cls]||'Transfer';
