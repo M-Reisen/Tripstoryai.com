@@ -402,10 +402,6 @@ textarea{resize:vertical;min-height:100px;}
   <div class="days-swipe-wrap" id="swipe-wrap">
     <div class="days-swipe-track" id="swipe-track"></div>
   </div>
-  <div style="text-align:center;margin-top:24px;padding-top:20px;border-top:1px solid rgba(0,0,0,.08)">
-    <button class="btn btn-reef" onclick="createPhotobook()" style="font-size:.95rem">Fotobuch als PDF erstellen</button>
-    <div style="font-size:.72rem;color:var(--fog);margin-top:8px;line-height:1.5">Erstellt eine Druckansicht mit einer Seite pro Tag.<br>Dann: Teilen → Drucken → „Als PDF sichern".</div>
-  </div>
 </div>
 
 <div class="section" id="section-route">
@@ -1922,7 +1918,13 @@ function drawAusMap(upToBid){
 }
 
 async function createPhotobook(){
-  toast('Fotobuch wird vorbereitet…');
+  // Sichtbarer Lade-Hinweis (Overlay)
+  var _ov=document.createElement('div');
+  _ov.id='pb-loading-overlay';
+  _ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(26,23,20,.72);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:\'DM Sans\',sans-serif;';
+  _ov.innerHTML='<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.25);border-top-color:#B5714A;border-radius:50%;animation:pbspin .8s linear infinite;margin-bottom:20px"></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;margin-bottom:8px">Fotobuch wird vorbereitet…</div><div style="font-size:13px;opacity:.75;text-align:center;max-width:280px;line-height:1.5">Alle Fotos werden geladen. Das kann einen Moment dauern – bitte warten.</div>';
+  if(!document.getElementById('pbspin-style')){var st=document.createElement('style');st.id='pbspin-style';st.textContent='@keyframes pbspin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
+  document.body.appendChild(_ov);
   // Alle Fotos aller Tage laden
   for(const day of DAYS){
     if(!photos[day.iso]){
@@ -2117,9 +2119,10 @@ async function createPhotobook(){
     +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
     +'</style>';
   const win=window.open('','_blank');
-  if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+  if(!win){var o1=document.getElementById('pb-loading-overlay');if(o1)o1.remove();toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
   win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Travona Fotobuch – Australien 2026</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
   win.document.close();
+  var o2=document.getElementById('pb-loading-overlay');if(o2)o2.remove();
   toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann drucken.');
 }
 
