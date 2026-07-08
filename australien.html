@@ -1933,28 +1933,27 @@ function drawAusMap(upToBid){
   var lats=stops.map(function(s){return s.lat;}), lngs=stops.map(function(s){return s.lng;});
   var minLa=Math.min.apply(null,lats), maxLa=Math.max.apply(null,lats);
   var minLo=Math.min.apply(null,lngs), maxLo=Math.max.apply(null,lngs);
-  var W=280,H=340,padX=70,padTop=24,padBot=24;
-  function px(lo){return padX+(lo-minLo)/(maxLo-minLo||1)*(W-padX-24);}
+  var W=300,H=440,padX=75,padTop=28,padBot=28;
+  function px(lo){return padX+(lo-minLo)/(maxLo-minLo||1)*(W-padX-28);}
   function py(la){return padTop+(maxLa-la)/(maxLa-minLa||1)*(H-padTop-padBot);}
   var idx=stops.length-1;
   if(upToBid){var mi=MAPSTOPS.findIndex(function(s){return s.bid===upToBid;});if(mi>=0)idx=Math.min(mi,stops.length-1);}
   var pts=stops.map(function(s){return {x:px(s.lng),y:py(s.lat),name:s.name};});
   // Route-Linie (durchgezogen bis idx, dünn danach)
-  var doneLine='<polyline points="'+pts.slice(0,idx+1).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#B5714A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>';
-  var restLine=idx<pts.length-1?'<polyline points="'+pts.slice(idx).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#D8D0C4" stroke-width="1.5" stroke-dasharray="3,4" stroke-linecap="round"/>':'';
+  var doneLine='<polyline points="'+pts.slice(0,idx+1).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#B5714A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+  var restLine=idx<pts.length-1?'<polyline points="'+pts.slice(idx).map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'" fill="none" stroke="#D8D0C4" stroke-width="1.2" stroke-dasharray="3,4" stroke-linecap="round"/>':'';
   var dots=pts.map(function(p,i){
     var isCur=i===idx, isDone=i<=idx;
-    var r=isCur?6:4;
+    var r=isCur?5:3.2;
     var fill=isCur?'#B5714A':(isDone?'#2C5F6A':'#fff');
     var stroke=isDone?'#F4EFE8':'#D8D0C4';
-    // Ortsnamen: links oder rechts je nach Position
-    var right=p.x<W*0.6;
-    var tx=right?(p.x+9):(p.x-9);
+    var right=p.x<W*0.55;
+    var tx=right?(p.x+7):(p.x-7);
     var anchor=right?'start':'end';
     var lblColor=isCur?'#B5714A':(isDone?'#3a352e':'#9a938a');
     var weight=isCur?'500':'400';
-    var lbl='<text x="'+tx.toFixed(1)+'" y="'+(p.y+3).toFixed(1)+'" font-size="8.5" fill="'+lblColor+'" font-family="DM Sans,sans-serif" font-weight="'+weight+'" text-anchor="'+anchor+'">'+esc(p.name)+'</text>';
-    return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.5"/>'+lbl;
+    var lbl='<text x="'+tx.toFixed(1)+'" y="'+(p.y+2.5).toFixed(1)+'" font-size="6.5" fill="'+lblColor+'" font-family="DM Sans,sans-serif" font-weight="'+weight+'" text-anchor="'+anchor+'">'+esc(p.name)+'</text>';
+    return '<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1.2"/>'+lbl;
   }).join('');
   return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#EDE8E0" rx="3"/>'+restLine+doneLine+dots+'</svg>';
 }
@@ -2141,7 +2140,7 @@ async function createPhotobook(){
     +'.ho-note{font-family:"Playfair Display",serif;font-style:italic;font-size:16px;color:#3a352e;max-width:180mm;margin:2mm 0 4mm;line-height:1.5;}'
     +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6mm;padding-bottom:2mm;}'
     +'.ho-map-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#B5714A;}'
-    +'.ausmap-svg{width:44mm;height:auto;}'
+    +'.ausmap-svg{width:80mm;height:auto;}'
     +'.ausmap-img{width:70mm;height:auto;border:1px solid #D8D0C4;border-radius:2px;display:block;}'
     // Textseite (Querformat) - clean
     +'.pb-textpage{background:#F4EFE8;display:flex;align-items:center;justify-content:center;}'
