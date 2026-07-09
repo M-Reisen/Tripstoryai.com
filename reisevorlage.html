@@ -880,6 +880,16 @@ function changeHeroImage(){
         if(error){alert('Titelbild-Fehler: '+(error.message||error));return;}
         var {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
         var img=document.getElementById('hero-bg-img');if(img)img.src=data.publicUrl;
+        // URL auch in trips-Tabelle speichern, damit sie auf "Meine Reisen" erscheint
+        try{
+          var tr=await sb.from('trips').select('title').eq('id',REISE).limit(1);
+          if(tr.data&&tr.data.length){
+            var meta={};
+            try{meta=JSON.parse(tr.data[0].title||'{}');}catch(e){meta={};}
+            meta.img=data.publicUrl;
+            await sb.from('trips').update({title:JSON.stringify(meta)}).eq('id',REISE);
+          }
+        }catch(e){console.error('trips.img update:',e);}
         toast('✓ Titelbild gespeichert!');
       }catch(e){alert('Fehler: '+(e.message||e));}
     };
