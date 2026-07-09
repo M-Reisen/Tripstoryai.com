@@ -536,6 +536,7 @@ textarea{resize:vertical;min-height:100px;}
     <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3"></textarea>
     <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
   </div>
+  <div id="visit-counter" style="text-align:center;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);"></div>
 </div>
 </main>
 
@@ -1242,6 +1243,7 @@ function renderAll(){
   try{renderTips();}catch(e){console.error(e);}
   try{applyViewMode();}catch(e){console.error(e);}
   try{loadGuestbook();}catch(e){console.error(e);}
+  try{trackVisit();}catch(e){console.error(e);}
   setTimeout(function(){try{loadCommentsForDay(DAYS[currentDay].iso);}catch(e){}},300);
 }
 
@@ -1516,6 +1518,23 @@ async function renderJournal(){
   }).join('')+'</div>';
 }
 
+async function trackVisit(){
+  var box=document.getElementById('visit-counter');
+  try{
+    var devId=localStorage.getItem('travona_dev');
+    if(!devId){devId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',devId);}
+    var heute=new Date().toISOString().slice(0,10);
+    var visitKey='visit_'+REISE_ID+'_'+devId+'_'+heute;
+    var lastKey='travona_lastvisit_'+REISE_ID;
+    if(localStorage.getItem(lastKey)!==heute){
+      try{await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE_ID});}catch(e){}
+      localStorage.setItem(lastKey,heute);
+    }
+    var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE_ID+'_%');
+    var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
+    if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
+  }catch(e){if(box)box.textContent='';}
+}
 async function loadGuestbook(){
   var box=document.getElementById('gb-list');
   if(!box)return;

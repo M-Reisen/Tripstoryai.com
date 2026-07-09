@@ -485,6 +485,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
       <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3"></textarea>
       <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
     </div>
+    <div id="visit-counter" style="text-align:center;margin-top:48px;padding-top:24px;border-top:1px solid var(--rule);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);"></div>
   </div>
 </main>
 <div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V17 · Scroll-Layout + Nav</div>
@@ -2203,9 +2204,27 @@ function renderAll(){
   try{renderCosts();}catch(e){console.error(e);}
   try{applyViewMode();}catch(e){console.error(e);}
   try{loadGuestbook();}catch(e){console.error(e);}
+  try{trackVisit();}catch(e){console.error(e);}
 }
 function buildDaySlides(){renderTage();}
 
+async function trackVisit(){
+  var box=document.getElementById('visit-counter');
+  try{
+    var devId=localStorage.getItem('travona_dev');
+    if(!devId){devId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',devId);}
+    var heute=new Date().toISOString().slice(0,10);
+    var visitKey='visit_'+REISE+'_'+devId+'_'+heute;
+    var lastKey='travona_lastvisit_'+REISE;
+    if(localStorage.getItem(lastKey)!==heute){
+      try{await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE});}catch(e){}
+      localStorage.setItem(lastKey,heute);
+    }
+    var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE+'_%');
+    var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
+    if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
+  }catch(e){if(box)box.textContent='';}
+}
 async function loadGuestbook(){
   var box=document.getElementById('gb-list');
   if(!box)return;
@@ -2489,17 +2508,28 @@ async function geocode(ort){
   if(!ort)return null;
   var key=ort.toLowerCase();
   if(_geoCache[key])return _geoCache[key];
-  try{
-    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(ort);
-    var r=await fetch(url,{headers:{'Accept':'application/json'}});
-    var d=await r.json();
-    if(d&&d.length){
-      var pt={lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
-      _geoCache[key]=pt;
-      if(currentUser){try{await sb.from('geo_cache').upsert({ort:ort,lat:pt.lat,lon:pt.lon});}catch(e){}}
-      return pt;
-    }
-  }catch(e){}
+  // Mehrere Varianten probieren (roher Ort, + Deutschland, + Kroatien, + Österreich)
+  var versuche=[ort];
+  if(!/deutschland|germany|kroatien|croatia|österreich|austria|italien|italy/i.test(ort)){
+    versuche.push(ort+', Deutschland');
+    versuche.push(ort+', Kroatien');
+    versuche.push(ort+', Österreich');
+  }
+  for(var i=0;i<versuche.length;i++){
+    try{
+      var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=0&q='+encodeURIComponent(versuche[i]);
+      var r=await fetch(url,{headers:{'Accept':'application/json'}});
+      if(!r.ok){await sleep(400);continue;}
+      var d=await r.json();
+      if(d&&d.length){
+        var pt={lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
+        _geoCache[key]=pt;
+        if(currentUser){try{await sb.from('geo_cache').upsert({ort:ort,lat:pt.lat,lon:pt.lon});}catch(e){}}
+        return pt;
+      }
+      await sleep(400);
+    }catch(e){await sleep(400);}
+  }
   return null;
 }
 function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
