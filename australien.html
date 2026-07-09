@@ -732,15 +732,18 @@ async function syncCoverToOverview(){
   if(!canEdit)return;
   try{
     var tr=await sb.from('trips').select('title').eq('id',REISE_ID).limit(1);
-    if(tr.data&&tr.data.length){
-      var meta={};
-      try{meta=JSON.parse(tr.data[0].title||'{}');}catch(e){meta={};}
-      if(meta.img!==HERO_IMG_URL){
-        meta.img=HERO_IMG_URL;
-        await sb.from('trips').update({title:JSON.stringify(meta)}).eq('id',REISE_ID);
-      }
+    if(!tr.data||!tr.data.length){toast('Hinweis: Australien-Reise nicht in Übersicht gefunden.');return;}
+    var meta={};
+    var raw=tr.data[0].title||'';
+    try{meta=JSON.parse(raw);if(typeof meta!=='object'||!meta)meta={name:String(raw)};}
+    catch(e){meta={name:raw||'Australien 2026'};}
+    if(meta.img!==HERO_IMG_URL){
+      meta.img=HERO_IMG_URL;
+      var up=await sb.from('trips').update({title:JSON.stringify(meta)}).eq('id',REISE_ID);
+      if(up.error){toast('Titelbild-Sync Fehler: '+up.error.message);}
+      else{toast('✓ Titelbild für Übersicht gespeichert!');}
     }
-  }catch(e){console.error('Cover-Sync:',e);}
+  }catch(e){console.error('Cover-Sync:',e);toast('Cover-Sync Fehler.');}
 }
 let currentUser=null, tripOwner=null, tripVisibility='private', canEdit=false;
 async function initAuth(){
