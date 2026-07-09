@@ -236,6 +236,17 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 
 /* HOTEL-BANNER (Tageskopf wie Australien) */
 .hotel-banner{width:100%;height:150px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;}
+.hotel-banner-photos{position:relative;width:100%;height:180px;overflow:hidden;}
+.hotel-banner-inner{display:flex;height:180px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
+.hotel-banner-inner::-webkit-scrollbar{display:none;}
+.hotel-banner-slide{min-width:100%;height:180px;scroll-snap-align:start;position:relative;}
+.hotel-banner-slide img{width:100%;height:180px;object-fit:cover;display:block;}
+.hotel-banner-caption{position:absolute;left:0;bottom:0;right:0;padding:20px 16px 12px;background:linear-gradient(transparent,rgba(26,23,20,.7));display:flex;justify-content:space-between;align-items:flex-end;gap:8px;}
+.hbc-name{font-family:'Playfair Display',serif;font-size:1.05rem;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.5);}
+.hbc-nights{font-size:.68rem;color:#fff;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;white-space:nowrap;}
+.hotel-add-btn{position:absolute;top:12px;right:12px;z-index:3;background:rgba(255,255,255,.92);border:none;border-radius:6px;padding:7px 12px;font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:500;color:var(--ink);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.hotel-add-btn:hover{background:#fff;}
+.hotel-del-btn{position:absolute;top:8px;right:8px;z-index:3;background:rgba(26,23,20,.6);border:none;border-radius:50%;width:26px;height:26px;color:#fff;cursor:pointer;font-size:.8rem;line-height:1;}
 .hotel-banner-name{font-family:'Playfair Display',serif;font-size:1.15rem;color:#fff;font-weight:700;text-align:center;padding:0 20px;text-shadow:0 2px 8px rgba(0,0,0,.5);position:relative;z-index:1;line-height:1.25;}
 .hotel-banner-loc{font-size:.74rem;color:rgba(255,255,255,.8);text-align:center;position:relative;z-index:1;}
 .hotel-banner-loc::before{content:'📍 ';}
@@ -814,6 +825,61 @@ let _expIso=null;        // aktueller Tag für Ausgabe
 let _capIso=null;        // aktueller Tag für Bildunterschrift
 let _capUrl=null;        // aktuelle Foto-URL für Bildunterschrift
 let hotelReviews={};     // iso -> {id, stars, text}
+let hotelPhotos={};      // stayDatum -> [url,...]
+let _hotelInput=null, _hotelBid='';
+async function sbUploadHotelPhoto(bid,file){
+  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+  const path='hotels/'+REISE+'_'+bid+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  if(error){alert('Hotelfoto-Fehler: '+(error.message||JSON.stringify(error)));console.error(error);return null;}
+  const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+  return data.publicUrl;
+}
+async function sbLoadHotelPhotos(bid){
+  const {data,error}=await sb.storage.from('Reisefotos').list('hotels/'+REISE+'_'+bid,{limit:100});
+  if(error||!data)return[];
+  return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl('hotels/'+REISE+'_'+bid+'/'+f.name);
+    return u.publicUrl;
+  });
+}
+async function sbDeleteHotelPhoto(url){
+  const path=url.split('/Reisefotos/')[1];
+  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
+function addHotelPhotoEl(btn){
+  if(!editMode)return;
+  _hotelBid=btn.getAttribute('data-bid');
+  if(!_hotelInput){
+    _hotelInput=document.createElement('input');
+    _hotelInput.type='file';_hotelInput.accept='image/*';_hotelInput.multiple=true;
+    _hotelInput.style.display='none';
+    _hotelInput.onchange=async function(){
+      var files=Array.from(_hotelInput.files);if(!files.length)return;
+      toast('⏳ Hotelfoto wird hochgeladen…');
+      if(!hotelPhotos[_hotelBid])hotelPhotos[_hotelBid]=[];
+      let ok=0;
+      for(const f of files){
+        try{const url=await sbUploadHotelPhoto(_hotelBid,f);if(url){hotelPhotos[_hotelBid].push(url);ok++;}}
+        catch(e){alert('Fehler: '+(e.message||e));}
+      }
+      renderTage();
+      if(ok>0)toast('✓ '+ok+' Hotelfoto(s) gespeichert!');
+    };
+    document.body.appendChild(_hotelInput);
+  }
+  _hotelBid=btn.getAttribute('data-bid');
+  _hotelInput.value='';_hotelInput.click();
+}
+async function delHotelPhotoEl(btn){
+  if(!editMode)return;if(!confirm('Hotelfoto löschen?'))return;
+  var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
+  if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
+    await sbDeleteHotelPhoto(hotelPhotos[bid][idx]);
+    hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
+  }
+  renderTage();toast('Foto gelöscht.');
+}
 let _revIso=null;        // aktueller Tag für Hotelbewertung
 let _apiKey='';          // Anthropic API-Key
 let _dictRec=null, _dictTimeout=null;  // Diktierfunktion
@@ -1172,6 +1238,11 @@ function renderDayCard(days){
   // Programmpunkte = datierte Kosten dieses Tages
   const dayCosts=costs.filter(c=>c.datum===iso);
   const stay=stayForDay(iso);
+  // Hotelfotos für die Unterkunft dieses Tages laden (lazy)
+  if(stay&&hotelPhotos[stay.datum]===undefined){
+    hotelPhotos[stay.datum]=[];
+    sbLoadHotelPhotos(stay.datum).then(function(list){if(list&&list.length){hotelPhotos[stay.datum]=list;if(buildDays()[currentDay]===iso)renderDayCard(buildDays());}}).catch(function(){});
+  }
   const loc=stay?stay.label:(dayCosts.length?'Programm':'–');
   const badges=dayCosts.map(c=>`<span class="program-badge badge-${c.cat}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
   document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
@@ -1235,12 +1306,23 @@ function renderDayCard(days){
     }
     const nightsBadge=nightInfo?`<div class="hotel-banner-nights">${nightInfo}</div>`:'';
     const bannerBg=stayColor(stay.datum);
-    bannerHTML='<div class="hotel-banner" style="background:'+bannerBg+'">'
-      +'<div class="hotel-banner-emoji-bg">🏨</div>'
-      +'<div class="hotel-banner-name">'+esc(hotelName)+'</div>'
-      +(pi.text?'<div class="hotel-banner-loc">'+esc(pi.text.split('·')[0].trim())+'</div>':'')
-      +nightsBadge
-      +'</div>';
+    const hbid=stay.datum;
+    const hPh=hotelPhotos[hbid]||[];
+    if(hPh.length){
+      const slides=hPh.map((src,hi)=>'<div class="hotel-banner-slide"><img src="'+esc(src)+'" alt="Hotelfoto">'+(editMode?'<button class="hotel-del-btn" data-bid="'+hbid+'" data-idx="'+hi+'" onclick="delHotelPhotoEl(this)">✕</button>':'')+'</div>').join('');
+      bannerHTML='<div class="hotel-banner-photos"><div class="hotel-banner-inner">'+slides+'</div>'
+        +'<div class="hotel-banner-caption"><span class="hbc-name">'+esc(hotelName)+'</span>'+(nightInfo?'<span class="hbc-nights">'+esc(nightInfo)+'</span>':'')+'</div>'
+        +(editMode?'<button class="hotel-add-btn" data-bid="'+hbid+'" onclick="addHotelPhotoEl(this)">+ Foto</button>':'')
+        +'</div>';
+    }else{
+      bannerHTML='<div class="hotel-banner" style="background:'+bannerBg+'">'
+        +'<div class="hotel-banner-emoji-bg">🏨</div>'
+        +'<div class="hotel-banner-name">'+esc(hotelName)+'</div>'
+        +(pi.text?'<div class="hotel-banner-loc">'+esc(pi.text.split('·')[0].trim())+'</div>':'')
+        +nightsBadge
+        +(editMode?'<button class="hotel-add-btn" data-bid="'+hbid+'" onclick="addHotelPhotoEl(this)">📷 Hotelfoto</button>':'')
+        +'</div>';
+    }
     // Bewertung hängt am Anreisetag der Unterkunft
     const revIso=stay.datum;
     const rev=hotelReviews[revIso];
