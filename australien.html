@@ -726,6 +726,22 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── AUTH / BESITZ ─────────────────────────────────────────────────────────────
 const REISE_ID='australien-2026';
+const HERO_IMG_URL='https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1800&h=1000&fit=crop&auto=format';
+async function syncCoverToOverview(){
+  // Titelbild in trips-Tabelle schreiben, damit es auf "Meine Reisen" erscheint
+  if(!canEdit)return;
+  try{
+    var tr=await sb.from('trips').select('title').eq('id',REISE_ID).limit(1);
+    if(tr.data&&tr.data.length){
+      var meta={};
+      try{meta=JSON.parse(tr.data[0].title||'{}');}catch(e){meta={};}
+      if(meta.img!==HERO_IMG_URL){
+        meta.img=HERO_IMG_URL;
+        await sb.from('trips').update({title:JSON.stringify(meta)}).eq('id',REISE_ID);
+      }
+    }
+  }catch(e){console.error('Cover-Sync:',e);}
+}
 let currentUser=null, tripOwner=null, tripVisibility='private', canEdit=false;
 async function initAuth(){
   const s=await sb.auth.getSession();
@@ -978,6 +994,7 @@ async function initApp(){
     if(r==='empty'){await seedPlanCosts();}
   }catch(e){console.error('Plankosten laden:',e);}
   try{renderAll();}catch(e){console.error('renderAll:',e);}
+  try{syncCoverToOverview();}catch(e){console.error('Cover:',e);}
   setTimeout(()=>{try{loadCommentsForDay(DAYS[0].iso);}catch(e){}},300);
 }
 
