@@ -403,6 +403,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
     <p class="figma-hero-sub" id="hero-sub">Lege im Admin-Modus die Eckdaten an und erfasse deine Kosten mit Datum — daraus entsteht automatisch der Tagesplan.</p>
     <div class="hero-edit-btn" id="hero-edit-wrap" style="display:none;margin-top:20px;">
       <button class="btn btn-primary btn-sm" onclick="openTripHead()">Reise-Eckdaten bearbeiten</button>
+      <button class="btn btn-sm" style="background:rgba(255,255,255,.92);color:var(--ink);margin-left:8px" onclick="changeHeroImage()">Titelbild ändern</button>
     </div>
   </div>
 </section>
@@ -846,6 +847,45 @@ async function sbLoadHotelPhotos(bid){
 async function sbDeleteHotelPhoto(url){
   const path=url.split('/Reisefotos/')[1];
   if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+}
+// ── TITELBILD (Hero) pro Reise ──
+let _heroInput=null;
+async function sbLoadHeroImage(){
+  try{
+    const {data,error}=await sb.storage.from('Reisefotos').list('titelbilder',{limit:200});
+    if(error||!data)return null;
+    const match=data.filter(f=>f.name.indexOf(REISE+'_')===0).sort((a,b)=>a.name<b.name?1:-1)[0];
+    if(!match)return null;
+    const {data:u}=sb.storage.from('Reisefotos').getPublicUrl('titelbilder/'+match.name);
+    return u.publicUrl;
+  }catch(e){return null;}
+}
+async function applyHeroImage(){
+  const url=await sbLoadHeroImage();
+  if(url){var img=document.getElementById('hero-bg-img');if(img)img.src=url;}
+}
+function changeHeroImage(){
+  if(!editMode)return;
+  if(!_heroInput){
+    _heroInput=document.createElement('input');
+    _heroInput.type='file';_heroInput.accept='image/*';_heroInput.style.display='none';
+    _heroInput.onchange=async function(){
+      var f=_heroInput.files[0];if(!f)return;
+      toast('⏳ Titelbild wird hochgeladen…');
+      try{
+        var shrunk=await shrinkImage(f);
+        var ext=(f.name.split('.').pop()||'jpg').toLowerCase();
+        var path='titelbilder/'+REISE+'_'+Date.now()+'.'+ext;
+        var {error}=await sb.storage.from('Reisefotos').upload(path,shrunk,{contentType:f.type||'image/jpeg',upsert:true});
+        if(error){alert('Titelbild-Fehler: '+(error.message||error));return;}
+        var {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
+        var img=document.getElementById('hero-bg-img');if(img)img.src=data.publicUrl;
+        toast('✓ Titelbild gespeichert!');
+      }catch(e){alert('Fehler: '+(e.message||e));}
+    };
+    document.body.appendChild(_heroInput);
+  }
+  _heroInput.value='';_heroInput.click();
 }
 function addHotelPhotoEl(btn){
   if(!editMode)return;
@@ -2653,6 +2693,7 @@ async function init(){
   _apiKey=loadApiKey();
   renderHead();
   try{renderAll();}catch(e){console.error('renderAll:',e);}
+  try{await applyHeroImage();}catch(e){console.error('Hero:',e);}
   // Reisekarte laden (Geocache zuerst, dann zeichnen)
   try{await loadGeoCache();renderKarte();}catch(e){console.error('Karte:',e);}
 }
