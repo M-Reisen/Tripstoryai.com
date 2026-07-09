@@ -1995,7 +1995,7 @@ function renderAusfluege(){
     let meta=[];
     if(pi.time)meta.push(esc(pi.time));
     if(pi.pax)meta.push(esc(pi.pax)+' Pers.');
-    if(pi.ref)meta.push('#'+esc(pi.ref.replace(/^#\s*/,'')));
+    if(pi.ref&&canEdit)meta.push('#'+esc(pi.ref.replace(/^#\s*/,'')));
     const num=('0'+(idx+1)).slice(-2);
     const btns=editMode?'<div class="fig-ex-actions"><button class="cost-edit-btn" data-id="'+c.id+'" onclick="editCostEl(this)">Bearbeiten</button><button class="cost-del-btn" data-id="'+c.id+'" onclick="delCostEl(this)">✕</button></div>':'';
     return '<div class="fig-excursion">'
@@ -2005,7 +2005,7 @@ function renderAusfluege(){
       +(pi.text?'<p class="fig-ex-desc">'+esc(pi.text)+'</p>':'')
       +btns+'</div>'
       +'<div class="fig-ex-meta">'+(meta.length?meta.join('<br>'):'')+'</div>'
-      +'<div class="fig-ex-price '+(canEdit?'':'price-blur')+'">'+amtStr+'</div>'
+      +(canEdit?'<div class="fig-ex-price">'+amtStr+'</div>':'<div class="fig-ex-price"></div>')
       +'</div>';
   }).join('')+'</div>';
 }
