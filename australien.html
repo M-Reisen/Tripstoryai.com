@@ -744,10 +744,14 @@ function applyViewMode(){
   if(sec)sec.style.display=isAdmin?'block':'none';
   var secK=document.getElementById('section-kosten');
   if(secK)secK.style.display=isAdmin?'block':'none';
-  // Nav-Links "Tag für Tag" und "Kosten" mit ausblenden
+  // Gästebuch NUR für Besucher (bei Admin ausblenden)
+  var secG=document.getElementById('section-gaestebuch');
+  if(secG)secG.style.display=isAdmin?'none':'block';
+  // Nav-Links entsprechend ein-/ausblenden
   document.querySelectorAll('.fnav-link').forEach(function(a){
     var h=a.getAttribute('href');
     if(h==='#section-tage'||h==='#section-kosten')a.style.display=isAdmin?'':'none';
+    if(h==='#section-gaestebuch')a.style.display=isAdmin?'none':'';
   });
 }
 async function doLogout(){
@@ -1348,7 +1352,13 @@ async function aiFormuliere(){
 function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
 
 function renderActivities(){
-  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${a.info}${a.price?'<br><strong>'+a.price+'</strong>':''}<br><em style="opacity:.7;font-size:.78rem">${a.note}</em></div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
+  var isAdmin=canEdit||editMode;
+  function cleanInfo(s){
+    if(isAdmin)return s;
+    // "Ref. ..." und Referenznummern für Besucher entfernen
+    return (s||'').replace(/\s*·?\s*Ref\.\s*#?[A-Za-z0-9]+/g,'').replace(/\s*·\s*$/,'').trim();
+  }
+  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}<br><em style="opacity:.7;font-size:.78rem">${a.note}</em></div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
 }
 
 function renderCosts(){
