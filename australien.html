@@ -1535,13 +1535,15 @@ async function trackVisit(){
     var visitKey='visit_'+REISE_ID+'_'+devId+'_'+heute;
     var lastKey='travona_lastvisit_'+REISE_ID;
     if(localStorage.getItem(lastKey)!==heute){
-      try{await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE_ID});}catch(e){}
+      var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE_ID});
+      if(ins.error){if(box)box.textContent='Zähler-Schreibfehler: '+ins.error.message;return;}
       localStorage.setItem(lastKey,heute);
     }
     var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE_ID+'_%');
+    if(res.error){if(box)box.textContent='Zähler-Lesefehler: '+res.error.message;return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
     if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
-  }catch(e){if(box)box.textContent='';}
+  }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
 }
 async function loadGuestbook(){
   var box=document.getElementById('gb-list');
