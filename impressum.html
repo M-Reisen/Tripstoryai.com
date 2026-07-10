@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressum · Travona</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#F4EFE8;--paper:#F4EFE8;--ink:#1A1714;--fog:#6B6560;
+  --terra:#B5714A;--teal:#2C5F6A;--rule:#D8D0C4;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ground);color:var(--ink);font-family:'DM Sans',sans-serif;font-weight:400;min-height:100vh;-webkit-font-smoothing:antialiased;line-height:1.6;}
+a{color:var(--terra);text-decoration:none;}
+a:hover{text-decoration:underline;}
+header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule);}
+.header-inner{max-width:900px;margin:0 auto;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;}
+.brand{height:36px;width:auto;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);}
+.back-link{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);border:1px solid var(--rule);border-radius:4px;padding:9px 16px;transition:all .2s;}
+.back-link:hover{color:var(--ink);border-color:var(--ink);text-decoration:none;}
+.wrap{max-width:720px;margin:0 auto;padding:72px 32px 90px;}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:16px;}
+h1{font-family:'Playfair Display',serif;font-size:clamp(34px,6vw,52px);font-weight:400;line-height:1.05;letter-spacing:-.5px;margin-bottom:48px;}
+h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:400;color:var(--ink);margin:40px 0 14px;}
+.block{padding:24px 0;border-top:1px solid var(--rule);}
+.label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--fog);margin-bottom:8px;}
+.value{font-size:16px;color:var(--ink);line-height:1.8;}
+p{font-size:15px;color:var(--fog);line-height:1.8;margin-bottom:14px;}
+.small{font-size:13px;color:var(--fog);margin-top:40px;padding-top:24px;border-top:1px solid var(--rule);line-height:1.7;}
+footer{max-width:720px;margin:0 auto;padding:0 32px 60px;font-size:12px;color:var(--fog);letter-spacing:.04em;}
+@media(max-width:640px){
+  .header-inner{padding:14px 18px;}
+  .wrap{padding:48px 20px 70px;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a href="index.html"><img class="brand" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona"></a>
+    <a class="back-link" href="index.html">← Zur Startseite</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <p class="eyebrow">Rechtliches</p>
+  <h1>Impressum</h1>
+
+  <div class="block">
+    <div class="label">Angaben gemäß § 5 DDG</div>
+    <div class="value">Ramona Dietenhöfer<br>Schlesierstraße 19<br>81669 München</div>
+  </div>
+
+  <div class="block">
+    <div class="label">Kontakt</div>
+    <div class="value">E-Mail: <a href="mailto:info@travona.de">info@travona.de</a></div>
+  </div>
+
+  <div class="block">
+    <div class="label">Verantwortlich für den Inhalt</div>
+    <div class="value">Ramona Dietenhöfer<br>Schlesierstraße 19<br>81669 München</div>
+  </div>
+
+  <h2>Haftung für Inhalte</h2>
+  <p>Als Diensteanbieterin bin ich gemäß den allgemeinen Gesetzen für eigene Inhalte auf diesen Seiten verantwortlich. Ich bin jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt.</p>
+
+  <h2>Haftung für Links</h2>
+  <p>Dieses Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte ich keinen Einfluss habe. Deshalb kann ich für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.</p>
+
+  <h2>Urheberrecht</h2>
+  <p>Die durch die Seitenbetreiberin erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung. Downloads und Kopien dieser Seite sind nur für den privaten, nicht kommerziellen Gebrauch gestattet.</p>
+
+  <div class="small">
+    Dieses Impressum gilt für die Website travona.de. Travona ist ein privates, nicht-kommerzielles Reisetagebuch-Projekt.
+  </div>
+</div>
+
+<footer>
+  <a href="datenschutz.html" style="color:var(--fog);margin-right:12px;">Datenschutz</a> · © 2026 Travona · Travel. Share. Remember.
+</footer>
+</body>
+</html>
