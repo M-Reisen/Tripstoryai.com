@@ -2226,13 +2226,13 @@ async function trackVisit(){
     var lastKey='travona_visit3_'+REISE;
     if(localStorage.getItem(lastKey)!==heute){
       var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE});
-      if(ins.error){if(box)box.textContent='SchreibFehler: '+ins.error.message;return;}
+      if(ins.error){if(box)box.textContent='';return;}
       localStorage.setItem(lastKey,heute);
     }
     var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE+'_%');
-    if(res.error){if(box)box.textContent='LeseFehler: '+res.error.message;return;}
+    if(res.error){if(box)box.textContent='';return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
-    if(box)box.textContent=count+(count===1?' Besuch':' Besuche')+' [REISE='+REISE+', key='+visitKey.slice(0,30)+']';
+    if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
   }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
 }
 async function loadGuestbook(){

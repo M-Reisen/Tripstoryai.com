@@ -1533,21 +1533,17 @@ async function trackVisit(){
     if(!devId){devId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',devId);}
     var heute=new Date().toISOString().slice(0,10);
     var visitKey='visit_'+REISE_ID+'_'+devId+'_'+heute;
-    var lastKey='travona_visit2_'+REISE_ID;
-    // Prüfen, ob für heute schon ein Eintrag existiert (verlässlicher als localStorage)
+    var lastKey='travona_visit3_'+REISE_ID;
     if(localStorage.getItem(lastKey)!==heute){
-      var chk=await sb.from('kommentare').select('ort').eq('ort',visitKey).limit(1);
-      if(!chk.error && (!chk.data || !chk.data.length)){
-        var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE_ID});
-        if(ins.error){if(box)box.textContent='Zähler-Schreibfehler: '+ins.error.message;return;}
-      }
+      var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE_ID});
+      if(ins.error){if(box)box.textContent='';return;}
       localStorage.setItem(lastKey,heute);
     }
     var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE_ID+'_%');
-    if(res.error){if(box)box.textContent='Zähler-Lesefehler: '+res.error.message;return;}
+    if(res.error){if(box)box.textContent='';return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
     if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
-  }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
+  }catch(e){if(box)box.textContent='';}
 }
 async function loadGuestbook(){
   var box=document.getElementById('gb-list');
