@@ -1509,9 +1509,10 @@ async function renderJournal(){
     var tagLbl=(tagNr?'Tag '+tagNr:'Moment');
     var img;
     if(fotos.length>1){
-      img='<div class="fj-img fj-gallery"><div class="fj-tag">'+tagLbl+'</div><div class="fj-scroll">'
+      var gid='fjg'+idx;
+      img='<div class="fj-img fj-gallery"><div class="fj-tag">'+tagLbl+'</div><div class="fj-scroll" id="'+gid+'" data-total="'+fotos.length+'">'
         +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(titel)+'"></div>';}).join('')
-        +'</div><div class="fj-count">1 / '+fotos.length+'</div></div>';
+        +'</div><div class="fj-count" id="'+gid+'-c">1 / '+fotos.length+'</div></div>';
     }else if(fotos.length===1){
       img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(titel)+'"><div class="fj-tag">'+tagLbl+'</div></div>';
     }else{
@@ -1524,6 +1525,17 @@ async function renderJournal(){
       +'<p class="fj-body">'+esc(e.text.trim())+'</p></div>';
     return '<div class="fig-journal-entry'+rev+'">'+img+text+'</div>';
   }).join('')+'</div>';
+  // Foto-Zähler beim Blättern aktualisieren
+  c.querySelectorAll('.fj-scroll').forEach(function(sc){
+    var cnt=document.getElementById(sc.id+'-c');
+    var total=parseInt(sc.getAttribute('data-total')||'1');
+    if(!cnt)return;
+    sc.addEventListener('scroll',function(){
+      var i=Math.round(sc.scrollLeft/sc.clientWidth)+1;
+      if(i<1)i=1;if(i>total)i=total;
+      cnt.textContent=i+' / '+total;
+    },{passive:true});
+  });
 }
 
 async function trackVisit(){
