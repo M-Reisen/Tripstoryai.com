@@ -2207,7 +2207,7 @@ async function createPhotobook(){
       if(dayPhotos.length>4){
         const first=dayPhotos.slice(0,4), rest=dayPhotos.slice(4);
         pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,day.iso)+'</div>');
-        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort)+' · Fortsetzung</div>'+photoLayout2(rest,day.iso,4)+'</div>');
+        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+photoLayout2(rest,day.iso,4)+'</div>');
       }else if(dayPhotos.length){
         pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(dayPhotos,day.iso)+'</div>');
       }
@@ -2216,7 +2216,7 @@ async function createPhotobook(){
     else if(dayPhotos.length>4){
       const first=dayPhotos.slice(0,4), rest=dayPhotos.slice(4);
       pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+photoLayout(first,day.iso)+textBlock+'</div>');
-      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div><div class="pb-day-cont">'+esc(ort)+' · Fortsetzung</div>'+photoLayout2(rest,day.iso,4)+'</div>');
+      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+photoLayout2(rest,day.iso,4)+'</div>');
     }else{
       pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+(dayPhotos.length?photoLayout(dayPhotos,day.iso):'')+textBlock+'</div>');
     }
