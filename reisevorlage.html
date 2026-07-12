@@ -1958,7 +1958,11 @@ function renderCosts(){
   const bb=document.getElementById('beleg-btn');if(bb)bb.style.display=editMode?'inline-flex':'none';
   let total=0,html='';
   PLAN_CATS.forEach(function(cat){
-    const items=costs.filter(c=>c.cat===cat.key);
+    const items=costs.filter(c=>c.cat===cat.key).slice().sort(function(a,b){
+      // chronologisch, älteste zuerst; ohne Datum ans Ende
+      var x=a.datum||'9999-12-31', y=b.datum||'9999-12-31';
+      return x<y?-1:x>y?1:0;
+    });
     if(!items.length && !editMode) return;
     html+=`<div class="cost-section-title">${esc(cat.label)}</div>`;
     let sum=0;
