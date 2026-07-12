@@ -151,6 +151,8 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .photo-grid{display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:4px;}
 .photo-grid::-webkit-scrollbar{display:none;}
 .photo-cell{position:relative;flex:0 0 auto;width:140px;height:140px;border-radius:8px;overflow:hidden;background:#e8e0d4;scroll-snap-align:start;}
+.photo-cell.photo-err{background:#f0e4e0;}
+.photo-cell.photo-err::after{content:'Bild lädt nicht';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#b5714a;text-align:center;padding:8px;}
 .photo-cell img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
 .photo-del{position:absolute;top:5px;right:5px;background:rgba(220,38,38,.88);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
 .photo-move{position:absolute;bottom:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
@@ -2425,8 +2427,21 @@ async function createPhotobook(){
     if(tripHead.to){dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
     else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
   }
-  const stations=Array.from(new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label.split('·')[0].trim()))).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-  const cover='<div class="pb-page pb-cover"><div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div><div class="pb-cover-inner"><div class="pb-cover-koala">'+emoji+'</div><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Travona · travona.de</div></div>';
+  // Stationen = Orte aus "Ort für die Karte" (chronologisch, ohne Duplikate)
+  const stationList=[];
+  buildDays().forEach(function(iso){
+    var o=ortFuerTag(iso);
+    if(o && stationList.indexOf(o)===-1) stationList.push(o);
+  });
+  const stations=stationList.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
+  // Titelbild der Reise als Deckblatt-Hintergrund (falls vorhanden)
+  var heroSrc='';
+  var heroEl=document.getElementById('hero-bg-img');
+  if(heroEl&&heroEl.src)heroSrc=heroEl.src;
+  const coverBg=heroSrc
+    ?'<img class="pb-cover-img" src="'+esc(heroSrc)+'" alt=""><div class="pb-cover-veil"></div>'
+    :'<div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div>';
+  const cover='<div class="pb-page pb-cover">'+coverBg+'<div class="pb-cover-inner"><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Travona · travona.de</div></div>';
   // ── CSS ──
   const css='<style>'
     +'@page{size:A4 landscape;margin:0;}'
@@ -2434,7 +2449,9 @@ async function createPhotobook(){
     +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
     +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:14mm;page-break-after:always;overflow:hidden;}'
     +'.pb-page:last-child{page-break-after:auto;}'
-    +'.pb-cover{background:linear-gradient(160deg,#1a6b8a 0%,#13506b 45%,#0d3a52 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
+    +'.pb-cover{background:linear-gradient(160deg,#1a6b8a 0%,#13506b 45%,#0d3a52 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;position:relative;overflow:hidden;}'
+    +'.pb-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}'
+    +'.pb-cover-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,58,82,.45) 0%,rgba(13,58,82,.55) 50%,rgba(13,58,82,.75) 100%);}'
     +'.pb-cover-sun{position:absolute;top:42mm;left:50%;transform:translateX(-50%);width:120mm;height:120mm;background:radial-gradient(circle,rgba(224,123,63,.45) 0%,rgba(224,123,63,0) 70%);border-radius:50%;}'
     +'.pb-cover-waves{position:absolute;bottom:0;left:0;width:100%;height:60mm;}'
     +'.pb-cover-waves svg{width:100%;height:100%;display:block;}'
