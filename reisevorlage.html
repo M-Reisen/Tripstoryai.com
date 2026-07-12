@@ -1319,7 +1319,7 @@ function renderDayCard(days){
     let cells=arr.map(function(url,pi){
       const cap=captionFor(iso,url);
       let html='<div class="photo-cell">'
-        +'<img src="'+url+'" onclick="openLightbox(\''+iso+'\','+pi+')" alt="Foto">';
+        +'<img src="'+url+'" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
       if(editMode){
         html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
         if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
