@@ -2427,12 +2427,19 @@ async function createPhotobook(){
     if(tripHead.to){dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
     else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
   }
-  // Stationen = Orte aus "Ort für die Karte" (chronologisch, ohne Duplikate)
+  // Stationen = nur gesetzte Karten-Orte an Übernachtungstagen, chronologisch, ohne Duplikate
   const stationList=[];
-  buildDays().forEach(function(iso){
-    var o=ortFuerTag(iso);
-    if(o && stationList.indexOf(o)===-1) stationList.push(o);
-  });
+  const seen={};
+  costs.filter(function(c){return c.cat==='Unterkunft'&&c.datum;})
+    .slice().sort(function(a,b){return a.datum<b.datum?-1:a.datum>b.datum?1:0;})
+    .forEach(function(c){
+      var o=(_tagOrte[c.datum]||'').trim();
+      if(!o)return;                       // ohne gesetzten Kartenort überspringen
+      var k=o.toLowerCase().replace(/[^a-zäöüß]/g,'');  // Vergleichsschlüssel
+      if(seen[k])return;
+      seen[k]=1;
+      stationList.push(o);
+    });
   const stations=stationList.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
   // Titelbild der Reise als Deckblatt-Hintergrund (falls vorhanden)
   var heroSrc='';
