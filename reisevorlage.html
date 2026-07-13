@@ -1034,9 +1034,12 @@ async function sbLoadPhotos(iso){
   });
 }
 async function sbUploadPhoto(iso,file){
+  // große iPhone-Fotos vor dem Upload verkleinern (zuverlässiger + schneller)
+  let f=file;
+  try{ f=await shrinkImage(file); }catch(e){ f=file; }
   const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
   const path=photoFolder(iso)+'/'+Date.now()+'_'+Math.floor(Math.random()*10000)+'.'+ext;
-  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg'});
+  const {error}=await sb.storage.from('Reisefotos').upload(path,f,{contentType:f.type||file.type||'image/jpeg'});
   if(error){console.error('Upload:',error);return null;}
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data&&data.publicUrl?data.publicUrl:null;
@@ -1448,16 +1451,23 @@ async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);if(!files.length)return;
   if(!Array.isArray(photos[iso]))photos[iso]=[];
   toast('Lade '+files.length+' Foto(s) hoch…');
-  let ok=0;
+  let ok=0, fehler=[];
   for(const f of files){
-    const url=await sbUploadPhoto(iso,f);
-    if(url){photos[iso].push(url);ok++;}
+    try{
+      const url=await sbUploadPhoto(iso,f);
+      if(url){photos[iso].push(url);ok++;}
+      else{fehler.push(f.name);}
+    }catch(e){fehler.push(f.name+' ('+(e.message||e)+')');}
   }
   if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
   photoMeta[iso].order=photos[iso].slice();
   await sbSavePhotoMeta(iso);
   renderTage();
-  toast(ok+' Foto(s) gespeichert!');
+  if(fehler.length){
+    alert(ok+' Foto(s) gespeichert.\n\n'+fehler.length+' Foto(s) fehlgeschlagen:\n'+fehler.slice(0,5).join('\n'));
+  }else{
+    toast(ok+' Foto(s) gespeichert!');
+  }
 }
 async function delPhoto(iso,idx){
   if(!editMode)return;
