@@ -21,6 +21,9 @@ body{background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;f
 
 /* HEADER */
 header{background:rgba(244,239,232,.95);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100;border-bottom:1px solid var(--rule);}
+/* Leaflet-Karte darf beim Scrollen nicht über den Header ragen */
+#reisekarte-map,#reisekarte-map .leaflet-pane,#reisekarte-map .leaflet-top,#reisekarte-map .leaflet-bottom{z-index:1 !important;}
+.reisekarte-wrap{position:relative;z-index:0;}
 .header-inner{max-width:1140px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:13px 24px;gap:16px;}
 .logo{display:flex;align-items:center;gap:8px;text-decoration:none;}
 .logo .mark{font-size:1.9rem;line-height:1;}
@@ -498,7 +501,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
   <span style="opacity:.4">·</span>
   <span style="margin:0 10px;">© 2026 Travona</span>
 </footer>
-<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona · Vorlage V17 · Scroll-Layout + Nav</div>
+<div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona</div>
 
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -840,9 +843,14 @@ let hotelReviews={};     // iso -> {id, stars, text}
 let hotelPhotos={};      // stayDatum -> [url,...]
 let _hotelInput=null, _hotelBid='';
 async function sbUploadHotelPhoto(bid,file){
-  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
-  const path='hotels/'+REISE+'_'+bid+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
-  const {error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',upsert:true});
+  let f=file;
+  try{ f=await shrinkImage(file); }catch(e){ f=file; }
+  const mime=f.type||file.type||'image/jpeg';
+  let ext='jpg';
+  if(mime==='image/png')ext='png';
+  else if(mime==='image/webp')ext='webp';
+  const path='hotels/'+REISE+'_'+bid+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,f,{contentType:mime,upsert:true});
   if(error){alert('Hotelfoto-Fehler: '+(error.message||JSON.stringify(error)));console.error(error);return null;}
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data.publicUrl;
@@ -885,9 +893,10 @@ function changeHeroImage(){
       toast('⏳ Titelbild wird hochgeladen…');
       try{
         var shrunk=await shrinkImage(f);
-        var ext=(f.name.split('.').pop()||'jpg').toLowerCase();
+        var mime=shrunk.type||f.type||'image/jpeg';
+        var ext=(mime==='image/png')?'png':(mime==='image/webp')?'webp':'jpg';
         var path='titelbilder/'+REISE+'_'+Date.now()+'.'+ext;
-        var {error}=await sb.storage.from('Reisefotos').upload(path,shrunk,{contentType:f.type||'image/jpeg',upsert:true});
+        var {error}=await sb.storage.from('Reisefotos').upload(path,shrunk,{contentType:mime,upsert:true});
         if(error){alert('Titelbild-Fehler: '+(error.message||error));return;}
         var {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
         var img=document.getElementById('hero-bg-img');if(img)img.src=data.publicUrl;
@@ -1037,9 +1046,14 @@ async function sbUploadPhoto(iso,file){
   // große iPhone-Fotos vor dem Upload verkleinern (zuverlässiger + schneller)
   let f=file;
   try{ f=await shrinkImage(file); }catch(e){ f=file; }
-  const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
-  const path=photoFolder(iso)+'/'+Date.now()+'_'+Math.floor(Math.random()*10000)+'.'+ext;
-  const {error}=await sb.storage.from('Reisefotos').upload(path,f,{contentType:f.type||file.type||'image/jpeg'});
+  // Endung MUSS zum tatsächlichen Inhalt passen (shrinkImage liefert JPEG)
+  const mime=f.type||file.type||'image/jpeg';
+  let ext='jpg';
+  if(mime==='image/png')ext='png';
+  else if(mime==='image/webp')ext='webp';
+  else if(mime==='image/gif')ext='gif';
+  const path=photoFolder(iso)+'/'+Date.now()+'_'+Math.floor(Math.random()*100000)+'.'+ext;
+  const {error}=await sb.storage.from('Reisefotos').upload(path,f,{contentType:mime});
   if(error){console.error('Upload:',error);return null;}
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data&&data.publicUrl?data.publicUrl:null;
@@ -2692,7 +2706,7 @@ async function renderKarte(){
   if(coords.length===1){map.setView(coords[0],9);}
   else{map.fitBounds(coords,{padding:[40,40]});}
   setTimeout(function(){map.invalidateSize();},200);
-  status.textContent=nr+(nr===1?' Station':' Stationen')+(fehl?(' · '+fehl+' ohne Ort'):'');
+  status.textContent=nr+(nr===1?' Station':' Stationen');
 }
 
 function drawKarte(svg,stationen,polys,land){
