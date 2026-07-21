@@ -2409,6 +2409,10 @@ async function createPhotobook(){
   let tagNr=0;
   const seenHotels={};
   const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
+  // DIAGNOSE: welche Unterkünfte + Daten
+  var _diag='UNTERKÜNFTE: '+allStays.map(function(c){return c.label.split('·')[0].trim()+' ('+c.datum+', id='+c.id+')';}).join(' | ');
+  console.log(_diag);
+  pages.unshift('<div class="pb-page" style="padding:15mm;font-size:11px;font-family:monospace;color:#333;word-break:break-all;"><b>DIAGNOSE (nur zum Testen):</b><br><br>'+_diag+'<br><br>Anzahl gefundene Unterkünfte: '+allStays.length+'</div>');
   for(const iso of days){
     // Eigene Unterkunfts-Seite, wenn heute der Anreisetag einer Unterkunft ist
     const stayStart=allStays.find(c=>c.datum===iso);
