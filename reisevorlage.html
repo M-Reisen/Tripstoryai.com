@@ -2411,8 +2411,10 @@ async function createPhotobook(){
   const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
   // DIAGNOSE: welche Unterkünfte + Daten
   var _diag='UNTERKÜNFTE: '+allStays.map(function(c){return c.label.split('·')[0].trim()+' ('+c.datum+', id='+c.id+')';}).join(' | ');
+  var _hotelHits=[];
+  allStays.forEach(function(c){ if(days.indexOf(c.datum)>=0)_hotelHits.push(c.datum+'✓'); else _hotelHits.push(c.datum+'✗NICHT-IN-DAYS'); });
   console.log(_diag);
-  pages.unshift('<div class="pb-page" style="padding:15mm;font-size:11px;font-family:monospace;color:#333;word-break:break-all;"><b>DIAGNOSE (nur zum Testen):</b><br><br>'+_diag+'<br><br>Anzahl gefundene Unterkünfte: '+allStays.length+'</div>');
+  pages.unshift('<div class="pb-page" style="padding:15mm;font-size:11px;font-family:monospace;color:#333;word-break:break-all;"><b>DIAGNOSE:</b><br><br>'+_diag+'<br><br>days: '+days[0]+' bis '+days[days.length-1]+' ('+days.length+' Tage)<br><br>Anreise-Tage in days? '+_hotelHits.join(' | ')+'</div>');
   for(const iso of days){
     // Eigene Unterkunfts-Seite, wenn heute der Anreisetag einer Unterkunft ist
     const stayStart=allStays.find(c=>c.datum===iso);
