@@ -2532,10 +2532,48 @@ async function createPhotobook(){
     +'.tp-loc{font-size:13px;color:#999;margin-top:2mm;letter-spacing:.5px;}'
     +'.tp-rule{color:#6aa6bd;font-size:13px;letter-spacing:6px;margin:6mm 0;}'
     +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
+    +'.pb-hotels{padding:20mm 18mm;background:#fbf8f3;}'
+    +'.hs-head{text-align:center;margin-bottom:12mm;border-bottom:1px solid #e0d8c8;padding-bottom:8mm;}'
+    +'.hs-eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b5714a;margin-bottom:3mm;}'
+    +'.hs-title{font-family:Georgia,serif;font-size:30px;color:#1a1714;font-weight:normal;margin:0;}'
+    +'.hs-list{display:flex;flex-direction:column;gap:7mm;}'
+    +'.hs-item{border-left:2px solid #b5714a;padding:1mm 0 1mm 6mm;}'
+    +'.hs-name{font-family:Georgia,serif;font-size:17px;color:#1a1714;font-weight:bold;}'
+    +'.hs-ort{font-size:12px;color:#b5714a;margin-top:0.5mm;}'
+    +'.hs-dates{font-size:12px;color:#8a8178;margin-top:1mm;letter-spacing:.3px;}'
+    +'.hs-stars{color:#c79030;font-size:15px;letter-spacing:2px;margin-top:2mm;}'
+    +'.hs-text{font-family:Georgia,serif;font-size:12.5px;line-height:1.7;color:#4a4038;margin-top:2mm;font-style:italic;}'
     +'</style>';
+  // ── HOTEL-ÜBERSICHT (nach dem Deckblatt) ──
+  var hotelPage='';
+  var stays=costs.filter(function(c){return c.cat==='Unterkunft'&&c.datum;})
+    .slice().sort(function(a,b){return a.datum<b.datum?-1:a.datum>b.datum?1:0;});
+  if(stays.length){
+    var rows=stays.map(function(c){
+      var pi=parseInfo(c.info);
+      var name=c.label.split('·')[0].trim();
+      var ortTxt=(_tagOrte[c.datum]||'').trim();
+      // Zeitraum: von c.datum bis pi.bis (falls vorhanden)
+      var von=fmtDateLong(c.datum);
+      var bisStr=pi.bis?(' – '+fmtDateLong(pi.bis)):'';
+      var rev=hotelReviews[c.datum]||{stars:0,text:''};
+      var starHtml='';
+      for(var s=1;s<=5;s++){starHtml+=(s<=rev.stars)?'★':'☆';}
+      return '<div class="hs-item">'
+        +'<div class="hs-name">'+esc(name)+'</div>'
+        +(ortTxt?'<div class="hs-ort">'+esc(ortTxt)+'</div>':'')
+        +'<div class="hs-dates">'+von+bisStr+(pi.nights?(' · '+pi.nights+(pi.nights==1?' Nacht':' Nächte')):'')+'</div>'
+        +(rev.stars?'<div class="hs-stars">'+starHtml+'</div>':'')
+        +(rev.text?'<div class="hs-text">'+esc(rev.text)+'</div>':'')
+        +'</div>';
+    }).join('');
+    hotelPage='<div class="pb-page pb-hotels"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
+      +'<div class="hs-head"><div class="hs-eyebrow">Wo wir übernachtet haben</div><h2 class="hs-title">Unsere Unterkünfte</h2></div>'
+      +'<div class="hs-list">'+rows+'</div></div>';
+  }
   const win=window.open('','_blank');
   if(!win){var oP=document.getElementById('pb-loading-overlay');if(oP)oP.remove();toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+hotelPage+pages.join('')+'</body></html>');
   win.document.close();
   var oP2=document.getElementById('pb-loading-overlay');if(oP2)oP2.remove();
   toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann über „Drucken → Als PDF" speichern.');
