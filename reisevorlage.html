@@ -2408,17 +2408,18 @@ async function createPhotobook(){
   const pages=[];
   let tagNr=0;
   const seenHotels={};
+  const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
   for(const iso of days){
-    const stayNow=stayForDay(iso);
-    // Eigene Unterkunfts-Seite beim ersten Tag jeder neuen Unterkunft
-    if(stayNow && !seenHotels[stayNow.datum]){
-      seenHotels[stayNow.datum]=true;
-      const pin=parseInfo(stayNow.info);
-      const hName=stayNow.label.split('·')[0].trim();
-      const hOrt=(_tagOrte[stayNow.datum]||'').trim();
-      const hp=(hotelPhotos[stayNow.datum]||[])[0];
+    // Eigene Unterkunfts-Seite, wenn heute der Anreisetag einer Unterkunft ist
+    const stayStart=allStays.find(c=>c.datum===iso);
+    if(stayStart && !seenHotels[stayStart.id]){
+      seenHotels[stayStart.id]=true;
+      const pin=parseInfo(stayStart.info);
+      const hName=stayStart.label.split('·')[0].trim();
+      const hOrt=(_tagOrte[stayStart.datum]||'').trim();
+      const hp=(hotelPhotos[stayStart.datum]||[])[0];
       const hFoto=hp?'<div class="ho-photo"><img src="'+esc(hp)+'"></div>':'<div class="ho-photo ho-nophoto">🏨</div>';
-      const hRev=hotelReviews[stayNow.datum]||{stars:0,text:''};
+      const hRev=hotelReviews[stayStart.datum]||{stars:0,text:''};
       let hStars='';for(let s=1;s<=5;s++){hStars+=(s<=hRev.stars)?'★':'☆';}
       pages.push(
         '<div class="pb-page pb-hotel">'
@@ -2438,7 +2439,7 @@ async function createPhotobook(){
     if((!entry||!entry.text)&&dayPhotos.length===0)continue;
     tagNr++;
     const dayCosts=costs.filter(c=>c.datum===iso);
-    const stay=stayNow;                              // erkennt auch Folgetage einer Unterkunft
+    const stay=stayForDay(iso);                      // erkennt auch Folgetage einer Unterkunft
     const ort=ortFuerTag(iso) || (stay?stay.label:'');
     const emoji=stay?'🏨':'📸';
     const rawText=entry&&entry.text?entry.text:'';
