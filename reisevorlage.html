@@ -2413,8 +2413,8 @@ async function createPhotobook(){
     if((!entry||!entry.text)&&dayPhotos.length===0)continue;
     tagNr++;
     const dayCosts=costs.filter(c=>c.datum===iso);
-    const stay=dayCosts.find(c=>c.cat==='Unterkunft');
-    const ort=stay?stay.label:'';
+    const stay=stayForDay(iso);                      // erkennt auch Folgetage einer Unterkunft
+    const ort=ortFuerTag(iso) || (stay?stay.label:'');
     const emoji=stay?'🏨':'📸';
     const rawText=entry&&entry.text?entry.text:'';
     const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
