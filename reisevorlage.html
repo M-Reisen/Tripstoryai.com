@@ -2407,13 +2407,38 @@ async function createPhotobook(){
   // ── Seiten ──
   const pages=[];
   let tagNr=0;
+  const seenHotels={};
   for(const iso of days){
+    const stayNow=stayForDay(iso);
+    // Eigene Unterkunfts-Seite beim ersten Tag jeder neuen Unterkunft
+    if(stayNow && !seenHotels[stayNow.datum]){
+      seenHotels[stayNow.datum]=true;
+      const pin=parseInfo(stayNow.info);
+      const hName=stayNow.label.split('·')[0].trim();
+      const hOrt=(_tagOrte[stayNow.datum]||'').trim();
+      const hp=(hotelPhotos[stayNow.datum]||[])[0];
+      const hFoto=hp?'<div class="ho-photo"><img src="'+esc(hp)+'"></div>':'<div class="ho-photo ho-nophoto">🏨</div>';
+      const hRev=hotelReviews[stayNow.datum]||{stars:0,text:''};
+      let hStars='';for(let s=1;s<=5;s++){hStars+=(s<=hRev.stars)?'★':'☆';}
+      pages.push(
+        '<div class="pb-page pb-hotel">'
+        +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
+        +'<div class="ho-eyebrow">Unsere Unterkunft</div>'
+        +'<div class="ho-emoji">🏨</div>'
+        +'<h2 class="ho-name">'+esc(hName)+'</h2>'
+        +(hOrt?'<div class="ho-loc">'+esc(hOrt)+'</div>':'')
+        +hFoto
+        +(hRev.stars?'<div class="ho-stars">'+hStars+'</div>':'')
+        +(hRev.text?'<div class="ho-note">„'+esc(hRev.text)+'"</div>':(pin.text?'<div class="ho-note">„'+esc(pin.text)+'"</div>':''))
+        +'</div>'
+      );
+    }
     const entry=entries[iso];
     let dayPhotos=(photos[iso]||[]).slice(0,8);
     if((!entry||!entry.text)&&dayPhotos.length===0)continue;
     tagNr++;
     const dayCosts=costs.filter(c=>c.datum===iso);
-    const stay=stayForDay(iso);                      // erkennt auch Folgetage einer Unterkunft
+    const stay=stayNow;                              // erkennt auch Folgetage einer Unterkunft
     const ort=ortFuerTag(iso) || (stay?stay.label:'');
     const emoji=stay?'🏨':'📸';
     const rawText=entry&&entry.text?entry.text:'';
@@ -2543,37 +2568,20 @@ async function createPhotobook(){
     +'.hs-dates{font-size:12px;color:#8a8178;margin-top:1mm;letter-spacing:.3px;}'
     +'.hs-stars{color:#c79030;font-size:15px;letter-spacing:2px;margin-top:2mm;}'
     +'.hs-text{font-family:Georgia,serif;font-size:12.5px;line-height:1.7;color:#4a4038;margin-top:2mm;font-style:italic;}'
+    +'.pb-hotel{background:#EDE8E0;display:flex;flex-direction:column;align-items:center;text-align:center;}'
+    +'.ho-eyebrow{font-size:12px;letter-spacing:5px;text-transform:uppercase;color:#B5714A;margin-top:4mm;}'
+    +'.ho-emoji{display:none;}'
+    +'.ho-name{font-family:Georgia,serif;font-size:32px;color:#1A1714;font-weight:bold;line-height:1.2;max-width:200mm;margin-top:3mm;}'
+    +'.ho-loc{font-size:13px;color:#6B6560;margin-top:3mm;letter-spacing:1px;text-transform:uppercase;}'
+    +'.ho-photo{margin:8mm 0 4mm;background:#fff;padding:2mm;box-shadow:0 4px 18px rgba(26,23,20,.14);}'
+    +'.ho-photo img{display:block;width:150mm;height:80mm;object-fit:cover;}'
+    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:150mm;height:80mm;background:#e3dccf;color:#6B6560;font-size:32px;}'
+    +'.ho-stars{color:#c79030;font-size:20px;letter-spacing:4px;margin-bottom:3mm;}'
+    +'.ho-note{font-family:Georgia,serif;font-style:italic;font-size:16px;color:#3a352e;max-width:180mm;margin:2mm 0 4mm;line-height:1.5;}'
     +'</style>';
-  // ── HOTEL-ÜBERSICHT (nach dem Deckblatt) ──
-  var hotelPage='';
-  var stays=costs.filter(function(c){return c.cat==='Unterkunft'&&c.datum;})
-    .slice().sort(function(a,b){return a.datum<b.datum?-1:a.datum>b.datum?1:0;});
-  if(stays.length){
-    var rows=stays.map(function(c){
-      var pi=parseInfo(c.info);
-      var name=c.label.split('·')[0].trim();
-      var ortTxt=(_tagOrte[c.datum]||'').trim();
-      // Zeitraum: von c.datum bis pi.bis (falls vorhanden)
-      var von=fmtDateLong(c.datum);
-      var bisStr=pi.bis?(' – '+fmtDateLong(pi.bis)):'';
-      var rev=hotelReviews[c.datum]||{stars:0,text:''};
-      var starHtml='';
-      for(var s=1;s<=5;s++){starHtml+=(s<=rev.stars)?'★':'☆';}
-      return '<div class="hs-item">'
-        +'<div class="hs-name">'+esc(name)+'</div>'
-        +(ortTxt?'<div class="hs-ort">'+esc(ortTxt)+'</div>':'')
-        +'<div class="hs-dates">'+von+bisStr+(pi.nights?(' · '+pi.nights+(pi.nights==1?' Nacht':' Nächte')):'')+'</div>'
-        +(rev.stars?'<div class="hs-stars">'+starHtml+'</div>':'')
-        +(rev.text?'<div class="hs-text">'+esc(rev.text)+'</div>':'')
-        +'</div>';
-    }).join('');
-    hotelPage='<div class="pb-page pb-hotels"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
-      +'<div class="hs-head"><div class="hs-eyebrow">Wo wir übernachtet haben</div><h2 class="hs-title">Unsere Unterkünfte</h2></div>'
-      +'<div class="hs-list">'+rows+'</div></div>';
-  }
   const win=window.open('','_blank');
   if(!win){var oP=document.getElementById('pb-loading-overlay');if(oP)oP.remove();toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+hotelPage+pages.join('')+'</body></html>');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
   win.document.close();
   var oP2=document.getElementById('pb-loading-overlay');if(oP2)oP2.remove();
   toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann über „Drucken → Als PDF" speichern.');
