@@ -86,7 +86,6 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 #section-naehe .tv-cta:hover{background:var(--sand);}
 #section-naehe .tv-cta--primary{background:var(--sunset);color:#fff;border-color:var(--sunset);}
 #section-naehe .tv-cta--primary:hover{filter:brightness(1.06);background:var(--sunset);}
-#section-naehe .tv-cta--save.is-saved{background:var(--terra);color:#fff;border-color:var(--terra);}
 #section-naehe .tv-item__dist{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:6px 4px;background:var(--sand);border-radius:var(--radius);text-align:center;}
 #section-naehe .tv-item__dist b{font-family:'Sora',sans-serif;font-size:1.05rem;line-height:1.1;color:var(--ink);}
 #section-naehe .tv-item__dist span{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);}
@@ -1081,7 +1080,7 @@ async function initApp(){
   if(lb){lb.style.display=currentUser?'':'none';}
   try{
     const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
   }catch(e){console.error('Eintraege laden:',e);}
   try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}
   try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}
@@ -2441,7 +2440,7 @@ initApp();
       elRadius=document.getElementById('tvRadius'), elStatus=document.getElementById('tvStatus'),
       elList=document.getElementById('tvList'), elPlace=document.getElementById('tvPlaceLabel'),
       tabSights=document.getElementById('tvTabSights'), tabFood=document.getElementById('tvTabFood');
-  var st={lat:null,lon:null,kind:'sights',rows:[],saved:{}};
+  var st={lat:null,lon:null,kind:'sights',rows:[]};
   var OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 
   function haversine(a,b,c,d){var R=6371000,t=Math.PI/180,dA=(c-a)*t,dO=(d-b)*t;var x=Math.sin(dA/2)*Math.sin(dA/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(dO/2)*Math.sin(dO/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
@@ -2512,7 +2511,6 @@ initApp();
       var d=fmtD(p.dist),pc=food?'tv-pill--food':'tv-pill--sight';
       var meta=food?(p.cuisine||''):''; if(!meta&&p.address)meta=p.address;
       var dir='https://www.google.com/maps/dir/?api=1&destination='+p.lat+'%2C'+p.lon;
-      var key=idKey(p.name,p.lat,p.lon),isSaved=!!st.saved[key];
       var thumb=p.photo
         ? '<div class="tv-item__thumb" style="background-image:url('+esc(p.photo)+')"></div>'
         : '<div class="tv-item__thumb tv-item__thumb--ph '+(food?'ph-food':'ph-sight')+'">'+(food?'🍽':'★')+'</div>';
@@ -2528,43 +2526,9 @@ initApp();
           '<a class="tv-cta tv-cta--primary" href="'+p.mapsUri+'" target="_blank" rel="noopener">Auf Karte</a>'+
           '<a class="tv-cta" href="'+dir+'" target="_blank" rel="noopener">Route</a>'+
           (p.website?'<a class="tv-cta" href="'+esc(p.website)+'" target="_blank" rel="noopener">Website</a>':'')+
-          '<button class="tv-cta tv-cta--save'+(isSaved?' is-saved':'')+'" data-key="'+esc(key)+'" data-name="'+esc(p.name)+'" data-lat="'+p.lat+'" data-lon="'+p.lon+'" data-label="'+esc(p.category||'')+'" data-rating="'+(p.rating!=null?p.rating:'')+'">'+(isSaved?'Gemerkt ✓':'Merken')+'</button>'+
         '</div></div></li>';
     }).join('');
   }
-
-  // Favoriten aus Supabase laden (Tabelle kommentare, ort-Präfix "favorit_")
-  function loadFavorites(){
-    try{
-      sb.from('kommentare').select('id,name,nachricht').like('ort','favorit_'+REISE_ID+'%').then(function(res){
-        if(res.error||!res.data)return;
-        res.data.forEach(function(row){try{var j=JSON.parse(row.nachricht||'{}');if(j.lat!=null&&j.lon!=null){st.saved[idKey(row.name,j.lat,j.lon)]={id:row.id};}}catch(e){}});
-        if(st.rows.length)render();
-      });
-    }catch(e){}
-  }
-
-  // Merken / Entfernen (Supabase)
-  elList.addEventListener('click',function(e){
-    var btn=e.target.closest('.tv-cta--save'); if(!btn)return;
-    var key=btn.getAttribute('data-key'), name=btn.getAttribute('data-name'),
-        la=parseFloat(btn.getAttribute('data-lat')), lo=parseFloat(btn.getAttribute('data-lon')),
-        lab=btn.getAttribute('data-label'), rat=btn.getAttribute('data-rating');
-    var usr=(typeof currentUser!=='undefined'&&currentUser)?currentUser.id:null;
-    if(st.saved[key]){
-      var id=st.saved[key].id; delete st.saved[key];
-      btn.classList.remove('is-saved'); btn.textContent='Merken';
-      if(id){sb.from('kommentare').delete().eq('id',id).then(function(){});}
-      if(typeof toast==='function')toast('Aus Favoriten entfernt');
-    }else{
-      st.saved[key]={id:null}; btn.classList.add('is-saved'); btn.textContent='Gemerkt ✓';
-      sb.from('kommentare').insert({ort:'favorit_'+REISE_ID+'_'+Date.now(),name:name,nachricht:JSON.stringify({lat:la,lon:lo,kategorie:st.kind,label:lab,rating:(rat?parseFloat(rat):null)}),created_at:new Date().toISOString(),owner:usr,trip_id:REISE_ID}).select('id').then(function(res){
-        if(res.error){delete st.saved[key];btn.classList.remove('is-saved');btn.textContent='Merken';if(typeof toast==='function')toast('Konnte nicht gespeichert werden');return;}
-        if(res.data&&res.data[0])st.saved[key]={id:res.data[0].id};
-        if(typeof toast==='function')toast('Zu Favoriten hinzugefügt');
-      });
-    }
-  });
 
   // Standort ermitteln
   elLocate.addEventListener('click',function(){
@@ -2593,8 +2557,6 @@ initApp();
   tabSights.addEventListener('click',function(){setKind('sights');});
   tabFood.addEventListener('click',function(){setKind('food');});
   elRadius.addEventListener('change',function(){if(st.lat!=null)run();});
-
-  loadFavorites();
 })();
 </script>
 <div id="toast"></div>
