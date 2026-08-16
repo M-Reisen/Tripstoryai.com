@@ -374,6 +374,58 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
   .fnav-action{color:var(--ink-muted);background:transparent;border-color:var(--rule);width:100%;text-align:left;}
   .fnav-action:hover{background:var(--paper);color:var(--ink);}
 }
+/* ══ In der Nähe entdecken ══ */
+#section-naehe .tv-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0 14px;}
+#section-naehe .tv-locate{display:inline-flex;align-items:center;gap:9px;background:var(--ocean);color:#fff;border:none;border-radius:var(--radius);padding:12px 18px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;transition:all .18s;}
+#section-naehe .tv-locate:hover{filter:brightness(1.08);}
+#section-naehe .tv-locate:disabled{opacity:.55;cursor:default;}
+#section-naehe .tv-locate .tv-dot{width:9px;height:9px;border-radius:50%;background:#9fd0d7;flex:0 0 auto;}
+#section-naehe.is-locating .tv-locate .tv-dot{animation:tvpulse 1.1s ease-in-out infinite;}
+@keyframes tvpulse{0%,100%{opacity:.35;transform:scale(.8);}50%{opacity:1;transform:scale(1.25);}}
+#section-naehe .tv-search{position:relative;flex:1 1 200px;min-width:160px;}
+#section-naehe .tv-search input{width:100%;border:1px solid var(--rule);background:#fff;border-radius:var(--radius);padding:11px 15px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);outline:none;transition:border-color .18s;}
+#section-naehe .tv-search input:focus{border-color:var(--ocean);}
+#section-naehe .tv-tabs{display:flex;gap:6px;background:#fff;border:1px solid var(--rule);border-radius:var(--radius);padding:4px;margin:0 0 6px;max-width:420px;}
+#section-naehe .tv-tab{flex:1;border:none;background:transparent;border-radius:2px;padding:10px 8px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:500;color:var(--fog);cursor:pointer;transition:all .18s;}
+#section-naehe .tv-tab[aria-selected="true"]{background:var(--sand);color:var(--ink);}
+#section-naehe .tv-tab--sights[aria-selected="true"]{color:var(--terra);}
+#section-naehe .tv-tab--food[aria-selected="true"]{color:var(--ocean);}
+#section-naehe .tv-radius{display:flex;align-items:center;gap:10px;margin:10px 2px 0;font-size:.8rem;color:var(--fog);}
+#section-naehe .tv-radius select{border:1px solid var(--rule);background:#fff;border-radius:var(--radius);padding:6px 8px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--ink);}
+#section-naehe .tv-status{margin:18px 2px;font-size:.9rem;color:var(--fog);line-height:1.5;}
+#section-naehe .tv-status--error{color:#a8452f;}
+#section-naehe .tv-spinner{display:inline-block;width:15px;height:15px;border:2px solid var(--rule);border-top-color:var(--ocean);border-radius:50%;vertical-align:-3px;margin-right:8px;animation:tvspin .7s linear infinite;}
+@keyframes tvspin{to{transform:rotate(360deg);}}
+#section-naehe .tv-list{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+#section-naehe .tv-item{display:flex;gap:12px;background:#fff;border:1px solid var(--rule);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow);}
+#section-naehe .tv-item__body{flex:1;min-width:0;}
+#section-naehe .tv-item__name{font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:500;color:var(--ink);margin:0 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#section-naehe .tv-pill{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:500;padding:3px 9px;border-radius:999px;background:var(--sand);color:var(--fog);}
+#section-naehe .tv-pdot{width:7px;height:7px;border-radius:50%;background:var(--fog);}
+#section-naehe .tv-pill--sight .tv-pdot{background:var(--terra);}
+#section-naehe .tv-pill--food .tv-pdot{background:var(--ocean);}
+#section-naehe .tv-item__meta{font-size:.8rem;color:var(--fog);margin:6px 0 0;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#section-naehe .tv-item__actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+#section-naehe .tv-cta{display:inline-flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:500;text-decoration:none;border:1px solid var(--rule);border-radius:var(--radius);padding:7px 11px;color:var(--ink);background:#fff;cursor:pointer;transition:all .18s;}
+#section-naehe .tv-cta:hover{background:var(--sand);}
+#section-naehe .tv-cta--primary{background:var(--sunset);color:#fff;border-color:var(--sunset);}
+#section-naehe .tv-cta--primary:hover{filter:brightness(1.06);background:var(--sunset);}
+#section-naehe .tv-item__dist{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:6px 4px;background:var(--sand);border-radius:var(--radius);text-align:center;}
+#section-naehe .tv-item__dist b{font-family:'Sora',sans-serif;font-size:1.05rem;line-height:1.1;color:var(--ink);}
+#section-naehe .tv-item__dist span{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);}
+#section-naehe .tv-item__thumb{flex:0 0 auto;width:78px;height:78px;border-radius:var(--radius);background-size:cover;background-position:center;background-color:var(--sand);}
+#section-naehe .tv-item__thumb--ph{display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;}
+#section-naehe .tv-item__thumb.ph-sight{background:var(--terra);}
+#section-naehe .tv-item__thumb.ph-food{background:var(--ocean);}
+#section-naehe .tv-item__rating{display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin:1px 0 6px;font-size:.8rem;color:var(--fog);}
+#section-naehe .tv-stars{color:#E0952B;font-weight:600;}
+#section-naehe .tv-rcount{color:var(--fog);}
+#section-naehe .tv-mid{color:var(--rule);}
+#section-naehe .tv-distinline{color:var(--fog);}
+#section-naehe .tv-foot{margin-top:22px;font-size:.68rem;color:var(--fog);}
+#section-naehe .tv-foot a{color:var(--fog);}
+@media(prefers-reduced-motion:reduce){#section-naehe .tv-spinner{animation-duration:2s;}#section-naehe.is-locating .tv-locate .tv-dot{animation:none;}}
+@media(max-width:520px){#section-naehe .tv-list{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -389,6 +441,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
     <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')">Journal</a>
     <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
     <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
+    <a class="fnav-link" href="#section-naehe" onclick="jumpTo(event,'naehe')">In der Nähe</a>
     <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')">Gästebuch</a>
     <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
     <span class="fnav-sep"></span>
@@ -476,6 +529,37 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
       <div id="cost-list"></div>
       <div id="grand-total-box"></div>
     </div>
+  </div>
+
+  <div class="section" id="section-naehe">
+    <div style="margin-bottom:24px">
+      <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Vor Ort</p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+        <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">In der <em>Nähe</em></h2>
+        <p style="font-size:13px;color:var(--fog);max-width:260px;line-height:1.7;text-align:right;margin:0">Sehenswürdigkeiten und Restaurants rund um euren aktuellen Standort</p>
+      </div>
+    </div>
+
+    <div class="tv-controls">
+      <button class="tv-locate" id="tvLocate" type="button"><span class="tv-dot"></span> Standort verwenden</button>
+      <div class="tv-search"><input id="tvSearch" type="text" inputmode="search" placeholder="oder Ort suchen (z. B. Cairns)" autocomplete="off"></div>
+    </div>
+
+    <div class="tv-tabs" role="tablist" aria-label="Kategorie">
+      <button class="tv-tab tv-tab--sights" id="tvTabSights" role="tab" aria-selected="true">Highlights</button>
+      <button class="tv-tab tv-tab--food" id="tvTabFood" role="tab" aria-selected="false">Restaurants</button>
+    </div>
+
+    <div class="tv-radius">
+      <label for="tvRadius">Umkreis</label>
+      <select id="tvRadius"><option value="500">500 m</option><option value="1000" selected>1 km</option><option value="2000">2 km</option><option value="5000">5 km</option></select>
+      <span id="tvPlaceLabel"></span>
+    </div>
+
+    <p class="tv-status" id="tvStatus">Tippe auf „Standort verwenden", um Vorschläge in eurer Umgebung zu laden.</p>
+    <ul class="tv-list" id="tvList"></ul>
+
+    <p class="tv-foot">Vorschläge von OpenStreetMap-Mitwirkenden · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Lizenz</a></p>
   </div>
 
   <div class="section" id="section-gaestebuch">
@@ -2873,6 +2957,134 @@ async function init(){
     onScroll();
   }
 })();
+
+/* ══════════ TRAVONA · IN DER NÄHE ENTDECKEN ══════════ */
+(function(){
+  "use strict";
+  var root=document.getElementById('section-naehe'); if(!root) return;
+  var elLocate=document.getElementById('tvLocate'), elSearch=document.getElementById('tvSearch'),
+      elRadius=document.getElementById('tvRadius'), elStatus=document.getElementById('tvStatus'),
+      elList=document.getElementById('tvList'), elPlace=document.getElementById('tvPlaceLabel'),
+      tabSights=document.getElementById('tvTabSights'), tabFood=document.getElementById('tvTabFood');
+  var st={lat:null,lon:null,kind:'sights',rows:[]};
+  var OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+
+  function haversine(a,b,c,d){var R=6371000,t=Math.PI/180,dA=(c-a)*t,dO=(d-b)*t;var x=Math.sin(dA/2)*Math.sin(dA/2)+Math.cos(a*t)*Math.cos(c*t)*Math.sin(dO/2)*Math.sin(dO/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+  function fmtD(m){return m<1000?{n:Math.round(m),u:'m'}:{n:(m/1000).toFixed(m<10000?1:0).replace('.',','),u:'km'};}
+  function esc(s){return (s||'').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function idKey(n,la,lo){return n.toLowerCase()+'@'+la.toFixed(4)+','+lo.toFixed(4);}
+  function setStatus(m,err){elStatus.innerHTML=m;elStatus.className='tv-status'+(err?' tv-status--error':'');elStatus.style.display=m?'':'none';}
+
+  var SIGHT={attraction:'Sehenswürdigkeit',museum:'Museum',viewpoint:'Aussichtspunkt',artwork:'Kunst im öffentlichen Raum',gallery:'Galerie',zoo:'Zoo',theme_park:'Freizeitpark',aquarium:'Aquarium',monument:'Denkmal',memorial:'Gedenkstätte',castle:'Burg/Schloss',ruins:'Ruine',archaeological_site:'Ausgrabungsstätte',park:'Park',garden:'Garten',nature_reserve:'Naturschutzgebiet',beach:'Strand',peak:'Gipfel',waterfall:'Wasserfall',place_of_worship:'Sakralbau'};
+  var FOOD={restaurant:'Restaurant',cafe:'Café',bar:'Bar',pub:'Pub',fast_food:'Imbiss',ice_cream:'Eisdiele',biergarten:'Biergarten'};
+  var CUIS={italian:'Italienisch',pizza:'Pizza',japanese:'Japanisch',sushi:'Sushi',chinese:'Chinesisch',thai:'Thailändisch',indian:'Indisch',greek:'Griechisch',seafood:'Meeresfrüchte',steak_house:'Steakhaus',burger:'Burger',vietnamese:'Vietnamesisch',mexican:'Mexikanisch',french:'Französisch',asian:'Asiatisch',coffee_shop:'Kaffee',vegetarian:'Vegetarisch',vegan:'Vegan',regional:'Regional',australian:'Australisch',modern:'Modern'};
+  function label(kind,t){if(kind==='food')return FOOD[t.amenity]||'Restaurant';return SIGHT[t.tourism]||SIGHT[t.historic]||SIGHT[t.leisure]||SIGHT[t.natural]||(t.amenity==='place_of_worship'?'Sakralbau':'Sehenswürdigkeit');}
+  function cuisine(t){if(!t.cuisine)return'';return t.cuisine.split(';').map(function(c){c=c.trim();return CUIS[c]||c.charAt(0).toUpperCase()+c.slice(1).replace(/_/g,' ');}).join(', ');}
+
+  function query(kind,la,lo,r){var f;if(kind==='food'){f='nwr["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|biergarten)$"](around:'+r+','+la+','+lo+');';}else{f='nwr["tourism"~"^(attraction|museum|viewpoint|artwork|gallery|zoo|theme_park|aquarium)$"](around:'+r+','+la+','+lo+');nwr["historic"](around:'+r+','+la+','+lo+');nwr["leisure"~"^(park|garden|nature_reserve)$"](around:'+r+','+la+','+lo+');nwr["natural"~"^(beach|peak|waterfall)$"](around:'+r+','+la+','+lo+');';}return '[out:json][timeout:25];('+f+');out center 80;';}
+  function overpass(q){var body='data='+encodeURIComponent(q);function go(i){if(i>=OVERPASS.length)return Promise.reject(new Error('down'));var ctrl=new AbortController();var to=setTimeout(function(){ctrl.abort();},30000);return fetch(OVERPASS[i],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,signal:ctrl.signal}).then(function(r){clearTimeout(to);if(!r.ok)throw new Error('http');return r.json();}).catch(function(){clearTimeout(to);return go(i+1);});}return go(0);}
+
+  function normDist(rows){rows.forEach(function(p){p.dist=haversine(st.lat,st.lon,p.lat,p.lon);});rows.sort(function(a,b){return a.dist-b.dist;});return rows.slice(0,40);}
+
+  // OpenStreetMap-Ergebnisse -> einheitliches Format (Fotos werden separat ergänzt)
+  function fromOSM(data){
+    var seen={},rows=[];
+    (data.elements||[]).forEach(function(el){var t=el.tags||{};if(!t.name)return;var la=el.lat!=null?el.lat:(el.center&&el.center.lat);var lo=el.lon!=null?el.lon:(el.center&&el.center.lon);if(la==null||lo==null)return;var k=idKey(t.name,la,lo);if(seen[k])return;seen[k]=1;
+      rows.push({name:t.name,lat:la,lon:lo,category:label(st.kind,t),rating:null,reviews:null,
+        address:t['addr:street']||'',website:t.website||'',photo:null,wikidata:t.wikidata||'',
+        mapsUri:'https://www.google.com/maps/search/?api=1&query='+la+'%2C'+lo,
+        cuisine:st.kind==='food'?cuisine(t):''});});
+    return rows;
+  }
+
+  // Kostenlose Fotos über Wikimedia (für Orte mit Wikidata-Eintrag) – kein API-Key nötig
+  function enrichPhotos(rows){
+    var ids=[]; rows.forEach(function(p){if(p.wikidata&&/^Q\d+$/.test(p.wikidata)&&ids.indexOf(p.wikidata)<0)ids.push(p.wikidata);});
+    ids=ids.slice(0,50);
+    if(!ids.length)return Promise.resolve(false);
+    var url='https://www.wikidata.org/w/api.php?action=wbgetentities&ids='+ids.join('|')+'&props=claims&format=json&origin=*';
+    return fetch(url).then(function(r){return r.json();}).then(function(j){
+      var img={},ents=j.entities||{};
+      Object.keys(ents).forEach(function(q){try{var c=ents[q].claims,p18=c&&c.P18;if(p18&&p18[0]&&p18[0].mainsnak&&p18[0].mainsnak.datavalue)img[q]=p18[0].mainsnak.datavalue.value;}catch(e){}});
+      var changed=false;
+      rows.forEach(function(p){if(!p.photo&&p.wikidata&&img[p.wikidata]){p.photo='https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(img[p.wikidata])+'?width=300';changed=true;}});
+      return changed;
+    }).catch(function(){return false;});
+  }
+
+  function run(){
+    if(st.lat==null){setStatus('Bitte zuerst Standort verwenden oder einen Ort suchen.',true);return;}
+    var r=parseInt(elRadius.value,10);
+    setStatus('<span class="tv-spinner"></span>Suche '+(st.kind==='food'?'Restaurants':'Highlights')+' in der Nähe …');
+    elList.innerHTML='';
+    overpass(query(st.kind,st.lat,st.lon,r))
+      .then(function(data){
+        st.rows=normDist(fromOSM(data)); render();
+        // Fotos nachladen und Karten aktualisieren, sobald verfügbar
+        enrichPhotos(st.rows).then(function(changed){if(changed)render();});
+      })
+      .catch(function(){setStatus('Die Vorschläge konnten gerade nicht geladen werden. Bitte in ein paar Sekunden erneut versuchen.',true);});
+  }
+
+  function fmtCount(n){if(n==null)return'';return n>=1000?'('+(n/1000).toFixed(1).replace('.',',')+'\u2009Tsd.)':'('+n+')';}
+  function starsHtml(r){return '<span class="tv-stars">★ '+r.toFixed(1).replace('.',',')+'</span>';}
+
+  function render(){
+    if(!st.rows.length){setStatus('Im Umkreis von '+elRadius.options[elRadius.selectedIndex].text+' nichts gefunden. Erweitere den Umkreis oder suche einen anderen Ort.');return;}
+    setStatus('');
+    var food=st.kind==='food';
+    elList.innerHTML=st.rows.map(function(p){
+      var d=fmtD(p.dist),pc=food?'tv-pill--food':'tv-pill--sight';
+      var meta=food?(p.cuisine||''):''; if(!meta&&p.address)meta=p.address;
+      var dir='https://www.google.com/maps/dir/?api=1&destination='+p.lat+'%2C'+p.lon;
+      var thumb=p.photo
+        ? '<div class="tv-item__thumb" style="background-image:url('+esc(p.photo)+')"></div>'
+        : '<div class="tv-item__thumb tv-item__thumb--ph '+(food?'ph-food':'ph-sight')+'">'+(food?'🍽':'★')+'</div>';
+      var rating=(p.rating!=null)
+        ? starsHtml(p.rating)+' <span class="tv-rcount">'+fmtCount(p.reviews)+'</span><span class="tv-mid"> · </span>'
+        : '';
+      return '<li class="tv-item">'+thumb+
+        '<div class="tv-item__body"><p class="tv-item__name">'+esc(p.name)+'</p>'+
+        '<div class="tv-item__rating">'+rating+'<span class="tv-distinline">'+d.n+'\u2009'+d.u+'</span></div>'+
+        '<span class="tv-pill '+pc+'"><span class="tv-pdot"></span>'+esc(p.category||'Ort')+'</span>'+
+        (meta?'<p class="tv-item__meta">'+esc(meta)+'</p>':'')+
+        '<div class="tv-item__actions">'+
+          '<a class="tv-cta tv-cta--primary" href="'+p.mapsUri+'" target="_blank" rel="noopener">Auf Karte</a>'+
+          '<a class="tv-cta" href="'+dir+'" target="_blank" rel="noopener">Route</a>'+
+          (p.website?'<a class="tv-cta" href="'+esc(p.website)+'" target="_blank" rel="noopener">Website</a>':'')+
+        '</div></div></li>';
+    }).join('');
+  }
+
+  // Standort ermitteln
+  elLocate.addEventListener('click',function(){
+    if(!navigator.geolocation){setStatus('Dieses Gerät liefert keinen Standort. Bitte einen Ort suchen.',true);return;}
+    root.classList.add('is-locating'); elLocate.disabled=true;
+    setStatus('<span class="tv-spinner"></span>Standort wird ermittelt …');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      root.classList.remove('is-locating'); elLocate.disabled=false;
+      st.lat=pos.coords.latitude; st.lon=pos.coords.longitude; elPlace.textContent='· aktueller Standort'; elSearch.value=''; run();
+    },function(err){
+      root.classList.remove('is-locating'); elLocate.disabled=false;
+      setStatus(err.code===1?'Standortzugriff wurde abgelehnt. Erlaube ihn in den Einstellungen oder suche einen Ort.':'Standort konnte nicht ermittelt werden. Bitte einen Ort suchen.',true);
+    },{enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  });
+
+  // Ort suchen (Nominatim-Geocoding)
+  elSearch.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();geocode(elSearch.value.trim());}});
+  function geocode(q){if(!q)return; setStatus('<span class="tv-spinner"></span>Ort wird gesucht …');
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q='+encodeURIComponent(q),{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(list){
+      if(!list.length){setStatus('Ort „'+esc(q)+'" nicht gefunden. Bitte anders schreiben.',true);return;}
+      st.lat=parseFloat(list[0].lat); st.lon=parseFloat(list[0].lon); elPlace.textContent='· '+(list[0].display_name||q).split(',').slice(0,2).join(','); run();
+    }).catch(function(){setStatus('Ortssuche gerade nicht möglich. Bitte erneut versuchen.',true);});}
+
+  // Tabs + Radius
+  function setKind(k){st.kind=k;var s=(k==='sights');tabSights.setAttribute('aria-selected',s?'true':'false');tabFood.setAttribute('aria-selected',s?'false':'true');if(st.lat!=null)run();}
+  tabSights.addEventListener('click',function(){setKind('sights');});
+  tabFood.addEventListener('click',function(){setKind('food');});
+  elRadius.addEventListener('change',function(){if(st.lat!=null)run();});
+})();
+
 init();
 </script>
 </body>
