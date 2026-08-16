@@ -90,6 +90,15 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 #section-naehe .tv-item__dist{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:56px;padding:6px 4px;background:var(--sand);border-radius:var(--radius);text-align:center;}
 #section-naehe .tv-item__dist b{font-family:'Sora',sans-serif;font-size:1.05rem;line-height:1.1;color:var(--ink);}
 #section-naehe .tv-item__dist span{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);}
+#section-naehe .tv-item__thumb{flex:0 0 auto;width:78px;height:78px;border-radius:var(--radius);background-size:cover;background-position:center;background-color:var(--sand);}
+#section-naehe .tv-item__thumb--ph{display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:#fff;}
+#section-naehe .tv-item__thumb.ph-sight{background:var(--terra);}
+#section-naehe .tv-item__thumb.ph-food{background:var(--ocean);}
+#section-naehe .tv-item__rating{display:flex;align-items:center;flex-wrap:wrap;gap:3px;margin:1px 0 6px;font-size:.8rem;color:var(--fog);}
+#section-naehe .tv-stars{color:#E0952B;font-weight:600;}
+#section-naehe .tv-rcount{color:var(--fog);}
+#section-naehe .tv-mid{color:var(--rule);}
+#section-naehe .tv-distinline{color:var(--fog);}
 #section-naehe .tv-foot{margin-top:22px;font-size:.68rem;color:var(--fog);}
 #section-naehe .tv-foot a{color:var(--fog);}
 @media(prefers-reduced-motion:reduce){#section-naehe .tv-spinner{animation-duration:2s;}#section-naehe.is-locating .tv-locate .tv-dot{animation:none;}}
@@ -411,9 +420,9 @@ textarea{resize:vertical;min-height:100px;}
     <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
     <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
     <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
-    <a class="fnav-link" href="#section-naehe" onclick="jumpTo(event,'naehe')">In der Nähe</a>
     <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
     <a class="fnav-link" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
+    <a class="fnav-link" href="#section-naehe" onclick="jumpTo(event,'naehe')">In der Nähe</a>
     <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')">Gästebuch</a>
     <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
     <span class="fnav-sep"></span>
@@ -449,9 +458,9 @@ textarea{resize:vertical;min-height:100px;}
   <a class="tab-btn" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
   <a class="tab-btn" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
   <a class="tab-btn" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
-  <a class="tab-btn" href="#section-naehe" onclick="jumpTo(event,'naehe')">In der Nähe</a>
   <a class="tab-btn" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
   <a class="tab-btn" href="#section-planer" onclick="jumpTo(event,'planer')">Tipps</a>
+  <a class="tab-btn" href="#section-naehe" onclick="jumpTo(event,'naehe')">In der Nähe</a>
 </div>
 
 <main>
@@ -500,37 +509,6 @@ textarea{resize:vertical;min-height:100px;}
     <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Gebuchte Ausflüge & Touren</div>
   </div>
   <div class="activities-grid" id="activities-grid"></div>
-</div>
-
-<div class="section" id="section-naehe">
-  <div style="margin-bottom:24px">
-    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Vor Ort</p>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
-      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">In der <em>Nähe</em></h2>
-      <p style="font-size:13px;color:var(--fog);max-width:260px;line-height:1.7;text-align:right;margin:0">Sehenswürdigkeiten und Restaurants rund um euren aktuellen Standort</p>
-    </div>
-  </div>
-
-  <div class="tv-controls">
-    <button class="tv-locate" id="tvLocate" type="button"><span class="tv-dot"></span> Standort verwenden</button>
-    <div class="tv-search"><input id="tvSearch" type="text" inputmode="search" placeholder="oder Ort suchen (z. B. Cairns)" autocomplete="off"></div>
-  </div>
-
-  <div class="tv-tabs" role="tablist" aria-label="Kategorie">
-    <button class="tv-tab tv-tab--sights" id="tvTabSights" role="tab" aria-selected="true">Highlights</button>
-    <button class="tv-tab tv-tab--food" id="tvTabFood" role="tab" aria-selected="false">Restaurants</button>
-  </div>
-
-  <div class="tv-radius">
-    <label for="tvRadius">Umkreis</label>
-    <select id="tvRadius"><option value="500">500 m</option><option value="1000" selected>1 km</option><option value="2000">2 km</option><option value="5000">5 km</option></select>
-    <span id="tvPlaceLabel"></span>
-  </div>
-
-  <p class="tv-status" id="tvStatus">Tippe auf „Standort verwenden", um Vorschläge in eurer Umgebung zu laden.</p>
-  <ul class="tv-list" id="tvList"></ul>
-
-  <p class="tv-foot">Vorschläge von OpenStreetMap-Mitwirkenden · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Lizenz</a></p>
 </div>
 
 <div class="section" id="section-neu">
@@ -599,6 +577,37 @@ textarea{resize:vertical;min-height:100px;}
   <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Tipps & Empfehlungen</div>
   <div style="font-size:.83rem;color:var(--fog);margin-bottom:24px">Handverlesene Empfehlungen für jeden Stop eurer Reise.</div>
   <div style="display:flex;flex-direction:column;gap:16px" id="tips-list"></div>
+</div>
+
+<div class="section" id="section-naehe">
+  <div style="margin-bottom:24px">
+    <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Vor Ort</p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
+      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">In der <em>Nähe</em></h2>
+      <p style="font-size:13px;color:var(--fog);max-width:260px;line-height:1.7;text-align:right;margin:0">Sehenswürdigkeiten und Restaurants rund um euren aktuellen Standort</p>
+    </div>
+  </div>
+
+  <div class="tv-controls">
+    <button class="tv-locate" id="tvLocate" type="button"><span class="tv-dot"></span> Standort verwenden</button>
+    <div class="tv-search"><input id="tvSearch" type="text" inputmode="search" placeholder="oder Ort suchen (z. B. Cairns)" autocomplete="off"></div>
+  </div>
+
+  <div class="tv-tabs" role="tablist" aria-label="Kategorie">
+    <button class="tv-tab tv-tab--sights" id="tvTabSights" role="tab" aria-selected="true">Highlights</button>
+    <button class="tv-tab tv-tab--food" id="tvTabFood" role="tab" aria-selected="false">Restaurants</button>
+  </div>
+
+  <div class="tv-radius">
+    <label for="tvRadius">Umkreis</label>
+    <select id="tvRadius"><option value="500">500 m</option><option value="1000" selected>1 km</option><option value="2000">2 km</option><option value="5000">5 km</option></select>
+    <span id="tvPlaceLabel"></span>
+  </div>
+
+  <p class="tv-status" id="tvStatus">Tippe auf „Standort verwenden", um Vorschläge in eurer Umgebung zu laden.</p>
+  <ul class="tv-list" id="tvList"></ul>
+
+  <p class="tv-foot">Vorschläge von OpenStreetMap-Mitwirkenden · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">Lizenz</a></p>
 </div>
 
 <div class="section" id="section-gaestebuch">
@@ -2450,18 +2459,50 @@ initApp();
   function query(kind,la,lo,r){var f;if(kind==='food'){f='nwr["amenity"~"^(restaurant|cafe|bar|pub|fast_food|ice_cream|biergarten)$"](around:'+r+','+la+','+lo+');';}else{f='nwr["tourism"~"^(attraction|museum|viewpoint|artwork|gallery|zoo|theme_park|aquarium)$"](around:'+r+','+la+','+lo+');nwr["historic"](around:'+r+','+la+','+lo+');nwr["leisure"~"^(park|garden|nature_reserve)$"](around:'+r+','+la+','+lo+');nwr["natural"~"^(beach|peak|waterfall)$"](around:'+r+','+la+','+lo+');';}return '[out:json][timeout:25];('+f+');out center 80;';}
   function overpass(q){var body='data='+encodeURIComponent(q);function go(i){if(i>=OVERPASS.length)return Promise.reject(new Error('down'));var ctrl=new AbortController();var to=setTimeout(function(){ctrl.abort();},30000);return fetch(OVERPASS[i],{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:body,signal:ctrl.signal}).then(function(r){clearTimeout(to);if(!r.ok)throw new Error('http');return r.json();}).catch(function(){clearTimeout(to);return go(i+1);});}return go(0);}
 
+  function normDist(rows){rows.forEach(function(p){p.dist=haversine(st.lat,st.lon,p.lat,p.lon);});rows.sort(function(a,b){return a.dist-b.dist;});return rows.slice(0,40);}
+
+  // OpenStreetMap-Ergebnisse -> einheitliches Format (Fotos werden separat ergänzt)
+  function fromOSM(data){
+    var seen={},rows=[];
+    (data.elements||[]).forEach(function(el){var t=el.tags||{};if(!t.name)return;var la=el.lat!=null?el.lat:(el.center&&el.center.lat);var lo=el.lon!=null?el.lon:(el.center&&el.center.lon);if(la==null||lo==null)return;var k=idKey(t.name,la,lo);if(seen[k])return;seen[k]=1;
+      rows.push({name:t.name,lat:la,lon:lo,category:label(st.kind,t),rating:null,reviews:null,
+        address:t['addr:street']||'',website:t.website||'',photo:null,wikidata:t.wikidata||'',
+        mapsUri:'https://www.google.com/maps/search/?api=1&query='+la+'%2C'+lo,
+        cuisine:st.kind==='food'?cuisine(t):''});});
+    return rows;
+  }
+
+  // Kostenlose Fotos über Wikimedia (für Orte mit Wikidata-Eintrag) – kein API-Key nötig
+  function enrichPhotos(rows){
+    var ids=[]; rows.forEach(function(p){if(p.wikidata&&/^Q\d+$/.test(p.wikidata)&&ids.indexOf(p.wikidata)<0)ids.push(p.wikidata);});
+    ids=ids.slice(0,50);
+    if(!ids.length)return Promise.resolve(false);
+    var url='https://www.wikidata.org/w/api.php?action=wbgetentities&ids='+ids.join('|')+'&props=claims&format=json&origin=*';
+    return fetch(url).then(function(r){return r.json();}).then(function(j){
+      var img={},ents=j.entities||{};
+      Object.keys(ents).forEach(function(q){try{var c=ents[q].claims,p18=c&&c.P18;if(p18&&p18[0]&&p18[0].mainsnak&&p18[0].mainsnak.datavalue)img[q]=p18[0].mainsnak.datavalue.value;}catch(e){}});
+      var changed=false;
+      rows.forEach(function(p){if(!p.photo&&p.wikidata&&img[p.wikidata]){p.photo='https://commons.wikimedia.org/wiki/Special:FilePath/'+encodeURIComponent(img[p.wikidata])+'?width=300';changed=true;}});
+      return changed;
+    }).catch(function(){return false;});
+  }
+
   function run(){
     if(st.lat==null){setStatus('Bitte zuerst Standort verwenden oder einen Ort suchen.',true);return;}
     var r=parseInt(elRadius.value,10);
     setStatus('<span class="tv-spinner"></span>Suche '+(st.kind==='food'?'Restaurants':'Highlights')+' in der Nähe …');
     elList.innerHTML='';
-    overpass(query(st.kind,st.lat,st.lon,r)).then(function(data){
-      var seen={},rows=[];
-      (data.elements||[]).forEach(function(el){var t=el.tags||{};if(!t.name)return;var la=el.lat!=null?el.lat:(el.center&&el.center.lat);var lo=el.lon!=null?el.lon:(el.center&&el.center.lon);if(la==null||lo==null)return;var k=idKey(t.name,la,lo);if(seen[k])return;seen[k]=1;rows.push({name:t.name,lat:la,lon:lo,tags:t,dist:haversine(st.lat,st.lon,la,lo)});});
-      rows.sort(function(a,b){return a.dist-b.dist;});
-      st.rows=rows.slice(0,40);render();
-    }).catch(function(){setStatus('Die Vorschläge konnten gerade nicht geladen werden. Bitte in ein paar Sekunden erneut versuchen.',true);});
+    overpass(query(st.kind,st.lat,st.lon,r))
+      .then(function(data){
+        st.rows=normDist(fromOSM(data)); render();
+        // Fotos nachladen und Karten aktualisieren, sobald verfügbar
+        enrichPhotos(st.rows).then(function(changed){if(changed)render();});
+      })
+      .catch(function(){setStatus('Die Vorschläge konnten gerade nicht geladen werden. Bitte in ein paar Sekunden erneut versuchen.',true);});
   }
+
+  function fmtCount(n){if(n==null)return'';return n>=1000?'('+(n/1000).toFixed(1).replace('.',',')+'\u2009Tsd.)':'('+n+')';}
+  function starsHtml(r){return '<span class="tv-stars">★ '+r.toFixed(1).replace('.',',')+'</span>';}
 
   function render(){
     if(!st.rows.length){setStatus('Im Umkreis von '+elRadius.options[elRadius.selectedIndex].text+' nichts gefunden. Erweitere den Umkreis oder suche einen anderen Ort.');return;}
@@ -2469,19 +2510,25 @@ initApp();
     var food=st.kind==='food';
     elList.innerHTML=st.rows.map(function(p){
       var d=fmtD(p.dist),pc=food?'tv-pill--food':'tv-pill--sight';
-      var meta=food?cuisine(p.tags):''; if(!meta&&p.tags['addr:street'])meta=p.tags['addr:street'];
-      var view='https://www.google.com/maps/search/?api=1&query='+p.lat+'%2C'+p.lon;
+      var meta=food?(p.cuisine||''):''; if(!meta&&p.address)meta=p.address;
       var dir='https://www.google.com/maps/dir/?api=1&destination='+p.lat+'%2C'+p.lon;
       var key=idKey(p.name,p.lat,p.lon),isSaved=!!st.saved[key];
-      return '<li class="tv-item"><div class="tv-item__dist"><b>'+d.n+'</b><span>'+d.u+'</span></div>'+
+      var thumb=p.photo
+        ? '<div class="tv-item__thumb" style="background-image:url('+esc(p.photo)+')"></div>'
+        : '<div class="tv-item__thumb tv-item__thumb--ph '+(food?'ph-food':'ph-sight')+'">'+(food?'🍽':'★')+'</div>';
+      var rating=(p.rating!=null)
+        ? starsHtml(p.rating)+' <span class="tv-rcount">'+fmtCount(p.reviews)+'</span><span class="tv-mid"> · </span>'
+        : '';
+      return '<li class="tv-item">'+thumb+
         '<div class="tv-item__body"><p class="tv-item__name">'+esc(p.name)+'</p>'+
-        '<span class="tv-pill '+pc+'"><span class="tv-pdot"></span>'+esc(label(st.kind,p.tags))+'</span>'+
+        '<div class="tv-item__rating">'+rating+'<span class="tv-distinline">'+d.n+'\u2009'+d.u+'</span></div>'+
+        '<span class="tv-pill '+pc+'"><span class="tv-pdot"></span>'+esc(p.category||'Ort')+'</span>'+
         (meta?'<p class="tv-item__meta">'+esc(meta)+'</p>':'')+
         '<div class="tv-item__actions">'+
-          '<a class="tv-cta tv-cta--primary" href="'+view+'" target="_blank" rel="noopener">Auf Karte</a>'+
+          '<a class="tv-cta tv-cta--primary" href="'+p.mapsUri+'" target="_blank" rel="noopener">Auf Karte</a>'+
           '<a class="tv-cta" href="'+dir+'" target="_blank" rel="noopener">Route</a>'+
-          (p.tags.website?'<a class="tv-cta" href="'+esc(p.tags.website)+'" target="_blank" rel="noopener">Website</a>':'')+
-          '<button class="tv-cta tv-cta--save'+(isSaved?' is-saved':'')+'" data-key="'+esc(key)+'" data-name="'+esc(p.name)+'" data-lat="'+p.lat+'" data-lon="'+p.lon+'" data-label="'+esc(label(st.kind,p.tags))+'">'+(isSaved?'Gemerkt ✓':'Merken')+'</button>'+
+          (p.website?'<a class="tv-cta" href="'+esc(p.website)+'" target="_blank" rel="noopener">Website</a>':'')+
+          '<button class="tv-cta tv-cta--save'+(isSaved?' is-saved':'')+'" data-key="'+esc(key)+'" data-name="'+esc(p.name)+'" data-lat="'+p.lat+'" data-lon="'+p.lon+'" data-label="'+esc(p.category||'')+'" data-rating="'+(p.rating!=null?p.rating:'')+'">'+(isSaved?'Gemerkt ✓':'Merken')+'</button>'+
         '</div></div></li>';
     }).join('');
   }
@@ -2502,7 +2549,7 @@ initApp();
     var btn=e.target.closest('.tv-cta--save'); if(!btn)return;
     var key=btn.getAttribute('data-key'), name=btn.getAttribute('data-name'),
         la=parseFloat(btn.getAttribute('data-lat')), lo=parseFloat(btn.getAttribute('data-lon')),
-        lab=btn.getAttribute('data-label');
+        lab=btn.getAttribute('data-label'), rat=btn.getAttribute('data-rating');
     var usr=(typeof currentUser!=='undefined'&&currentUser)?currentUser.id:null;
     if(st.saved[key]){
       var id=st.saved[key].id; delete st.saved[key];
@@ -2511,7 +2558,7 @@ initApp();
       if(typeof toast==='function')toast('Aus Favoriten entfernt');
     }else{
       st.saved[key]={id:null}; btn.classList.add('is-saved'); btn.textContent='Gemerkt ✓';
-      sb.from('kommentare').insert({ort:'favorit_'+REISE_ID+'_'+Date.now(),name:name,nachricht:JSON.stringify({lat:la,lon:lo,kategorie:st.kind,label:lab}),created_at:new Date().toISOString(),owner:usr,trip_id:REISE_ID}).select('id').then(function(res){
+      sb.from('kommentare').insert({ort:'favorit_'+REISE_ID+'_'+Date.now(),name:name,nachricht:JSON.stringify({lat:la,lon:lo,kategorie:st.kind,label:lab,rating:(rat?parseFloat(rat):null)}),created_at:new Date().toISOString(),owner:usr,trip_id:REISE_ID}).select('id').then(function(res){
         if(res.error){delete st.saved[key];btn.classList.remove('is-saved');btn.textContent='Merken';if(typeof toast==='function')toast('Konnte nicht gespeichert werden');return;}
         if(res.data&&res.data[0])st.saved[key]={id:res.data[0].id};
         if(typeof toast==='function')toast('Zu Favoriten hinzugefügt');
