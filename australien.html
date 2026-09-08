@@ -1012,7 +1012,7 @@ async function sbDeletePhoto(url){
 
 // ── DATA ──────────────────────────────────────────────────────────────────
 const ACTIVITIES = [
-  { id:'a6', emoji:'🌅', name:'Sonnenuntergangs-Kreuzfahrt · Chinesische Shaolin-Dschunke', loc:'Port Douglas', datum:'2026-09-15', dateStr:'Di. 15. Sept. · 17:00 Uhr', pax:'2 Erwachsene', info:'Kreuzfahrt bei Sonnenuntergang auf einem traditionellen chinesischen Shaolin-Dschunkenschiff', price:null, note:'Tickets nach Bezahlung verfügbar' },
+  { id:'a6', emoji:'🌅', name:'Sonnenuntergangs-Kreuzfahrt · Chinesische Shaolin-Dschunke', loc:'Port Douglas', datum:'2026-09-15', dateStr:'Di. 15. Sept. · 17:00 Uhr', pax:'2 Erwachsene', info:'Kreuzfahrt bei Sonnenuntergang auf einem traditionellen chinesischen Shaolin-Dschunkenschiff', price:null, note:'' },
   { id:'a1', emoji:'🚤', name:'Low Isles Glass Bottom Boat & Snorkeling Tour', loc:'Port Douglas', datum:'2026-09-16', dateStr:'Mi. 16. Sept. · 13:15 Uhr', pax:'2 Erwachsene', info:'Glasbodenboot über dem Great Barrier Reef · Low Isles', price:null, note:'Tickets nach Bezahlung verfügbar' },
   { id:'a2', emoji:'🌿', name:'Nachmittags Daintree Tour mit Wildlife Cruise', loc:'Port Douglas', datum:'2026-09-17', dateStr:'Do. 17. Sept. · 12:50 Uhr', pax:'2 Erwachsene', info:'Daintree Regenwald · Wildlife Bootsfahrt · Krokodile!', price:null, note:'Voucher vorhanden' },
   { id:'a5', emoji:'🚂', name:'Kuranda Scenic Train (hin) + Bus (zurück)', loc:'Port Douglas / Kuranda', datum:'2026-09-18', dateStr:'Fr. 18. Sept. · 08:00–16:30 Uhr', pax:'2 Erwachsene', info:'Abholung 08:00 Uhr vom Port Douglas Retreat · Scenic Rail · Ref. #358349003', price:'€208,49', note:'Kuranda & Outback Tours · bequeme Schuhe, Trinkflasche, Hut' },
@@ -1523,7 +1523,7 @@ function renderActivities(){
     // "Ref. ..." und Referenznummern für Besucher entfernen
     return (s||'').replace(/\s*·?\s*Ref\.\s*#?[A-Za-z0-9]+/g,'').replace(/\s*·\s*$/,'').trim();
   }
-  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}<br><em style="opacity:.7;font-size:.78rem">${a.note}</em></div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
+  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}${a.note?'<br><em style="opacity:.7;font-size:.78rem">'+a.note+'</em>':''}</div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
 }
 
 function renderCosts(){
