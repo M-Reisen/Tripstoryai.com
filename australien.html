@@ -496,7 +496,7 @@ textarea{resize:vertical;min-height:100px;}
   <div class="figma-stats-inner">
     <div class="figma-stat"><span class="fs-num">27</span><span class="fs-lbl">Tage</span></div>
     <div class="figma-stat"><span class="fs-num">11</span><span class="fs-lbl">Unterkünfte</span></div>
-    <div class="figma-stat"><span class="fs-num">5</span><span class="fs-lbl">Ausflüge</span></div>
+    <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Ausflüge</span></div>
     <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Flüge</span></div>
     <div class="figma-stat"><span class="fs-num">3.200 km</span><span class="fs-lbl">Strecke</span></div>
   </div>
@@ -1012,6 +1012,7 @@ async function sbDeletePhoto(url){
 
 // ── DATA ──────────────────────────────────────────────────────────────────
 const ACTIVITIES = [
+  { id:'a6', emoji:'🌅', name:'Sonnenuntergangs-Kreuzfahrt · Chinesische Shaolin-Dschunke', loc:'Port Douglas', datum:'2026-09-15', dateStr:'Di. 15. Sept. · 17:00 Uhr', pax:'2 Erwachsene', info:'Kreuzfahrt bei Sonnenuntergang auf einem traditionellen chinesischen Shaolin-Dschunkenschiff', price:null, note:'Tickets nach Bezahlung verfügbar' },
   { id:'a1', emoji:'🚤', name:'Low Isles Glass Bottom Boat & Snorkeling Tour', loc:'Port Douglas', datum:'2026-09-16', dateStr:'Mi. 16. Sept. · 13:15 Uhr', pax:'2 Erwachsene', info:'Glasbodenboot über dem Great Barrier Reef · Low Isles', price:null, note:'Tickets nach Bezahlung verfügbar' },
   { id:'a2', emoji:'🌿', name:'Nachmittags Daintree Tour mit Wildlife Cruise', loc:'Port Douglas', datum:'2026-09-17', dateStr:'Do. 17. Sept. · 12:50 Uhr', pax:'2 Erwachsene', info:'Daintree Regenwald · Wildlife Bootsfahrt · Krokodile!', price:null, note:'Voucher vorhanden' },
   { id:'a5', emoji:'🚂', name:'Kuranda Scenic Train (hin) + Bus (zurück)', loc:'Port Douglas / Kuranda', datum:'2026-09-18', dateStr:'Fr. 18. Sept. · 08:00–16:30 Uhr', pax:'2 Erwachsene', info:'Abholung 08:00 Uhr vom Port Douglas Retreat · Scenic Rail · Ref. #358349003', price:'€208,49', note:'Kuranda & Outback Tours · bequeme Schuhe, Trinkflasche, Hut' },
@@ -1023,6 +1024,7 @@ const TIMELINE = [
   { type:'transport', cls:'flight', icon:'✈️', name:'SQ 203 · Singapur → Cairns', info:'Mo. 14.09. · ab 08:30 SIN → an 17:00 CNS', dot:'flight', datum:'2026-09-14' },
   { type:'transport', cls:'bus', icon:'🚌', name:'SR Coaches · Cairns → Port Douglas', info:'Mo. 14.09. · ab 18:00 · Ref. BW5283642', dot:'bus', datum:'2026-09-14' },
   { type:'stay', id:'b1', emoji:'🌴', name:'Port Douglas Retreat', loc:'Port Douglas, QLD', dateStr:'14.–19. Sept.', datum:'2026-09-14', nights:5, price:643.12, color:'bush', badge:'badge-nature', note:'Daintree Regenwald & Great Barrier Reef', dot:'bush' },
+  { type:'tour', ref:'a6', datum:'2026-09-15' },
   { type:'tour', ref:'a1', datum:'2026-09-16' },
   { type:'tour', ref:'a2', datum:'2026-09-17' },
   { type:'tour', ref:'a5', datum:'2026-09-18' },
