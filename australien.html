@@ -1523,7 +1523,7 @@ function renderActivities(){
     // "Ref. ..." und Referenznummern für Besucher entfernen
     return (s||'').replace(/\s*·?\s*Ref\.\s*#?[A-Za-z0-9]+/g,'').replace(/\s*·\s*$/,'').trim();
   }
-  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}${a.note?'<br><em style="opacity:.7;font-size:.78rem">'+a.note+'</em>':''}</div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
+  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}</div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
 }
 
 function renderCosts(){
