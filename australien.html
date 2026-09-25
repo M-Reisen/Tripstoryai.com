@@ -169,16 +169,6 @@ textarea{resize:vertical;min-height:100px;}
 @keyframes dictpulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 8px rgba(220,38,38,0)}}
 .divider{height:1px;background:rgba(28,26,22,.1);margin:18px 0;}
 .form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
-.activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(295px,1fr));gap:18px;}
-.activity-card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);}
-.activity-stripe{height:5px;background:var(--tour);}
-.activity-body{padding:16px 18px;}
-.activity-date{font-family:'DM Sans',sans-serif;font-size:.93rem;color:var(--tour);margin-bottom:4px;}
-.activity-location{font-size:.74rem;color:var(--fog);margin-bottom:6px;}
-.activity-location::before{content:'';}
-.activity-title{font-family:'Playfair Display',serif;font-size:1.04rem;font-weight:700;margin-bottom:6px;line-height:1.3;}
-.activity-detail{font-size:.82rem;line-height:1.6;color:#4a3d30;}
-.activity-footer{padding:10px 18px;border-top:1px solid rgba(28,26,22,.07);display:flex;gap:6px;justify-content:flex-end;}
 .cost-card{background:var(--white);border-radius:var(--radius);padding:24px 28px;box-shadow:var(--shadow);max-width:680px;margin:0 auto;}
 .cost-title{font-family:'Playfair Display',serif;font-size:1.3rem;margin-bottom:16px;}
 .cost-section-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--fog);padding:12px 0 6px;border-top:1px solid rgba(28,26,22,.08);margin-top:6px;}
@@ -384,7 +374,6 @@ textarea{resize:vertical;min-height:100px;}
     <a class="fnav-link" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
     <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
     <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
-    <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
     <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
     <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')">Gästebuch</a>
     <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
@@ -454,7 +443,6 @@ textarea{resize:vertical;min-height:100px;}
   <a class="tab-btn" href="#section-tage" onclick="jumpTo(event,'tage')">Tag für Tag</a>
   <a class="tab-btn" href="#section-route" onclick="jumpTo(event,'route')">Route</a>
   <a class="tab-btn" href="#section-journal" onclick="jumpTo(event,'journal')">Tagebuch</a>
-  <a class="tab-btn" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')">Ausflüge</a>
   <a class="tab-btn" href="#section-kosten" onclick="jumpTo(event,'kosten')">Kosten</a>
 </div>
 
@@ -498,13 +486,6 @@ textarea{resize:vertical;min-height:100px;}
   <div class="timeline">
     <div id="timeline-items"></div>
   </div>
-</div>
-
-<div class="section" id="section-ausfluege">
-  <div style="margin-bottom:20px">
-    <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Gebuchte Ausflüge & Touren</div>
-  </div>
-  <div class="activities-grid" id="activities-grid"></div>
 </div>
 
 <div class="section" id="section-neu">
@@ -1320,7 +1301,6 @@ function renderAll(){
   try{renderTimeline();}catch(e){console.error(e);}
   try{renderAuKarte();}catch(e){console.error(e);}
   try{renderJournal();}catch(e){console.error(e);}
-  try{renderActivities();}catch(e){console.error(e);}
   try{renderCosts();}catch(e){console.error(e);}
   try{applyViewMode();}catch(e){console.error(e);}
   try{loadGuestbook();}catch(e){console.error(e);}
@@ -1451,16 +1431,6 @@ async function aiFormuliere(){
   }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
 }
 function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
-
-function renderActivities(){
-  var isAdmin=canEdit||editMode;
-  function cleanInfo(s){
-    if(isAdmin)return s;
-    // "Ref. ..." und Referenznummern für Besucher entfernen
-    return (s||'').replace(/\s*·?\s*Ref\.\s*#?[A-Za-z0-9]+/g,'').replace(/\s*·\s*$/,'').trim();
-  }
-  document.getElementById('activities-grid').innerHTML=ACTIVITIES.map(a=>`<div class="activity-card"><div class="activity-stripe"></div><div class="activity-body"><div class="activity-date">${a.dateStr}</div><div class="activity-location">${a.loc}</div><div class="activity-title">${a.emoji} ${a.name}</div><div class="activity-detail">${cleanInfo(a.info)}${(a.price&&isAdmin)?'<br><strong>'+a.price+'</strong>':''}</div></div><div class="activity-footer">${editMode?`<button class="btn btn-primary btn-sm" style="background:var(--tour)" onclick="startEntryForDate('${a.datum}')">✍️ Eintrag</button>`:''}</div></div>`).join('');
-}
 
 // Sortierschlüssel für Ausflüge: liest das Datum aus p.datum (ISO) oder
 // aus dem Info-Text (z. B. "16.09. · Port Douglas") und liefert Monat*100+Tag.
@@ -1715,7 +1685,7 @@ function toggleEditMode(){
     var eb=document.getElementById('edit-toggle-btn');
     if(eb){eb.textContent='✏️ Bearbeiten';eb.style.background='';}
     if(tabNeu)tabNeu.style.display='none';
-    buildDaySlides();try{renderCosts();}catch(e){}try{renderActivities();}catch(e){}try{applyViewMode();}catch(e){}
+    buildDaySlides();try{renderCosts();}catch(e){}try{applyViewMode();}catch(e){}
     toast('Bearbeiten beendet.');
   }else{
     editMode=true;
@@ -1723,7 +1693,7 @@ function toggleEditMode(){
     if(eb2){eb2.textContent='✓ Fertig';eb2.style.background='var(--sunset)';}
     if(tabNeu)tabNeu.style.display='block';
     if(tabKosten)tabKosten.style.display='block';
-    buildDaySlides();try{renderCosts();}catch(e){}try{renderActivities();}catch(e){}try{applyViewMode();}catch(e){}
+    buildDaySlides();try{renderCosts();}catch(e){}try{applyViewMode();}catch(e){}
     toast('Bearbeiten aktiv – jetzt kannst du Kosten & Einträge ändern.');
   }
 }
