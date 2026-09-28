@@ -468,7 +468,7 @@ html.is-admin main{padding-top:40px;}
     <a class="fnav-link" href="#" onclick="event.preventDefault();var m=document.getElementById('fnav-right');if(m)m.classList.remove('open');createPhotobook();">Fotobuch (PDF)</a>
     <span class="fnav-sep"></span>
     <a class="fnav-action" href="index.html">Übersicht</a>
-    <button class="fnav-action" id="admin-btn" onclick="toggleAdmin()" style="display:none">Bearbeiten</button>
+    <button class="fnav-action" id="view-toggle-btn" onclick="toggleGuestView()" style="display:none" title="So sehen Gäste die Seite">👁 Gästeansicht</button>
     <button class="fnav-action" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
   </div>
 </nav>
@@ -874,7 +874,8 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser=null;    // eingeloggter Nutzer (oder null)
 let tripOwner=null;      // Besitzer-ID dieser Reise
 let tripVisibility='private';
-let canEdit=false;       // darf der aktuelle Nutzer bearbeiten?
+let canEdit=false;       // ist der aktuelle Nutzer der Besitzer?
+let guestView=false;     // Vorschau: Seite so zeigen, wie Gäste sie sehen
 // Lädt Session + Reise-Metadaten, entscheidet über Zugriff. Gibt false zurück, wenn Zugriff verweigert.
 async function initAuth(){
   const s=await sb.auth.getSession();
@@ -887,6 +888,8 @@ async function initAuth(){
   // Zugriffsentscheidung
   const isOwner=currentUser&&tripOwner&&currentUser.id===tripOwner;
   canEdit=!!isOwner;
+  // Eingeloggte Besitzer sind immer im Bearbeiten-Modus (außer in der Gästeansicht)
+  editMode=canEdit&&!guestView;
   try{localStorage.setItem('tv_admin_'+REISE,canEdit?'1':'0');}catch(e){}
   // Private Reise + nicht Besitzer → wegleiten
   if(tripVisibility==='private' && !isOwner){
@@ -897,7 +900,7 @@ async function initAuth(){
 }
 // Tag-für-Tag nur für Besitzer/Admin sichtbar; Besucher sehen nur das schicke Design
 function applyViewMode(){
-  var isAdmin=canEdit||editMode;
+  var isAdmin=!!editMode;
   // Sichtbarkeit & Reihenfolge steuert das CSS über html.is-admin (kein Springen der Seite)
   document.documentElement.classList.toggle('is-admin',!!isAdmin);
   document.querySelectorAll('.fnav-link').forEach(function(a){
@@ -912,7 +915,6 @@ async function doLogout(){
 }
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-const CORRECT_PIN='2026';
 const PLAN_CATS=[
   {key:'Unterkunft', emoji:'🏨', label:'Unterkünfte'},
   {key:'Flug',       emoji:'✈️', label:'Flüge'},
@@ -2133,7 +2135,7 @@ function saveFxRate(cur){
 
 // ── KOSTEN UI ─────────────────────────────────────────────────────────────────
 function renderCosts(){
-  const pc=canEdit?'':'price-blur';
+  const pc=editMode?'':'price-blur';
   const bb=document.getElementById('beleg-btn');if(bb)bb.style.display=editMode?'inline-flex':'none';
   let total=0,html='';
   PLAN_CATS.forEach(function(cat){
@@ -2319,7 +2321,7 @@ function renderAusfluege(){
     let meta=[];
     if(pi.time)meta.push(esc(pi.time));
     if(pi.pax)meta.push(esc(pi.pax)+' Pers.');
-    if(pi.ref&&canEdit)meta.push('#'+esc(pi.ref.replace(/^#\s*/,'')));
+    if(pi.ref&&editMode)meta.push('#'+esc(pi.ref.replace(/^#\s*/,'')));
     const num=('0'+(idx+1)).slice(-2);
     const btns=editMode?'<div class="fig-ex-actions"><button class="cost-edit-btn" data-id="'+c.id+'" onclick="editCostEl(this)">Bearbeiten</button><button class="cost-del-btn" data-id="'+c.id+'" onclick="delCostEl(this)">✕</button></div>':'';
     return '<div class="fig-excursion">'
@@ -2329,7 +2331,7 @@ function renderAusfluege(){
       +(pi.text?'<p class="fig-ex-desc">'+esc(pi.text)+'</p>':'')
       +btns+'</div>'
       +'<div class="fig-ex-meta">'+(meta.length?meta.join('<br>'):'')+'</div>'
-      +(canEdit?'<div class="fig-ex-price">'+amtStr+'</div>':'<div class="fig-ex-price"></div>')
+      +(editMode?'<div class="fig-ex-price">'+amtStr+'</div>':'<div class="fig-ex-price"></div>')
       +'</div>';
   }).join('')+'</div>';
 }
@@ -2531,21 +2533,27 @@ function bindJournalCounters(){
 
 // ── ADMIN / PIN ─────────────────────────────────────────────────────────────
 // ── BEARBEITEN-MODUS (nur Besitzer) ──────────────────────────────────────────
-function toggleAdmin(){
-  if(!canEdit){toast('Nur der Besitzer kann diese Reise bearbeiten.');return;}
-  editMode=!editMode;
-  const b=document.getElementById('admin-btn');
+// Gästeansicht: zeigt die Seite so, wie Besucher sie sehen (ohne Bearbeiten-Funktionen)
+function toggleGuestView(){
+  if(!canEdit){toast('Nur der Besitzer kann die Gästeansicht nutzen.');return;}
+  guestView=!guestView;
+  editMode=canEdit&&!guestView;
+  const b=document.getElementById('view-toggle-btn');
   if(b){
-    if(editMode){b.textContent='✓ Fertig';b.style.background='var(--sunset)';}
-    else{b.textContent='✏️ Bearbeiten';b.style.background='';}
+    b.textContent=guestView?'✏️ Zurück zum Bearbeiten':'👁 Gästeansicht';
+    b.style.background=guestView?'var(--sunset)':'';
+    b.style.color=guestView?'#fff':'';
   }
   try{renderHead();}catch(e){}
   try{renderCosts();}catch(e){}
   try{renderTage();}catch(e){}
   try{renderAusfluege();}catch(e){}
   try{renderRoute();}catch(e){}
+  try{renderJournal();}catch(e){}
   try{applyViewMode();}catch(e){}
-  toast(editMode?'Bearbeiten aktiv – jetzt kannst du Kosten & Einträge ändern.':'Bearbeiten beendet.');
+  try{renderKarte();}catch(e){}
+  window.scrollTo({top:0,behavior:'smooth'});
+  toast(guestView?'Gästeansicht: So sehen Besucher die Seite.':'Bearbeiten wieder aktiv.');
 }
 
 // ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
@@ -2912,7 +2920,7 @@ async function renderKarte(){
   var mapEl=document.getElementById('reisekarte-map');
   if(!wrap||!mapEl)return;
   // Die Karte liegt im Bereich „Tag für Tag“ (nur für Besitzer sichtbar) – Besucher müssen nichts laden
-  if(!(canEdit||editMode))return;
+  if(!editMode){wrap.style.display='none';return;}
   try{await ensureLeaflet();}catch(e){console.error(e);return;}
   var days=buildDays();
   if(!days.length){wrap.style.display='none';return;}
@@ -3044,11 +3052,8 @@ async function init(){
   // Ansicht (Admin/Besucher) sofort festlegen, bevor Daten nachladen
   try{applyViewMode();}catch(e){}
   // Besitzer sieht Bearbeiten-Button; Besucher nicht
-  var adminBtn=document.getElementById('admin-btn');
-  if(adminBtn){
-    if(canEdit){adminBtn.style.display='';adminBtn.textContent='✏️ Bearbeiten';}
-    else{adminBtn.style.display='none';}
-  }
+  var viewBtn=document.getElementById('view-toggle-btn');
+  if(viewBtn){viewBtn.style.display=canEdit?'':'none';}
   // Logout-Button nur wenn eingeloggt
   var logoutBtn=document.getElementById('logout-btn');
   if(logoutBtn){logoutBtn.style.display=currentUser?'':'none';}
