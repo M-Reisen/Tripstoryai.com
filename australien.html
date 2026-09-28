@@ -541,6 +541,10 @@ html.is-admin main{padding-top:40px;}
       </div>
     </div>
     <div style="margin-top:13px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <label for="ai-style-entry" style="font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.06em">Stil</label>
+        <select id="ai-style-entry" class="ai-style-select" onchange="saveAiStyle(this.value)" style="padding:8px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:var(--paper);color:var(--ink);"></select>
+      </div>
       <button class="btn btn-reef" onclick="aiFormuliere()">KI formuliert den Eintrag</button>
       <button class="btn btn-bush" onclick="startDictationEntry()" id="dictate-btn" style="margin-left:8px">Diktieren</button>
       <div class="ai-box" id="ai-formbox" style="display:none;margin-top:11px">
@@ -658,6 +662,10 @@ html.is-admin main{padding-top:40px;}
     <input type="hidden" id="rev-bid">
     <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:6px;">Bewertungstext</label>
     <textarea id="rev-text" rows="5" style="width:100%;padding:10px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.86rem;background:var(--paper);resize:vertical;" placeholder="Bewertung eingeben..."></textarea>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+      <label for="ai-style-review" style="font-size:.72rem;color:var(--fog);text-transform:uppercase;letter-spacing:.06em;">Stil</label>
+      <select id="ai-style-review" class="ai-style-select" onchange="saveAiStyle(this.value)" style="flex:1;padding:8px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:var(--paper);color:var(--ink);"></select>
+    </div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button onclick="startDictation()" id="rev-dictate-btn" style="padding:8px 14px;background:var(--ocean);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">Diktieren</button>
       <button onclick="polishReviewText()" style="padding:8px 14px;background:var(--reef);color:#fff;border:none;border-radius:8px;font-size:.82rem;cursor:pointer;">Verbessern</button>
@@ -1437,6 +1445,49 @@ function openCaptionModal(btn){_captionKey=btn.getAttribute('data-iso')+'_'+btn.
 function saveCaption(){const v=document.getElementById('caption-input').value.trim();if(_captionKey)photoComments[_captionKey]=v;document.getElementById('caption-modal').style.display='none';if(document.getElementById('lightbox').classList.contains('open'))document.getElementById('lb-caption').textContent=v;buildDaySlides();toast('Kommentar gespeichert!');}
 function closeCaptionModal(){document.getElementById('caption-modal').style.display='none';}
 
+// ── KI-STIL ──────────────────────────────────────────────────────────────
+var AI_STYLES={
+  sachlich:{label:'Sachlich & nüchtern',
+    diary:'Schreibe ruhig und sachlich wie ein Reisetagebuch für sich selbst: was wir gemacht, gesehen und erlebt haben, in klaren, einfachen Sätzen. Keine Schwärmerei, keine Bewertungen wie "traumhaft" oder "unglaublich".',
+    review:'Schreibe sachlich und nüchtern: Lage, Zimmer, Sauberkeit, Service, Frühstück, Preis-Leistung – jeweils konkret und ohne Übertreibung. Auch Schwächen dürfen genannt werden.'},
+  tagebuch:{label:'Persönlich, ruhig',
+    diary:'Schreibe persönlich und ruhig, wie man abends in ein Tagebuch schreibt. Ein bis zwei Beobachtungen oder Gedanken dürfen persönlich sein, aber ohne Überschwang. Bodenständig statt bildgewaltig.',
+    review:'Schreibe persönlich und ehrlich, wie eine Empfehlung an Freunde: was gut war, was weniger, und für wen das Hotel passt. Ruhiger Ton, keine Übertreibungen.'},
+  trocken:{label:'Trocken mit Humor',
+    diary:'Schreibe trocken und mit leichtem Humor, gerne mit einer beiläufigen Pointe oder Selbstironie. Understatement statt Begeisterung. Kein Kitsch.',
+    review:'Schreibe trocken und mit leichtem Humor, ehrlich und mit Understatement. Kein Kitsch, keine Werbesprache.'},
+  kurz:{label:'Kurz & knapp',
+    diary:'Schreibe sehr knapp: nur die wichtigsten Stationen und Eindrücke, maximal 60 bis 80 Wörter. Kurze Sätze, keine Ausschmückung.',
+    review:'Fasse die Bewertung in 2 bis 3 nüchternen Sätzen zusammen: das Wichtigste zuerst, keine Ausschmückung.'},
+  beschreibend:{label:'Beschreibend (Landschaft, Details)',
+    diary:'Schreibe beschreibend und aufmerksam: konkrete Details zu Licht, Landschaft, Geräuschen, Essen und Begegnungen. Genau beobachten statt bewerten, mit wenigen und präzisen Adjektiven.',
+    review:'Beschreibe konkret, was man vorfindet: Zimmer, Ausblick, Umgebung, Ausstattung. Genau statt schwärmerisch.'},
+  korrektur:{label:'Nur korrigieren, Stil belassen',
+    diary:'Verändere den Stil nicht. Bringe die Stichpunkte lediglich in zusammenhängende, korrekte Sätze und erfinde nichts dazu.',
+    review:'Korrigiere nur Rechtschreibung, Grammatik und Satzbau. Ton, Wortwahl und Aussagen bleiben unverändert.'}
+};
+var AI_STYLE_DEFAULT='tagebuch';
+// Gilt für jeden Stil: bremst das typische KI-Schwärmen
+var AI_NO_HYPE='Wichtige Regeln: Keine Ausrufezeichen. Keine Superlative und keine Wörter wie "traumhaft", "atemberaubend", "unvergesslich", "magisch", "einzigartig", "unglaublich", "Paradies". Keine Werbefloskeln und kein Fazit am Schluss ("Ein perfekter Tag"). Nicht jeden Eindruck positiv darstellen: Wenn etwas anstrengend, teuer, voll oder enttäuschend war, darf und soll das so stehen. Nur Dinge erwähnen, die in den Angaben stehen, nichts dazuerfinden.';
+function getAiStyle(){
+  var k=AI_STYLE_DEFAULT;
+  try{k=localStorage.getItem('au26_ai_style')||AI_STYLE_DEFAULT;}catch(e){}
+  return AI_STYLES[k]?k:AI_STYLE_DEFAULT;
+}
+function saveAiStyle(k){
+  if(!AI_STYLES[k])return;
+  try{localStorage.setItem('au26_ai_style',k);}catch(e){}
+  document.querySelectorAll('.ai-style-select').forEach(function(sel){sel.value=k;});
+}
+function initAiStyleSelects(){
+  var cur=getAiStyle();
+  document.querySelectorAll('.ai-style-select').forEach(function(sel){
+    sel.innerHTML=Object.keys(AI_STYLES).map(function(k){return '<option value="'+k+'">'+AI_STYLES[k].label+'</option>';}).join('');
+    sel.value=cur;
+  });
+}
+document.addEventListener('DOMContentLoaded',initAiStyleSelects);
+
 async function aiFormuliere(){
   const notizen=document.getElementById('f-notizen').value.trim();
   const ort=document.getElementById('f-ort').value.trim();
@@ -1446,7 +1497,8 @@ async function aiFormuliere(){
   if(!currentUser){toast('Bitte zuerst anmelden.');return;}
   const box=document.getElementById('ai-formbox'),res=document.getElementById('ai-form-result');
   box.style.display='block';res.className='ai-result loading';res.textContent='KI schreibt euren Australien-Eintrag …';
-  const prompt=`Du bist ein enthusiastischer Reiseblogger auf Australien-Reise durch Queensland. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 150–200 Wörter). Wir-Form (Pärchen). Stil: warm, bildhaft, authentisch.\n\nOrt: ${ort||'Queensland'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}\nStichpunkte:\n${notizen}\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.`;
+  const st=AI_STYLES[getAiStyle()];
+  const prompt=`Du hilfst beim Schreiben eines privaten Reisetagebuchs über eine Reise durch Queensland, Australien. Schreibe aus den Stichpunkten einen Tagebucheintrag auf Deutsch in Wir-Form (Pärchen). ${st.diary}\n\n${AI_NO_HYPE}\n\nOrt: ${ort||'Queensland'} | Kategorie: ${kat} | Titel: ${titel||'Reisetag'}\nStichpunkte:\n${notizen}\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.`;
   try{
     const headers=await aiAuthHeaders();
     const r=await fetch(AI_PROXY_URL,{method:'POST',headers:headers,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
@@ -1842,7 +1894,8 @@ async function polishReviewText(){
   if(!currentUser){toast('Bitte zuerst anmelden.');return;}
   var orig=raw;ta.disabled=true;ta.value='Text wird verbessert…';
   var hotel=document.getElementById('rev-hotel-name').textContent;
-  var prompt='Du verbesserst eine Hotelbewertung. Mache den folgenden Text flüssiger, lebendiger und ansprechender, aber behalte alle inhaltlichen Aussagen bei. Antworte auf Deutsch und gib NUR den verbesserten Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+orig;
+  var st=AI_STYLES[getAiStyle()];
+  var prompt='Du überarbeitest eine Hotelbewertung. Behalte alle inhaltlichen Aussagen bei, auch kritische, und erfinde nichts dazu. '+st.review+' '+AI_NO_HYPE+' Antworte auf Deutsch und gib NUR den Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+orig;
   try{
     var headers=await aiAuthHeaders();
     var resp=await fetch(AI_PROXY_URL,{method:'POST',headers:headers,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:600,messages:[{role:'user',content:prompt}]})});
