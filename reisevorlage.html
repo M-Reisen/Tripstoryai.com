@@ -4,10 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Reisetagebuch · Travona</title>
+<script>try{var _rk=(new URLSearchParams(location.search).get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');if(localStorage.getItem('tv_admin_'+_rk)==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
+<link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&family=Sora:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -426,6 +432,22 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 #section-naehe .tv-foot a{color:var(--fog);}
 @media(prefers-reduced-motion:reduce){#section-naehe .tv-spinner{animation-duration:2s;}#section-naehe.is-locating .tv-locate .tv-dot{animation:none;}}
 @media(max-width:520px){#section-naehe .tv-list{grid-template-columns:1fr;}}
+/* ── Layout-Stabilität & Admin-Ansicht ─────────────────────────────── */
+main{display:flex;flex-direction:column;}
+#section-tage,#section-kosten{display:none;}
+html.is-admin #section-tage,html.is-admin #section-kosten{display:block;}
+/* Admin: Bearbeitung (Tag für Tag) ganz oben */
+html.is-admin #section-tage{order:-3;}
+html.is-admin .figma-hero{height:34vh;min-height:320px;}
+html.is-admin .figma-hero h1{font-size:clamp(40px,6vw,68px);}
+html.is-admin .figma-hero-rule,html.is-admin .figma-hero-sub{display:none;}
+html.is-admin #hero-stats-wrap{display:none !important;}
+html.is-admin main{padding-top:40px;}
+/* Platzhalter für „Ausgewählte Momente“ während des Ladens */
+.fj-loading{background:linear-gradient(100deg,#e3dccf 30%,#efe9de 50%,#e3dccf 70%);background-size:200% 100%;animation:fjshimmer 1.4s linear infinite;}
+@keyframes fjshimmer{to{background-position:-200% 0;}}
+.sk-line{height:12px;background:#ece6db;border-radius:2px;margin-bottom:14px;}
+@media(prefers-reduced-motion:reduce){.fj-loading{animation:none;}}
 </style>
 </head>
 <body>
@@ -452,7 +474,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 </nav>
 
 <section class="figma-hero">
-  <img id="hero-bg-img" src="https://images.unsplash.com/photo-1555990538-c48ebba8b371?w=1800&h=1000&fit=crop&auto=format" alt="Kroatische Küste">
+  <img id="hero-bg-img" src="https://images.unsplash.com/photo-1555990538-c48ebba8b371?w=1800&h=1000&fit=crop&auto=format" alt="Kroatische Küste" fetchpriority="high" decoding="async">
   <div class="figma-hero-overlay"></div>
   <div class="figma-hero-content">
     <p class="figma-hero-eyebrow" id="hero-eyebrow">Neues Reisetagebuch</p>
@@ -481,7 +503,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
       <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch</p>
       <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
     </div>
-    <div id="journal-entries"></div>
+    <div id="journal-entries"><div class="fig-journal" aria-hidden="true"><div class="fig-journal-entry"><div class="fj-img fj-loading"></div><div class="fj-text"><div class="sk-line" style="width:24%"></div><div class="sk-line" style="width:56%;height:22px"></div><div class="sk-line" style="width:100%"></div><div class="sk-line" style="width:92%"></div><div class="sk-line" style="width:70%"></div></div></div></div></div>
   </div>
 
   <div class="section active" id="section-tage">
@@ -674,6 +696,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
       <label>Stichpunkte / Notizen</label>
       <textarea id="entry-notes" style="min-height:90px" placeholder="z.B.&#10;- Kängurus beim Sonnenaufgang&#10;- Schnorcheln mit Schildkröten&#10;- Abendessen: frischer Barramundi"></textarea>
     </div>
+    <div class="field" style="margin-bottom:10px"><label for="ai-style-entry">Stil der KI</label><select id="ai-style-entry" class="ai-style-select" onchange="saveAiStyle(this.value)"></select></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert den Eintrag</button>
       <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--bush);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
@@ -709,9 +732,10 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
       <label>Beschreibung</label>
       <textarea id="rev-text" style="min-height:120px" placeholder="Wie war die Unterkunft? Lage, Zimmer, Service…"></textarea>
     </div>
+    <div class="field" style="margin-bottom:10px"><label for="ai-style-review">Stil der KI</label><select id="ai-style-review" class="ai-style-select" onchange="saveAiStyle(this.value)"></select></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <button id="rev-dictate-btn" class="btn btn-sm" style="background:var(--ocean);color:#fff" onclick="dictateReview()">🎤 Diktieren</button>
-      <button id="rev-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiPolishReview()">✨ Verschönern</button>
+      <button id="rev-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiPolishReview()">✨ Überarbeiten</button>
     </div>
     <div class="modal-actions">
       <button class="cancel" onclick="deleteReview()" style="color:#dc2626;border-color:rgba(220,38,38,.3)">Löschen</button>
@@ -863,6 +887,7 @@ async function initAuth(){
   // Zugriffsentscheidung
   const isOwner=currentUser&&tripOwner&&currentUser.id===tripOwner;
   canEdit=!!isOwner;
+  try{localStorage.setItem('tv_admin_'+REISE,canEdit?'1':'0');}catch(e){}
   // Private Reise + nicht Besitzer → wegleiten
   if(tripVisibility==='private' && !isOwner){
     // Wenn gar nicht eingeloggt ODER nicht Besitzer: zurück zur Startseite
@@ -873,16 +898,15 @@ async function initAuth(){
 // Tag-für-Tag nur für Besitzer/Admin sichtbar; Besucher sehen nur das schicke Design
 function applyViewMode(){
   var isAdmin=canEdit||editMode;
-  var sec=document.getElementById('section-tage');
-  if(sec)sec.style.display=isAdmin?'block':'none';
-  var secK=document.getElementById('section-kosten');
-  if(secK)secK.style.display=isAdmin?'block':'none';
+  // Sichtbarkeit & Reihenfolge steuert das CSS über html.is-admin (kein Springen der Seite)
+  document.documentElement.classList.toggle('is-admin',!!isAdmin);
   document.querySelectorAll('.fnav-link').forEach(function(a){
     var h=a.getAttribute('href');
     if(h==='#section-tage'||h==='#section-kosten')a.style.display=isAdmin?'':'none';
   });
 }
 async function doLogout(){
+  try{localStorage.removeItem('tv_admin_'+REISE);}catch(e){}
   await sb.auth.signOut();
   location.href='index.html';
 }
@@ -1735,6 +1759,49 @@ async function aiCall(prompt,maxTokens){
   if(d.error){throw new Error((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');}
   return d.content?d.content.map(c=>c.text||'').join(''):'';
 }
+// ── KI-STIL ──────────────────────────────────────────────────────────────
+var AI_STYLES={
+  sachlich:{label:'Sachlich & nüchtern',
+    diary:'Schreibe ruhig und sachlich wie ein Reisetagebuch für sich selbst: was wir gemacht, gesehen und erlebt haben, in klaren, einfachen Sätzen. Keine Schwärmerei, keine Bewertungen wie "traumhaft" oder "unglaublich".',
+    review:'Schreibe sachlich und nüchtern: Lage, Zimmer, Sauberkeit, Service, Frühstück, Preis-Leistung – jeweils konkret und ohne Übertreibung. Auch Schwächen dürfen genannt werden.'},
+  tagebuch:{label:'Persönlich, ruhig',
+    diary:'Schreibe persönlich und ruhig, wie man abends in ein Tagebuch schreibt. Ein bis zwei Beobachtungen oder Gedanken dürfen persönlich sein, aber ohne Überschwang. Bodenständig statt bildgewaltig.',
+    review:'Schreibe persönlich und ehrlich, wie eine Empfehlung an Freunde: was gut war, was weniger, und für wen das Hotel passt. Ruhiger Ton, keine Übertreibungen.'},
+  trocken:{label:'Trocken mit Humor',
+    diary:'Schreibe trocken und mit leichtem Humor, gerne mit einer beiläufigen Pointe oder Selbstironie. Understatement statt Begeisterung. Kein Kitsch.',
+    review:'Schreibe trocken und mit leichtem Humor, ehrlich und mit Understatement. Kein Kitsch, keine Werbesprache.'},
+  kurz:{label:'Kurz & knapp',
+    diary:'Schreibe sehr knapp: nur die wichtigsten Stationen und Eindrücke, maximal 60 bis 80 Wörter. Kurze Sätze, keine Ausschmückung.',
+    review:'Fasse die Bewertung in 2 bis 3 nüchternen Sätzen zusammen: das Wichtigste zuerst, keine Ausschmückung.'},
+  beschreibend:{label:'Beschreibend (Landschaft, Details)',
+    diary:'Schreibe beschreibend und aufmerksam: konkrete Details zu Licht, Landschaft, Geräuschen, Essen und Begegnungen. Genau beobachten statt bewerten, mit wenigen und präzisen Adjektiven.',
+    review:'Beschreibe konkret, was man vorfindet: Zimmer, Ausblick, Umgebung, Ausstattung. Genau statt schwärmerisch.'},
+  korrektur:{label:'Nur korrigieren, Stil belassen',
+    diary:'Verändere den Stil nicht. Bringe die Stichpunkte lediglich in zusammenhängende, korrekte Sätze und erfinde nichts dazu.',
+    review:'Korrigiere nur Rechtschreibung, Grammatik und Satzbau. Ton, Wortwahl und Aussagen bleiben unverändert.'}
+};
+var AI_STYLE_DEFAULT='tagebuch';
+// Gilt für jeden Stil: bremst das typische KI-Schwärmen
+var AI_NO_HYPE='Wichtige Regeln: Keine Ausrufezeichen. Keine Superlative und keine Wörter wie "traumhaft", "atemberaubend", "unvergesslich", "magisch", "einzigartig", "unglaublich", "Paradies". Keine Werbefloskeln und kein Fazit am Schluss ("Ein perfekter Tag"). Nicht jeden Eindruck positiv darstellen: Wenn etwas anstrengend, teuer, voll oder enttäuschend war, darf und soll das so stehen. Nur Dinge erwähnen, die in den Angaben stehen, nichts dazuerfinden.';
+function getAiStyle(){
+  var k=AI_STYLE_DEFAULT;
+  try{k=localStorage.getItem('tv_ai_style')||AI_STYLE_DEFAULT;}catch(e){}
+  return AI_STYLES[k]?k:AI_STYLE_DEFAULT;
+}
+function saveAiStyle(k){
+  if(!AI_STYLES[k])return;
+  try{localStorage.setItem('tv_ai_style',k);}catch(e){}
+  document.querySelectorAll('.ai-style-select').forEach(function(sel){sel.value=k;});
+}
+function initAiStyleSelects(){
+  var cur=getAiStyle();
+  document.querySelectorAll('.ai-style-select').forEach(function(sel){
+    sel.innerHTML=Object.keys(AI_STYLES).map(function(k){return '<option value="'+k+'">'+AI_STYLES[k].label+'</option>';}).join('');
+    sel.value=cur;
+  });
+}
+document.addEventListener('DOMContentLoaded',initAiStyleSelects);
+
 async function aiWriteEntry(){
   if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
   const notes=val('entry-notes').trim();
@@ -1743,7 +1810,8 @@ async function aiWriteEntry(){
   const titel=val('entry-titel').trim();
   const kat=val('entry-kat');
   const btn=document.getElementById('entry-ai-btn');const orig=btn.textContent;btn.textContent='✨ KI schreibt…';btn.disabled=true;
-  const prompt='Du bist ein enthusiastischer Reiseblogger. Schreibe aus diesen Stichpunkten einen lebendigen, persönlichen Tagebucheintrag auf Deutsch (ca. 120–180 Wörter). Wir-Form. Stil: warm, bildhaft, authentisch.\n\nOrt: '+ort+' | Kategorie: '+kat+(titel?' | Titel: '+titel:'')+'\nStichpunkte:\n'+notes+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
+  const st=AI_STYLES[getAiStyle()];
+  const prompt='Du hilfst beim Schreiben eines privaten Reisetagebuchs. Schreibe aus den Stichpunkten einen Tagebucheintrag auf Deutsch in Wir-Form. '+st.diary+'\n\n'+AI_NO_HYPE+'\n\nOrt: '+ort+' | Kategorie: '+kat+(titel?' | Titel: '+titel:'')+'\nStichpunkte:\n'+notes+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
   try{const out=await aiCall(prompt,1000);if(out)setVal('entry-text',out);toast('✓ Eintrag formuliert!');}
   catch(e){toast('Fehler: '+e.message);}
   btn.textContent=orig;btn.disabled=false;
@@ -1754,7 +1822,8 @@ async function aiPolishReview(){
   if(!raw){toast('Bitte erst Text eingeben.');return;}
   const hotel=document.getElementById('rev-hotel-name').textContent;
   const btn=document.getElementById('rev-ai-btn');const orig=btn.textContent;btn.textContent='✨…';btn.disabled=true;
-  const prompt='Verbessere diesen Hotelbewertungstext. Flüssiger und lebendiger. Inhalt beibehalten. Keine persönlichen Anreden. Nur den Text.\n\nHotel: '+hotel+'\nText: '+raw;
+  const st=AI_STYLES[getAiStyle()];
+  const prompt='Du überarbeitest eine Hotelbewertung. Behalte alle inhaltlichen Aussagen bei, auch kritische, und erfinde nichts dazu. Keine persönlichen Anreden. '+st.review+' '+AI_NO_HYPE+' Antworte auf Deutsch und gib NUR den Bewertungstext zurück, ohne Einleitung, ohne Anführungszeichen.\n\nHotel: '+hotel+'\nText: '+raw;
   try{const out=await aiCall(prompt,400);if(out)setVal('rev-text',out);toast('✓ Text verbessert!');}
   catch(e){toast('Fehler: '+e.message);}
   btn.textContent=orig;btn.disabled=false;
@@ -2384,31 +2453,38 @@ async function submitGuestbook(){
   }catch(e){if(btn){btn.textContent='Nachricht senden';btn.disabled=false;}toast('Fehler beim Senden.');}
 }
 
+var _journalRun=0;
 async function renderJournal(){
   var c=document.getElementById('journal-entries');
   if(!c)return;
+  var run=++_journalRun;
   var days=buildDays();
-  // Fotos aller Tage mit Text laden (falls noch nicht geladen)
-  for(var j=0;j<days.length;j++){
-    var jiso=days[j];
-    var je=entries[jiso];
-    if(je&&je.text&&je.text.trim()&&photos[jiso]===undefined){
-      try{photos[jiso]=orderedPhotos(jiso,await sbLoadPhotos(jiso));}catch(e){photos[jiso]=[];}
-    }
+  var withText=days.filter(function(iso){var e=entries[iso];return e&&e.text&&e.text.trim();});
+  if(!withText.length){
+    c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
+    return;
   }
+  var pending=withText.filter(function(iso){return photos[iso]===undefined;});
+  // 1. Durchgang: Text sofort, Foto-Flächen mit fester Größe reservieren (kein Springen)
+  drawJournal(pending.length>0);
+  if(pending.length){
+    // Fotos aller Tage gleichzeitig laden
+    await Promise.all(pending.map(async function(iso){
+      try{photos[iso]=orderedPhotos(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
+    }));
+    if(run!==_journalRun)return;
+    // 2. Durchgang: Fotos einsetzen (gleiche Boxgrößen → keine Verschiebung)
+    drawJournal(false);
+  }
+  function drawJournal(loading){
   var items=[];
   for(var i=0;i<days.length;i++){
     var iso=days[i];
     var e=entries[iso];
     var ph=(photos[iso]||[]);
-    // Nur Tage mit Text (Foto optional, aber schöner)
     if(e&&e.text&&e.text.trim()){
-      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice()});
+      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
     }
-  }
-  if(!items.length){
-    c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
-    return;
   }
   c.innerHTML='<div class="fig-journal">'+items.map(function(e,idx){
     var d=new Date(e.iso+'T12:00:00');
@@ -2416,13 +2492,15 @@ async function renderJournal(){
     var rev=(idx%2===1)?' rev':'';
     var fotos=e.fotos||[];
     var img;
-    if(fotos.length>1){
+    if(e.wait){
+      img='<div class="fj-img fj-loading"><div class="fj-tag">Tag '+e.tag+'</div></div>';
+    }else if(fotos.length>1){
       var gid='fjg'+idx;
       img='<div class="fj-img fj-gallery"><div class="fj-tag">Tag '+e.tag+'</div><div class="fj-scroll" id="'+gid+'" data-total="'+fotos.length+'">'
-        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(e.ort||e.titel)+'"></div>';}).join('')
+        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(e.ort||e.titel)+'" loading="lazy" decoding="async"></div>';}).join('')
         +'</div><div class="fj-count" id="'+gid+'-c">1 / '+fotos.length+'</div></div>';
     }else if(fotos.length===1){
-      img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(e.ort||e.titel)+'"><div class="fj-tag">Tag '+e.tag+'</div></div>';
+      img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(e.ort||e.titel)+'" loading="lazy" decoding="async"><div class="fj-tag">Tag '+e.tag+'</div></div>';
     }else{
       img='<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
     }
@@ -2432,6 +2510,12 @@ async function renderJournal(){
       +'<p class="fj-body">'+esc(e.text)+'</p></div>';
     return '<div class="fig-journal-entry'+rev+'">'+img+text+'</div>';
   }).join('')+'</div>';
+  bindJournalCounters();
+  }
+}
+function bindJournalCounters(){
+  var c=document.getElementById('journal-entries');
+  if(!c)return;
   // Foto-Zähler beim Blättern aktualisieren
   c.querySelectorAll('.fj-scroll').forEach(function(sc){
     var cnt=document.getElementById(sc.id+'-c');
@@ -2811,11 +2895,25 @@ async function landUmriss(land){
 }
 
 var _leafletMap=null;
+var _leafletLoading=null;
+function ensureLeaflet(){
+  if(window.L)return Promise.resolve();
+  if(_leafletLoading)return _leafletLoading;
+  _leafletLoading=new Promise(function(res,rej){
+    var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    sc.onload=res;sc.onerror=function(){_leafletLoading=null;rej(new Error('Leaflet konnte nicht geladen werden'));};
+    document.head.appendChild(sc);
+  });
+  return _leafletLoading;
+}
 async function renderKarte(){
   var wrap=document.getElementById('reisekarte-wrap');
   var status=document.getElementById('karte-status');
   var mapEl=document.getElementById('reisekarte-map');
-  if(!wrap||!mapEl||typeof L==='undefined')return;
+  if(!wrap||!mapEl)return;
+  // Die Karte liegt im Bereich „Tag für Tag“ (nur für Besitzer sichtbar) – Besucher müssen nichts laden
+  if(!(canEdit||editMode))return;
+  try{await ensureLeaflet();}catch(e){console.error(e);return;}
   var days=buildDays();
   if(!days.length){wrap.style.display='none';return;}
   wrap.style.display='block';
@@ -2943,6 +3041,8 @@ async function init(){
     document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Playfair Display,serif;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
     return;
   }
+  // Ansicht (Admin/Besucher) sofort festlegen, bevor Daten nachladen
+  try{applyViewMode();}catch(e){}
   // Besitzer sieht Bearbeiten-Button; Besucher nicht
   var adminBtn=document.getElementById('admin-btn');
   if(adminBtn){
@@ -2952,17 +3052,20 @@ async function init(){
   // Logout-Button nur wenn eingeloggt
   var logoutBtn=document.getElementById('logout-btn');
   if(logoutBtn){logoutBtn.style.display=currentUser?'':'none';}
-  try{await sbLoadHead();}catch(e){console.error(e);}
-  try{await sbLoadFX();}catch(e){console.error(e);}
-  try{await sbLoadCosts();}catch(e){console.error(e);}
-  try{await sbLoadExpenses();}catch(e){console.error(e);}
-  try{await sbLoadEntries();}catch(e){console.error(e);}
-  try{await sbLoadReviews();}catch(e){console.error(e);}
-  try{await sbLoadPhotoMeta();}catch(e){console.error(e);}
+  // Alle Daten gleichzeitig laden statt nacheinander
+  await Promise.all([
+    sbLoadHead().catch(function(e){console.error(e);}),
+    sbLoadFX().catch(function(e){console.error(e);}),
+    sbLoadCosts().catch(function(e){console.error(e);}),
+    sbLoadExpenses().catch(function(e){console.error(e);}),
+    sbLoadEntries().catch(function(e){console.error(e);}),
+    sbLoadReviews().catch(function(e){console.error(e);}),
+    sbLoadPhotoMeta().catch(function(e){console.error(e);})
+  ]);
   _apiKey=loadApiKey();
   renderHead();
   try{renderAll();}catch(e){console.error('renderAll:',e);}
-  try{await applyHeroImage();}catch(e){console.error('Hero:',e);}
+  applyHeroImage().catch(function(e){console.error('Hero:',e);});
   // Reisekarte laden (Geocache zuerst, dann zeichnen)
   try{await loadGeoCache();renderKarte();}catch(e){console.error('Karte:',e);}
 }
