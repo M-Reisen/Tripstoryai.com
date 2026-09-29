@@ -454,6 +454,8 @@ html.is-admin .tv-promo{display:none;}
 .fj-tag{position:absolute;top:20px;left:20px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--terra);padding:4px 10px;}
 .fj-text{background:#fff;padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
 .fj-day{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--fog);margin:0 0 8px;}
+.fj-new{display:inline-block;margin-left:10px;padding:2px 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:var(--terra);color:#fff;border-radius:2px;vertical-align:1px;}
+.journal-updated{font-size:13px;color:var(--fog);margin:14px 0 0;line-height:1.6;}
 .fj-loc{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--ink);margin:0 0 6px;line-height:1.15;}
 .fj-date{font-size:11px;color:var(--fog);margin:0 0 24px;letter-spacing:.05em;}
 .fj-body{font-size:15px;line-height:1.85;color:var(--ink);opacity:.85;margin:0;white-space:pre-wrap;}
@@ -593,6 +595,7 @@ html.is-admin main{padding-top:40px;}
       <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,52px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
       <p style="font-size:13px;color:var(--fog);max-width:220px;line-height:1.7;text-align:right;margin:0">Die schönsten Einträge deiner Reise</p>
     </div>
+  <p id="journal-updated" class="journal-updated"></p>
   </div>
   <div id="journal-entries"><div class="fig-journal" aria-hidden="true"><div class="fig-journal-entry"><div class="fj-img fj-loading"></div><div class="fj-text"><div class="sk-line" style="width:24%"></div><div class="sk-line" style="width:56%;height:22px"></div><div class="sk-line" style="width:100%"></div><div class="sk-line" style="width:92%"></div><div class="sk-line" style="width:70%"></div></div></div></div></div>
 </div>
@@ -1184,6 +1187,7 @@ function buildDays(){
 const DAYS=buildDays();
 
 async function initApp(){
+  try{initSeen(REISE_ID);}catch(e){}
   // Zugriff prüfen
   let allowed=true;
   try{allowed=await initAuth();}catch(e){console.error('Auth:',e);}
@@ -1205,7 +1209,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges'}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -1887,6 +1891,37 @@ function renderAuKarte(){
   setTimeout(function(){map.invalidateSize();},200);
 }
 
+// ── „Neu“-Markierung für wiederkehrende Gäste (nur im Browser gemerkt) ──
+var _seenPrev=null;
+function initSeen(key){
+  try{
+    var prev=sessionStorage.getItem('tv_prev_'+key);
+    if(prev===null){
+      prev=localStorage.getItem('tv_seen_'+key)||'';
+      sessionStorage.setItem('tv_prev_'+key,prev);   // bleibt beim Neuladen in dieser Sitzung gleich
+    }
+    _seenPrev=prev||null;
+    localStorage.setItem('tv_seen_'+key,new Date().toISOString());
+  }catch(e){_seenPrev=null;}
+}
+function isNewEntry(at){
+  if(!_seenPrev||!at)return false;
+  var a=Date.parse(at),b=Date.parse(_seenPrev);
+  return !isNaN(a)&&!isNaN(b)&&a>b;
+}
+function updateJournalInfo(ats){
+  var el=document.getElementById('journal-updated');
+  if(!el)return;
+  var latest=0,fresh=0;
+  (ats||[]).forEach(function(a){
+    var t=a?Date.parse(a):NaN;
+    if(!isNaN(t)){if(t>latest)latest=t;if(isNewEntry(a))fresh++;}
+  });
+  if(!latest){el.textContent='';return;}
+  var txt='Zuletzt aktualisiert am '+new Date(latest).toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+  if(fresh&&!editMode)txt+=' · '+fresh+(fresh===1?' neuer Eintrag':' neue Einträge')+' seit deinem letzten Besuch';
+  el.textContent=txt;
+}
 var _journalRun=0;
 async function renderJournal(){
   var c=document.getElementById('journal-entries');
@@ -1897,9 +1932,11 @@ async function renderJournal(){
   var withText=entries.filter(function(e){return e.text&&e.text.trim();});
   withText.sort(function(a,b){return (a.datum||'')<(b.datum||'')?-1:1;});
   if(!withText.length){
+    updateJournalInfo([]);
     c.innerHTML='<div style="padding:40px 0;color:var(--fog);font-size:14px">Noch keine Tagebucheinträge. Schreibe bei den Tagen einen Eintrag – die schönsten Momente erscheinen hier.</div>';
     return;
   }
+  updateJournalInfo(withText.map(function(e){return e.at;}));
   var pending=withText.filter(function(e){return e.datum&&!photos[e.datum];});
   // 1. Durchgang: Text sofort zeigen, Foto-Flächen mit fester Größe reservieren (kein Springen)
   drawJournal(pending.length>0);
@@ -1937,7 +1974,7 @@ async function renderJournal(){
       img='<div class="fj-img fj-noimg"><div class="fj-tag">'+tagLbl+'</div><span>Kein Foto</span></div>';
     }
     var text='<div class="fj-text">'
-      +(tagNr?'<p class="fj-day">Tag '+tagNr+'</p>':'')
+      +(tagNr?'<p class="fj-day">Tag '+tagNr+((!editMode&&isNewEntry(e.at))?'<span class="fj-new">Neu</span>':'')+'</p>':'')
       +'<h3 class="fj-loc">'+esc(titel)+'</h3>'
       +(dateStr?'<p class="fj-date">'+dateStr+'</p>':'')
       +'<p class="fj-body">'+esc(e.text.trim())+'</p></div>';

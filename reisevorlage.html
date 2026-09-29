@@ -352,6 +352,8 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fj-tag{position:absolute;top:20px;left:20px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#fff;background:var(--terra);padding:4px 10px;}
 .fj-text{background:#fff;padding:48px 44px;display:flex;flex-direction:column;justify-content:center;}
 .fj-day{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--fog);margin:0 0 8px;}
+.fj-new{display:inline-block;margin-left:10px;padding:2px 8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;background:var(--terra);color:#fff;border-radius:2px;vertical-align:1px;}
+.journal-updated{font-size:13px;color:var(--fog);margin:14px 0 0;line-height:1.6;}
 .fj-loc{font-family:'Playfair Display',serif;font-size:28px;font-weight:400;color:var(--ink);margin:0 0 6px;line-height:1.15;}
 .fj-date{font-size:11px;color:var(--fog);margin:0 0 24px;letter-spacing:.05em;}
 .fj-body{font-size:15px;line-height:1.85;color:var(--ink);opacity:.85;margin:0;white-space:pre-wrap;}
@@ -577,6 +579,7 @@ html.is-admin main{padding-top:40px;}
     <div style="margin-bottom:48px">
       <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reisetagebuch</p>
       <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Ausgewählte<br><em>Momente</em></h2>
+  <p id="journal-updated" class="journal-updated"></p>
     </div>
     <div id="journal-entries"><div class="fig-journal" aria-hidden="true"><div class="fig-journal-entry"><div class="fj-img fj-loading"></div><div class="fj-text"><div class="sk-line" style="width:24%"></div><div class="sk-line" style="width:56%;height:22px"></div><div class="sk-line" style="width:100%"></div><div class="sk-line" style="width:92%"></div><div class="sk-line" style="width:70%"></div></div></div></div></div>
   </div>
@@ -1267,7 +1270,7 @@ async function sbLoadEntries(){
   (data||[]).forEach(function(r){
     const iso=r.ort.substring((PFX+'entry_').length);
     const parts=(r.name||'').split('|');
-    entries[iso]={id:r.id,titel:parts[0]||'',kat:parts[1]||'Sonstiges',ort:parts[2]||'',text:r.nachricht||''};
+    entries[iso]={id:r.id,titel:parts[0]||'',kat:parts[1]||'Sonstiges',ort:parts[2]||'',text:r.nachricht||'',at:r.created_at};
   });
 }
 async function sbSaveEntry(iso,titel,kat,ort,text){
@@ -1275,13 +1278,13 @@ async function sbSaveEntry(iso,titel,kat,ort,text){
   const nameField=titel+'|'+kat+'|'+ort;
   const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
   if(data&&data.length){
-    const {error}=await sb.from('kommentare').update({name:nameField,nachricht:text}).eq('id',data[0].id);
+    const {error}=await sb.from('kommentare').update({name:nameField,nachricht:text,created_at:new Date().toISOString()}).eq('id',data[0].id);
     if(error){toast('Fehler beim Speichern.');return false;}
-    entries[iso]={id:data[0].id,titel:titel,kat:kat,ort:ort,text:text};
+    entries[iso]={id:data[0].id,titel:titel,kat:kat,ort:ort,text:text,at:new Date().toISOString()};
   }else{
     const {data:ins,error}=await sb.from('kommentare').insert({ort:key,name:nameField,nachricht:text,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE}).select();
     if(error){toast('Fehler beim Speichern.');return false;}
-    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,kat:kat,ort:ort,text:text};
+    entries[iso]={id:ins&&ins[0]?ins[0].id:null,titel:titel,kat:kat,ort:ort,text:text,at:new Date().toISOString()};
   }
   return true;
 }
@@ -2690,6 +2693,37 @@ async function submitGuestbook(){
   }catch(e){if(btn){btn.textContent='Nachricht senden';btn.disabled=false;}toast('Fehler beim Senden.');}
 }
 
+// ── „Neu“-Markierung für wiederkehrende Gäste (nur im Browser gemerkt) ──
+var _seenPrev=null;
+function initSeen(key){
+  try{
+    var prev=sessionStorage.getItem('tv_prev_'+key);
+    if(prev===null){
+      prev=localStorage.getItem('tv_seen_'+key)||'';
+      sessionStorage.setItem('tv_prev_'+key,prev);   // bleibt beim Neuladen in dieser Sitzung gleich
+    }
+    _seenPrev=prev||null;
+    localStorage.setItem('tv_seen_'+key,new Date().toISOString());
+  }catch(e){_seenPrev=null;}
+}
+function isNewEntry(at){
+  if(!_seenPrev||!at)return false;
+  var a=Date.parse(at),b=Date.parse(_seenPrev);
+  return !isNaN(a)&&!isNaN(b)&&a>b;
+}
+function updateJournalInfo(ats){
+  var el=document.getElementById('journal-updated');
+  if(!el)return;
+  var latest=0,fresh=0;
+  (ats||[]).forEach(function(a){
+    var t=a?Date.parse(a):NaN;
+    if(!isNaN(t)){if(t>latest)latest=t;if(isNewEntry(a))fresh++;}
+  });
+  if(!latest){el.textContent='';return;}
+  var txt='Zuletzt aktualisiert am '+new Date(latest).toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+  if(fresh&&!editMode)txt+=' · '+fresh+(fresh===1?' neuer Eintrag':' neue Einträge')+' seit deinem letzten Besuch';
+  el.textContent=txt;
+}
 var _journalRun=0;
 async function renderJournal(){
   var c=document.getElementById('journal-entries');
@@ -2698,9 +2732,11 @@ async function renderJournal(){
   var days=buildDays();
   var withText=days.filter(function(iso){var e=entries[iso];return e&&e.text&&e.text.trim();});
   if(!withText.length){
+    updateJournalInfo([]);
     c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
     return;
   }
+  updateJournalInfo(withText.map(function(iso){return entries[iso].at;}));
   var pending=withText.filter(function(iso){return photos[iso]===undefined;});
   // 1. Durchgang: Text sofort, Foto-Flächen mit fester Größe reservieren (kein Springen)
   drawJournal(pending.length>0);
@@ -2720,7 +2756,7 @@ async function renderJournal(){
     var e=entries[iso];
     var ph=(photos[iso]||[]);
     if(e&&e.text&&e.text.trim()){
-      items.push({iso:iso,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
+      items.push({iso:iso,at:e.at,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
     }
   }
   c.innerHTML='<div class="fig-journal">'+items.map(function(e,idx){
@@ -2741,7 +2777,7 @@ async function renderJournal(){
     }else{
       img='<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
     }
-    var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+'</p>'
+    var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+((!editMode&&isNewEntry(e.at))?'<span class="fj-new">Neu</span>':'')+'</p>'
       +'<h3 class="fj-loc">'+esc(e.titel||e.ort||('Tag '+e.tag))+'</h3>'
       +'<p class="fj-date">'+dateStr+(e.ort?' · '+esc(e.ort):'')+'</p>'
       +'<p class="fj-body">'+esc(e.text)+'</p></div>';
@@ -3367,6 +3403,7 @@ async function init(){
     document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Playfair Display,serif;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
     return;
   }
+  try{initSeen(REISE);}catch(e){}
   // Ansicht (Admin/Besucher) sofort festlegen, bevor Daten nachladen
   try{applyViewMode();}catch(e){}
   // Besitzer sieht Bearbeiten-Button; Besucher nicht
