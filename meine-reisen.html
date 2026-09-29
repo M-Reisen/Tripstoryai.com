@@ -126,7 +126,7 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .pin-err{color:#dc2626;font-size:.77rem;margin-top:10px;min-height:16px;}
 
 /* FORM MODAL */
-.modal-box{background:var(--white);border-radius:18px;max-width:480px;width:100%;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.modal-box{background:var(--white);border-radius:18px;max-width:480px;width:100%;max-height:92vh;max-height:92dvh;overflow-y:auto;overscroll-behavior:contain;box-shadow:0 24px 64px rgba(0,0,0,.3);}
 .modal-box .mb-head{padding:22px 24px 0;display:flex;justify-content:space-between;align-items:flex-start;}
 .modal-box .mb-title{font-family:'Playfair Display',serif;font-size:1.3rem;}
 .modal-box .mb-body{padding:18px 24px 24px;}
@@ -144,13 +144,21 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .chip button:hover{color:var(--ink);}
 .status-pick{display:flex;gap:8px;}
 .status-opt{flex:1;text-align:center;padding:9px 6px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;background:var(--paper);}
+.status-opt{display:flex;align-items:center;justify-content:center;min-height:48px;user-select:none;-webkit-tap-highlight-color:transparent;}
+.status-opt:active{transform:scale(.98);}
 .status-opt.sel{color:#fff;border-color:transparent;}
+.status-opt.sel[data-v]{background:var(--sunset);}
 .status-opt.sel[data-s="geplant"]{background:var(--planned);}
 .status-opt.sel[data-s="laeuft"]{background:var(--running);}
 .status-opt.sel[data-s="fertig"]{background:var(--done);}
-.modal-actions{display:flex;gap:10px;margin-top:8px;}
-.modal-actions .btn-cancel{flex:1;padding:11px;border:1.5px solid var(--line);border-radius:9px;background:none;color:var(--fog);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;}
-.modal-actions .btn-save{flex:2;padding:11px;background:var(--sunset);border:none;border-radius:9px;color:#fff;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.85rem;}
+.modal-actions{display:flex;gap:10px;margin-top:22px;}
+.modal-actions .btn-cancel{flex:1;min-height:50px;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:none;color:var(--fog);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;transition:background-color .15s,color .15s,border-color .15s,transform .1s;}
+.modal-actions .btn-cancel:hover{background:var(--paper);color:var(--ink);border-color:var(--ink);}
+.modal-actions .btn-save{flex:2;min-height:50px;padding:12px;background:var(--sunset);border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.92rem;transition:background-color .15s,transform .1s,opacity .15s;}
+.modal-actions .btn-save:hover{background:#9c5f3c;}
+.modal-actions .btn-save:disabled{opacity:.65;cursor:default;}
+.modal-actions .btn-cancel:active,.modal-actions .btn-save:active{transform:scale(.98);}
+.modal-actions button:focus-visible{outline:2px solid var(--sunset);outline-offset:2px;}
 
 /* TOAST */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--sand);padding:11px 22px;border-radius:9px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
@@ -160,6 +168,9 @@ footer{text-align:center;padding:30px 20px 40px;color:var(--fog);font-size:.76re
 footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--sunset);}
 
 @media(max-width:560px){
+  #trip-modal.overlay{align-items:flex-end;padding:0;}
+  #trip-modal .modal-box{max-width:none;border-radius:20px 20px 0 0;max-height:94vh;max-height:94dvh;}
+  #trip-modal .modal-box .mb-body{padding-bottom:calc(120px + env(safe-area-inset-bottom));}
   .hero{padding:46px 18px 40px;}
   .hero-stats{gap:24px;}
   main{padding:30px 18px 70px;}
@@ -291,14 +302,14 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
         <div class="help" id="vis-help">Privat: nur du. Per Link: jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
         <div id="share-box" style="display:none;margin-top:10px;">
           <div style="display:flex;gap:6px;align-items:center;">
-            <input type="text" id="share-link" readonly style="flex:1;font-size:.78rem;background:var(--paper);">
-            <button type="button" class="btn btn-ghost btn-sm" onclick="copyShareLink()" style="white-space:nowrap;">📋 Kopieren</button>
+            <input type="text" id="share-link" readonly style="flex:1;min-width:0;min-height:46px;font-size:.78rem;background:var(--paper);">
+            <button type="button" class="btn btn-ghost" onclick="copyShareLink()" style="white-space:nowrap;min-height:46px;padding:0 16px;border-radius:12px;">📋 Kopieren</button>
           </div>
         </div>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" onclick="closeTripModal()">Abbrechen</button>
-        <button class="btn-save" onclick="saveTrip()">Reise speichern</button>
+        <button class="btn-save" id="btn-save" onclick="saveTrip()">Reise speichern</button>
       </div>
     </div>
   </div>
@@ -672,6 +683,13 @@ function copyShareLink(){
 }
 
 async function saveTrip(){
+  var b=document.getElementById('btn-save');
+  if(b&&b.disabled) return;                       // Doppeltippen verhindern
+  if(b){ b.disabled=true; b.textContent='Speichert …'; }
+  try{ await saveTripInner(); }
+  finally{ if(b){ b.disabled=false; b.textContent='Reise speichern'; } }
+}
+async function saveTripInner(){
   var name = val('t-name').trim();
   if(!name){ toast('Bitte einen Namen eingeben.'); return; }
   var from = val('t-from'), to = val('t-to');
