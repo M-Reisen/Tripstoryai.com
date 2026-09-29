@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travona · Dein eigenes Reisetagebuch</title>
+<meta name="description" content="Tagesplan, Karte, Fotos und Kosten an einem Ort – und mit Familie und Freunden teilbar. So funktioniert Travona.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Travona">
+<meta property="og:locale" content="de_DE">
+<meta property="og:title" content="Travona · Dein eigenes Reisetagebuch">
+<meta property="og:description" content="Tagesplan, Karte, Fotos und Kosten an einem Ort – und mit Familie und Freunden teilbar.">
+<meta property="og:image" content="https://www.travona.de/og-default.png">
+<meta property="og:url" content="https://www.travona.de/vorteile.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Travona · Dein eigenes Reisetagebuch">
+<meta name="twitter:description" content="Tagesplan, Karte, Fotos und Kosten an einem Ort – und mit Familie und Freunden teilbar.">
+<meta name="twitter:image" content="https://www.travona.de/og-default.png">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#F4EFE8;--paper:#F4EFE8;--ink:#1A1714;--fog:#6B6560;
+  --terra:#B5714A;--teal:#2C5F6A;--rule:#D8D0C4;--radius:4px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ground);color:var(--ink);font-family:'DM Sans',sans-serif;font-weight:400;min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+header{border-bottom:1px solid var(--rule);}
+.header-inner{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;}
+.brand-full{height:36px;width:auto;max-width:60vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);display:block;}
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:12px 22px;border-radius:4px;cursor:pointer;transition:background-color .2s,color .2s,border-color .2s;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;}
+.btn-ghost{background:transparent;color:var(--fog);border:1px solid var(--rule);}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink);}
+.btn-main{background:var(--terra);color:#fff;}
+.btn-main:hover{background:#9c5f3c;}
+.btn:focus-visible,a:focus-visible{outline:2px solid var(--terra);outline-offset:3px;}
+.eyebrow{display:inline-block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:22px;}
+/* HERO */
+.hero{padding:96px 32px 80px;text-align:center;border-bottom:1px solid var(--rule);}
+.hero-inner{max-width:760px;margin:0 auto;}
+.hero h1{font-family:'Playfair Display',serif;font-size:clamp(38px,6vw,68px);font-weight:400;line-height:1.05;letter-spacing:-1px;}
+.hero h1 .grad{font-style:italic;color:var(--terra);}
+.hero p{font-size:16px;line-height:1.7;color:var(--fog);max-width:520px;margin:24px auto 0;}
+.cta{display:flex;gap:14px;justify-content:center;margin-top:36px;flex-wrap:wrap;}
+/* VORTEILE */
+.features{border-bottom:1px solid var(--rule);}
+.features-inner{max-width:1200px;margin:0 auto;padding:72px 32px;}
+.features-head{max-width:640px;margin:0 auto 48px;text-align:center;}
+.features-title{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,38px);font-weight:400;margin:0 0 16px;line-height:1.1;}
+.features-lead{font-size:15px;line-height:1.8;color:var(--fog);}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);}
+.feature-card{background:var(--paper);padding:22px;text-align:left;display:flex;align-items:flex-start;gap:14px;}
+.feature-icon{flex:0 0 auto;width:30px;height:30px;margin:2px 0 0;color:var(--terra);}
+.feature-icon svg{width:100%;height:100%;stroke-linecap:round;stroke-linejoin:round;}
+.feature-name{font-family:'Playfair Display',serif;font-size:16px;font-weight:400;margin-bottom:4px;}
+.feature-text{font-size:12.5px;line-height:1.55;color:var(--fog);}
+/* SO GEHT'S */
+.steps{border-bottom:1px solid var(--rule);}
+.steps-inner{max-width:900px;margin:0 auto;padding:72px 32px;}
+.steps-title{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,38px);font-weight:400;text-align:center;margin-bottom:40px;}
+.step{display:grid;grid-template-columns:56px 1fr;gap:20px;padding:24px 0;border-top:1px solid var(--rule);}
+.step:last-child{border-bottom:1px solid var(--rule);}
+.step-num{font-family:'Playfair Display',serif;font-size:28px;color:var(--terra);line-height:1;}
+.step-name{font-family:'Playfair Display',serif;font-size:21px;font-weight:400;margin-bottom:6px;}
+.step-text{font-size:14px;line-height:1.7;color:var(--fog);}
+/* BEISPIEL */
+.example{border-bottom:1px solid var(--rule);}
+.example-inner{max-width:760px;margin:0 auto;padding:72px 32px;text-align:center;}
+.example-title{font-family:'Playfair Display',serif;font-size:clamp(24px,3.6vw,34px);font-weight:400;line-height:1.2;margin-bottom:12px;}
+.example-text{font-size:15px;line-height:1.8;color:var(--fog);max-width:480px;margin:0 auto 28px;}
+/* ABSCHLUSS */
+.final{padding:80px 32px 90px;text-align:center;}
+.final h2{font-family:'Playfair Display',serif;font-size:clamp(26px,4vw,40px);font-weight:400;line-height:1.15;margin-bottom:28px;}
+@media(max-width:820px){
+  .features-grid{grid-template-columns:repeat(2,1fr);}
+  .features-inner,.steps-inner,.example-inner{padding:52px 18px;}
+}
+@media(max-width:720px){
+  .header-inner{padding:14px 18px;}
+  .hero{padding:64px 20px 52px;}
+  .final{padding:56px 20px 64px;}
+}
+@media(max-width:520px){
+  .features-grid{grid-template-columns:1fr;}
+  .step{grid-template-columns:40px 1fr;gap:14px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" aria-label="Zur Startseite">
+      <img class="brand-full" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember.">
+    </a>
+    <a class="btn btn-ghost" href="meine-reisen.html">Anmelden</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow">Dein eigenes Reisetagebuch</span>
+    <h1>Halte deine Reise fest.<br><span class="grad">Und teile sie.</span></h1>
+    <p>Tagesplan, Karte, Fotos und Kosten an einem Ort – für dich, deine Familie und Freunde.</p>
+    <div class="cta">
+      <a class="btn btn-main" href="meine-reisen.html">Eigenes Tagebuch starten</a>
+      <a class="btn btn-ghost" href="reisevorlage.html?reise=kroatien-mr0mbxro">Beispiel ansehen</a>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="features-inner">
+    <div class="features-head">
+      <span class="eyebrow">Was Travona kann</span>
+      <h2 class="features-title">Deine Reisen, schön festgehalten</h2>
+      <p class="features-lead">Mit Travona hältst du jede Reise als lebendiges Tagebuch fest – mit Fotos, Tagesberichten und eurer Route. Ob privat für euch oder öffentlich zum Teilen: Ihr entscheidet, wer mitreist.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-2.2-1.4-2.1 1.4-2.2-1.4-2.1 1.4-2.2-1.4L4.5 20.5v-16a1 1 0 0 1 1-1Z"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4"/></svg>
+        </div>
+        <div class="feature-body"><h3 class="feature-name">Tag für Tag</h3><p class="feature-text">Halte jeden Tag mit eigenen Worten fest – die KI hilft dir, aus Stichpunkten schöne Texte zu formulieren.</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 21s6.5-5.2 6.5-10.2A6.5 6.5 0 0 0 12 4.3a6.5 6.5 0 0 0-6.5 6.5C5.5 15.8 12 21 12 21Z"/><circle cx="12" cy="10.5" r="2.3"/></svg>
+        </div>
+        <div class="feature-body"><h3 class="feature-name">Route &amp; Karte</h3><p class="feature-text">Alle Stationen eurer Reise auf einer Karte – vom ersten Stopp bis zum Ziel, automatisch verbunden.</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M8 6 9.4 3.8a1 1 0 0 1 .84-.46h3.52a1 1 0 0 1 .84.46L16 6"/><circle cx="12" cy="13" r="3.2"/></svg>
+        </div>
+        <div class="feature-body"><h3 class="feature-name">Fotos &amp; Fotobuch</h3><p class="feature-text">Lade Fotos zu jedem Tag hoch und verwandle deine Reise mit einem Klick in ein elegantes PDF-Fotobuch.</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M12 2.5c2.2 1.8 4.6 2.5 7 2.5v6.5c0 4.8-3 8-7 10-4-2-7-5.2-7-10V5c2.4 0 4.8-.7 7-2.5Z"/><path d="m9 11.5 2 2 4-4"/></svg>
+        </div>
+        <div class="feature-body"><h3 class="feature-name">Kosten im Blick</h3><p class="feature-text">Erfasse Unterkünfte, Ausflüge und Ausgaben vor Ort – so behältst du dein Reisebudget jederzeit unter Kontrolle.</p></div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="17.5" cy="6" r="2.6"/><circle cx="6.5" cy="12" r="2.6"/><circle cx="17.5" cy="18" r="2.6"/><path d="m9 10.7 6-3.4M9 13.3l6 3.4"/></svg>
+        </div>
+        <div class="feature-body"><h3 class="feature-name">Teilen &amp; Gästebuch</h3><p class="feature-text">Teile deine Reise öffentlich oder per Link. Deine Gäste hinterlassen im Gästebuch einen lieben Gruß.</p></div>
+      </div>
+    </div>
+    </div>
+</section>
+
+<section class="steps">
+  <div class="steps-inner">
+    <h2 class="steps-title">So einfach geht es</h2>
+    <div class="step"><div class="step-num">1</div><div><h3 class="step-name">Reise anlegen</h3><p class="step-text">Gib Name und Zeitraum ein. Dein Tagebuch ist sofort da, du musst nichts einrichten.</p></div></div>
+    <div class="step"><div class="step-num">2</div><div><h3 class="step-name">Tage füllen</h3><p class="step-text">Trage Unterkünfte, Flüge und Ausflüge ein, schreibe Einträge und lade Fotos hoch. Aus Stichpunkten formuliert die KI auf Wunsch einen Text.</p></div></div>
+    <div class="step"><div class="step-num">3</div><div><h3 class="step-name">Teilen, wem du willst</h3><p class="step-text">Privat für dich, per Link für Freunde oder öffentlich für alle. Gäste können dir im Gästebuch schreiben.</p></div></div>
+  </div>
+</section>
+
+<section class="example">
+  <div class="example-inner">
+    <span class="eyebrow">Ein echtes Beispiel</span>
+    <h2 class="example-title">Schau dir ein fertiges Tagebuch an.</h2>
+    <p class="example-text">Kroatien im Juli: mit Route auf der Karte, Tagesplan, Fotos und den Kosten der Reise.</p>
+    <a class="btn btn-ghost" href="reisevorlage.html?reise=kroatien-mr0mbxro">Kroatien ansehen</a>
+  </div>
+</section>
+
+<section class="final">
+  <h2>Deine nächste Reise<br>verdient ein eigenes Tagebuch.</h2>
+  <a class="btn btn-main" href="meine-reisen.html">Eigenes Tagebuch starten</a>
+</section>
+
+<footer style="max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);">
+  <a href="index.html" style="color:var(--fog);text-decoration:none;margin:0 12px;">Community</a>
+  <span style="opacity:.4">·</span>
+  <a href="impressum.html" style="color:var(--fog);text-decoration:none;margin:0 12px;">Impressum</a>
+  <span style="opacity:.4">·</span>
+  <a href="datenschutz.html" style="color:var(--fog);text-decoration:none;margin:0 12px;">Datenschutz</a>
+  <span style="opacity:.4">·</span>
+  <span style="margin:0 12px;">© 2026 Travona</span>
+</footer>
+
+</body>
+</html>
