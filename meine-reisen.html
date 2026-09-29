@@ -379,6 +379,11 @@ async function doLogout(){
 }
 function onLoggedIn(user){
   currentUser=user;
+  // Kommt der Besucher von einer Reise-Seite („weiter“), nach der Anmeldung dorthin zurück (nur Adressen dieser Seite)
+  try{
+    var w=new URLSearchParams(location.search).get('weiter');
+    if(w&&/^\/(?!\/)/.test(w)&&w.indexOf('\\')<0){location.replace(w);return;}
+  }catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('logout-btn').style.display='inline-flex';
   document.getElementById('edit-btn').style.display='inline-flex';
@@ -651,8 +656,8 @@ var SPECIAL_PAGES={'australien-2026':'australien.html'};
 // Adresse einer Reise: schöne Adresse (Land + Adressname), sonst die lange
 function tripPage(t){
   var id=(t&&typeof t==='object')?t.id:t;
-  if(t&&typeof t==='object'&&t.land_slug&&t.slug)return '/reisetagebuch/'+t.land_slug+'/'+t.slug;
   if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id))return '/'+SPECIAL_PAGES[id];
+  if(t&&typeof t==='object'&&t.land_slug&&t.slug)return '/reisetagebuch/'+t.land_slug+'/'+t.slug;
   return '/reisevorlage.html?reise='+encodeURIComponent(id);
 }
 function tripShareUrl(){

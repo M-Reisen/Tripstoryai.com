@@ -963,6 +963,7 @@ async function initAuth(){
   // Zugriffsentscheidung
   const isOwner=currentUser&&tripOwner&&currentUser.id===tripOwner;
   canEdit=!!isOwner;
+  _qxAuthDone=true;
   // Eingeloggte Besitzer sind immer im Bearbeiten-Modus (außer in der Gästeansicht)
   editMode=canEdit&&!guestView;
   try{localStorage.setItem('tv_admin_'+REISE,canEdit?'1':'0');}catch(e){}
@@ -2381,7 +2382,7 @@ function closeExpenseModal(){document.getElementById('expense-modal').classList.
 function qxTrip(){return REISE;}
 var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Taxi','🚕'],['🎫','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
 var QX_DEFCUR='EUR';
-var _qxCat='',_qxBusy=false;
+var _qxCat='',_qxBusy=false,_qxAuthDone=false;
 function qxDays(){return buildDays();}
 function qxLS(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){}return null;}
 function qxTodayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
@@ -2545,19 +2546,42 @@ async function qxCopyLink(){
   try{await navigator.clipboard.writeText(l);toast('Adresse kopiert. Öffne sie in Safari und wähle „Zum Home-Bildschirm“.');}
   catch(e){window.prompt('Diese Adresse als Symbol ablegen:',l);}
 }
+function qxWantsQuick(){
+  try{return new URLSearchParams(location.search).get('schnell')==='1'||location.hash==='#schnell';}catch(e){return false;}
+}
+// Ohne passende Anmeldung (z. B. im App-Symbol, das eine eigene Anmeldung braucht): Hinweis mit Weg zur Anmeldung
+function qxNeedLogin(){
+  qxBuild();
+  if(qxEl('qx-login'))return;
+  const loggedIn=!!currentUser;
+  const ov=document.createElement('div');ov.id='qx-login';
+  ov.style.cssText='position:fixed;inset:0;z-index:9600;background:rgba(26,23,20,.55);display:flex;align-items:flex-end;justify-content:center;';
+  ov.innerHTML='<div style="width:100%;max-width:520px;background:#F4EFE8;border-radius:20px 20px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));font-family:\'DM Sans\',sans-serif;color:#1A1714">'
+    +'<h2 style="font-family:\'Playfair Display\',serif;font-weight:400;font-size:22px;margin:0 0 10px">'+(loggedIn?'Nur für den Besitzer':'Bitte anmelden')+'</h2>'
+    +'<p style="font-size:14px;line-height:1.6;color:#6B6560;margin:0 0 16px">'+(loggedIn
+      ?'Diese Reise gehört einem anderen Konto, deshalb kannst du hier keine Ausgaben erfassen.'
+      :'In diesem Symbol bist du noch nicht angemeldet, denn das iPhone trennt die Anmeldung von Safari. Melde dich einmal an, danach öffnet sich die Erfassung direkt.')+'</p>'
+    +'<div class="qx-row"><button type="button" class="qx-btn alt" onclick="document.getElementById(\'qx-login\').remove()">Später</button>'
+    +(loggedIn?'':'<button type="button" class="qx-btn" onclick="qxGoLogin()">Anmelden</button>')+'</div></div>';
+  document.body.appendChild(ov);
+}
+function qxGoLogin(){location.href='/meine-reisen.html?weiter='+encodeURIComponent(location.pathname+location.search+location.hash);}
 // Start: Anzeige-Knopf prüfen, vermerkte Ausgaben nachholen, ?schnell=1 automatisch öffnen
 function qxInit(){
   let tries=0;
+  const want=qxWantsQuick();
   const t=setInterval(function(){
     tries++;
     if(editMode&&currentUser){
       clearInterval(t);
       qxUpdateFab();qxFlush();
-      try{if(new URLSearchParams(location.search).get('schnell')==='1')qxOpen();}catch(e){}
-    }else if(tries>60){clearInterval(t);}
+      if(want)qxOpen();
+    }else if(want&&_qxAuthDone){
+      clearInterval(t);qxNeedLogin();
+    }else if(tries>120){clearInterval(t);}
   },500);
 }
-setTimeout(qxInit,1500);
+setTimeout(qxInit,800);
 
 
 // ── WECHSELKURSE UI ───────────────────────────────────────────────────────────
