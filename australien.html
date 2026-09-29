@@ -524,7 +524,7 @@ html.is-admin main{padding-top:40px;}
 
 <div class="figma-stats">
   <div class="figma-stats-inner">
-    <div class="figma-stat"><span class="fs-num">27</span><span class="fs-lbl">Tage</span></div>
+    <div class="figma-stat"><span class="fs-num" id="stat-days">28</span><span class="fs-lbl">Tage</span></div>
     <div class="figma-stat"><span class="fs-num">11</span><span class="fs-lbl">Unterkünfte</span></div>
     <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Ausflüge</span></div>
     <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Flüge</span></div>
@@ -1434,7 +1434,7 @@ function closeNavMenu(restoreFocus){
 function toggleNavMenu(){
   var menu=document.getElementById('fnav-right'),bg=document.getElementById('fnav-burger'),nav=document.getElementById('figma-nav');
   if(!menu)return;
-  if(menu.classList.contains('open')){closeNavMenu(true);return;}
+  if(menu.classList.contains('open')){closeNavMenu();return;}
   updateMenuMeta();
   menu.classList.add('open');
   if(nav)nav.classList.add('menu-open');
@@ -1751,6 +1751,20 @@ var AU_STOPS=[
   {name:'Brisbane',lat:-27.4698,lng:153.0251,days:'Tag 20–22',note:'South Bank, Lone Pine'},
   {name:'Sydney',lat:-33.8688,lng:151.2093,days:'Tag 23–27',note:'Opera House, Bondi Beach'}
 ];
+// Tage-Angaben aus den Buchungen berechnen (gleiche Logik wie im Tagesplan: Anreisetag bis letzte Nacht)
+(function(){
+  try{
+    AU_STOPS.forEach(function(st,i){
+      var bk=BOOKINGS[i];if(!bk)return;
+      var first=DAYS.findIndex(function(d){return d.iso===bk.datum;});
+      if(first<0)return;
+      var last=first+Math.max(bk.nights||1,1)-1;
+      st.days=(last>first)?('Tag '+(first+1)+'–'+(last+1)):('Tag '+(first+1));
+    });
+    var sd=document.getElementById('stat-days');
+    if(sd)sd.textContent=DAYS.length;
+  }catch(e){console.error('Tage:',e);}
+})();
 var _leafletWait=false;
 function ensureLeaflet(){
   return window.L?Promise.resolve():new Promise(function(res,rej){

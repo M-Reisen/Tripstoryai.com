@@ -254,11 +254,6 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
         <textarea id="t-note" placeholder="Ein Satz, der Lust auf die Reise macht…"></textarea>
       </div>
       <div class="field">
-        <label>Link zum Tagebuch <span style="text-transform:none;font-weight:400">(optional)</span></label>
-        <input type="text" id="t-url" placeholder="leer lassen für ein neues Tagebuch">
-        <div class="help">Leer lassen, um automatisch ein neues, eigenes Tagebuch anzulegen. Nur für bestehende Tagebücher einen Dateinamen eintragen (z.B. <strong>australien.html</strong>).</div>
-      </div>
-      <div class="field">
         <label>Titelbild-Link (optional)</label>
         <input type="text" id="t-img" placeholder="https://…">
         <div class="help">Leer lassen für einen Emoji-Hintergrund.</div>
@@ -375,12 +370,12 @@ function dbToTrip(r){
   return {
     id:r.id, name:meta.name||'Reise', emoji:meta.emoji||'🧳', loc:meta.loc||'',
     from:meta.from||'', to:meta.to||'', status:meta.status||'', note:meta.note||'',
-    url:meta.url||'', img:meta.img||'', visibility:r.visibility||'private'
+    img:meta.img||'', visibility:r.visibility||'private'
   };
 }
 // UI-Objekt -> DB-Felder (Metadaten als JSON in title)
 function tripToDB(t){
-  var meta={name:t.name,emoji:t.emoji,loc:t.loc,from:t.from,to:t.to,status:t.status,note:t.note,url:t.url,img:t.img};
+  var meta={name:t.name,emoji:t.emoji,loc:t.loc,from:t.from,to:t.to,status:t.status,note:t.note,img:t.img};
   return {id:t.id, owner:currentUser.id, title:JSON.stringify(meta), visibility:t.visibility||'private'};
 }
 async function saveTripDB(t){
@@ -497,8 +492,8 @@ function cardHTML(t){
   if(adminMode){
     return '<div class="trip-card placeholder">'+inner+'</div>';
   }
-  // Link bestimmen: eigener Link, sonst automatisch die Vorlage mit Reise-Schlüssel
-  var href = t.url && t.url.trim() ? t.url.trim() : ('reisevorlage.html?reise=' + t.id);
+  // Immer die Vorlage mit Reise-Schlüssel (nur feste Sonderseiten weichen ab)
+  var href = tripPage(t.id);
   return '<a class="trip-card" href="'+escapeAttr(href)+'">'+inner+'</a>';
 }
 
@@ -549,7 +544,7 @@ function openNewTrip(){
   document.getElementById('tm-title').textContent = 'Neue Reise';
   setField('t-id',''); setField('t-name',''); setField('t-emoji','');
   setField('t-loc',''); setField('t-from',''); setField('t-to','');
-  setField('t-note',''); setField('t-url',''); setField('t-img','');
+  setField('t-note',''); setField('t-img','');
   pickStatus('');
   pickVis('private');
   document.getElementById('trip-modal').classList.add('open');
@@ -562,7 +557,7 @@ function editTrip(ev,id){
   document.getElementById('tm-title').textContent = 'Reise bearbeiten';
   setField('t-id',t.id); setField('t-name',t.name||''); setField('t-emoji',t.emoji||'');
   setField('t-loc',t.loc||''); setField('t-from',t.from||''); setField('t-to',t.to||'');
-  setField('t-note',t.note||''); setField('t-url',t.url||''); setField('t-img',t.img||'');
+  setField('t-note',t.note||''); setField('t-img',t.img||'');
   pickStatus(t.status||'');
   pickVis(t.visibility||'private');
   document.getElementById('trip-modal').classList.add('open');
@@ -591,10 +586,15 @@ function pickVis(v){
   });
   updateShareBox();
 }
+// Feste Sonderseiten (nur vom Betreiber festgelegt). Alle anderen Reisen laufen über die Vorlage.
+var SPECIAL_PAGES={'australien-2026':'australien.html'};
+function tripPage(id){
+  if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id))return SPECIAL_PAGES[id];
+  return 'reisevorlage.html?reise='+encodeURIComponent(id);
+}
 function tripShareUrl(){
   var id=val('t-id');
-  var url=val('t-url').trim();
-  var page=url||'reisevorlage.html?reise='+encodeURIComponent(id);
+  var page=tripPage(id);
   // absolute URL bauen
   var base=location.href.replace(/[^/]*$/,'');
   return base+page;
@@ -628,12 +628,8 @@ function saveTrip(){
   if(!name){ toast('Bitte einen Namen eingeben.'); return; }
   var from = val('t-from'), to = val('t-to');
   if(from && to && to < from){ toast('„Bis" liegt vor „Von".'); return; }
-  var url = val('t-url').trim();
 
   var tripId = editingId || slugify(name) + '-' + Date.now().toString(36);
-  // Wenn kein eigenes Tagebuch-Link angegeben: automatisch die Vorlage mit Reise-Schlüssel
-  if(!url){ url = 'reisevorlage.html?reise=' + tripId; }
-
   var data = {
     id: tripId,
     name: name,
@@ -643,7 +639,6 @@ function saveTrip(){
     to: to,
     status: pickedStatus,   // '' = automatisch
     note: val('t-note').trim(),
-    url: url,
     img: val('t-img').trim(),
     visibility: pickedVis || 'private'
   };

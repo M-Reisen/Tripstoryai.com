@@ -196,7 +196,7 @@ function toast(m){var t=document.getElementById('toast');t.textContent=m;t.class
 function dbToTrip(r){
   var meta={};
   try{meta=JSON.parse(r.title||'{}');}catch(e){meta={name:r.title||'Reise'};}
-  return {id:r.id,owner:r.owner,name:meta.name||'Reise',emoji:meta.emoji||'🧳',loc:meta.loc||'',from:meta.from||'',to:meta.to||'',note:meta.note||'',url:meta.url||'',img:meta.img||''};
+  return {id:r.id,owner:r.owner,name:meta.name||'Reise',emoji:meta.emoji||'🧳',loc:meta.loc||'',from:meta.from||'',to:meta.to||'',note:meta.note||'',img:meta.img||''};
 }
 function fmtRange(from,to){
   if(!from)return '';
@@ -210,9 +210,14 @@ function tageCount(from,to){
   var n=Math.round((b-a)/86400000)+1;
   return n>0?(n+' Tage'):'';
 }
+// Feste Sonderseiten (nur vom Betreiber festgelegt). Alle anderen Reisen laufen über die Vorlage.
+var SPECIAL_PAGES={'australien-2026':'australien.html'};
+function tripPage(id){
+  if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id))return SPECIAL_PAGES[id];
+  return 'reisevorlage.html?reise='+encodeURIComponent(id);
+}
 function tripHref(t){
-  if(t.url&&t.url.trim())return t.url.trim();
-  return 'reisevorlage.html?reise='+encodeURIComponent(t.id);
+  return tripPage(t.id);
 }
 
 async function loadCommunity(){
