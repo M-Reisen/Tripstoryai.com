@@ -1,13 +1,42 @@
 {
+  "functions": {
+    "api/reisetagebuch.js": {
+      "includeFiles": "{reisevorlage,australien}.html"
+    }
+  },
   "rewrites": [
     {
       "source": "/reisevorlage.html",
-      "has": [{ "type": "query", "key": "reise", "value": "(?<reise>.+)" }],
+      "has": [
+        {
+          "type": "query",
+          "key": "reise",
+          "value": "(?<reise>.+)"
+        }
+      ],
+      "missing": [
+        {
+          "type": "query",
+          "key": "direkt"
+        }
+      ],
       "destination": "/api/reisetagebuch?alt=:reise"
     },
-    { "source": "/reisetagebuch/:land/:slug", "destination": "/api/reisetagebuch?land=:land&slug=:slug" },
-    { "source": "/reisetagebuch/:land", "destination": "/api/reisetagebuch?land=:land" },
-    { "source": "/reisetagebuch", "destination": "/api/reisetagebuch" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+    {
+      "source": "/reisetagebuch/:land/:slug",
+      "destination": "/api/reisetagebuch?land=:land&slug=:slug"
+    },
+    {
+      "source": "/reisetagebuch/:land",
+      "destination": "/api/reisetagebuch?land=:land"
+    },
+    {
+      "source": "/reisetagebuch",
+      "destination": "/api/reisetagebuch"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    }
   ]
 }
