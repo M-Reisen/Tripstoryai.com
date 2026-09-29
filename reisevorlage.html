@@ -2562,6 +2562,17 @@ async function trackVisit(){
         var kl=Object.keys(kinds).map(function(k){return k+': '+kinds[k];}).join(', ');
         info.push('Einträge mit dem Reise-Schlüssel im Namen: '+((p3.data||[]).length)+(kl?' ('+kl+')':''));
         dbg(info.join(' · '));
+        // Test-Eintrag: wird gespeichert, sichtbar gezählt und danach wieder gelöscht
+        var tk='visit_'+REISE+'_diagnose_'+Date.now();
+        var ti=await sb.from('kommentare').insert({ort:tk,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE});
+        var t=['Test-Eintrag speichern: '+(ti.error?('FEHLER – '+(ti.error.message||ti.error.code)+' (Status '+ti.status+')'):'ok (Status '+ti.status+')')];
+        if(!ti.error){
+          var tc=await sb.from('kommentare').select('id',{count:'exact',head:true}).eq('ort',tk);
+          t.push('danach lesbar: '+(tc.error?('Fehler – '+tc.error.message):(tc.count>0?'ja':'NEIN')));
+          var td=await sb.from('kommentare').delete().eq('ort',tk);
+          t.push('Test-Eintrag löschen: '+(td.error?('Fehler – '+td.error.message):'ok'));
+        }
+        dbg(t.join(' · '));
       }catch(e2){dbg('Zusatz-Prüfung fehlgeschlagen: '+(e2.message||e2));}
     }
   }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
