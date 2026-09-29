@@ -1169,6 +1169,15 @@ function initSwipe(){
   wrap.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchStartX;const dy=e.changedTouches[0].clientY-touchStartY;if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>40)slideDay(dx<0?1:-1);},{passive:true});
 }
 
+// Index des heutigen Reisetags (vor der Reise = erster Tag, nach der Reise = letzter Tag)
+function todayDayIndex(){
+  const n=new Date();
+  const iso=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+  const i=DAYS.findIndex(d=>d.iso===iso);
+  if(i>=0)return i;
+  return iso<DAYS[0].iso?0:DAYS.length-1;
+}
+var _dayInit=false;
 function buildDaySlides(){
   const track=document.getElementById('swipe-track'), dots=document.getElementById('days-dots');
   track.innerHTML='';dots.innerHTML='';
@@ -1176,6 +1185,11 @@ function buildDaySlides(){
     const slide=document.createElement('div');slide.className='day-slide';slide.innerHTML=buildDayHTML(day,i);track.appendChild(slide);
     const dot=document.createElement('div');dot.className='day-dot'+(i===currentDay?' active':'');dot.onclick=(idx=>()=>goToDay(idx))(i);dots.appendChild(dot);
   });
+  // aktuellen Tag ohne Animation einstellen
+  track.style.transition='none';
+  track.style.transform='translateX(-'+(currentDay*100)+'%)';
+  void track.offsetWidth;
+  track.style.transition='';
   updateDayNav();initSwipe();
   loadPhotosForDay(DAYS[currentDay].iso);
   setTimeout(()=>{loadCommentsForDay(DAYS[currentDay].iso);},100);
@@ -1430,6 +1444,7 @@ function toggleNavMenu(){
   if(first)setTimeout(function(){first.focus({preventScroll:true});},60);
 }
 function renderAll(){
+  if(!_dayInit){_dayInit=true;try{currentDay=todayDayIndex();}catch(e){}}
   try{buildDaySlides();}catch(e){console.error(e);}
   try{renderTimeline();}catch(e){console.error(e);}
   try{renderAuKarte();}catch(e){console.error(e);}
@@ -1621,6 +1636,15 @@ function ausflugSortKey(p){
   return 9999; // kein Datum erkennbar → ans Ende
 }
 var _openCostDays={};
+// Gespeichert wird nur das Symbol der Kategorie – für die Anzeige den Namen dazusetzen
+var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🛍','Shopping'],['🚕','Taxi / Transport'],['🏖','Aktivität'],['💆','Sonstiges'],['Eintritt','']];
+function expCatLabel(k){
+  for(var i=0;i<EXP_CAT_NAMES.length;i++){
+    var pre=EXP_CAT_NAMES[i][0],name=EXP_CAT_NAMES[i][1];
+    if(String(k).indexOf(pre)===0)return name?(k+' '+name):k;
+  }
+  return k;
+}
 function renderCosts(){
   const pc=editMode?'':'price-blur';
   let total=0,html='';
@@ -1671,7 +1695,7 @@ function renderCosts(){
         const amt=cur==='EUR'?'EUR '+fmt(e.amount):fmt(e.amount)+' '+cur+' ≈ EUR '+fmt(toEUR(e.amount,cur));
         return `<div class="cost-day-item"><span>${e.label}</span><span class="${pc}">${amt}</span></div>`;
       }).join('');
-      return `<div class="cost-day-group"><div class="cost-day-grouphead"><span>${k}</span><span class="${pc}">EUR ${fmt(g.sum)}</span></div>${items}</div>`;
+      return `<div class="cost-day-group"><div class="cost-day-grouphead"><span>${expCatLabel(k)}</span><span class="${pc}">EUR ${fmt(g.sum)}</span></div>${items}</div>`;
     }).join('');
     const isOpen=_openCostDays[iso]?' open':'';
     tagHtml+=`<details class="cost-day" data-iso="${iso}"${isOpen} ontoggle="_openCostDays[this.dataset.iso]=this.open"><summary><span class="cost-day-name">${dl}<span class="cost-day-count">${list.length} ${list.length===1?'Position':'Positionen'}</span></span><span class="cost-day-sum ${pc}">EUR ${fmt(dayT)}</span></summary><div class="cost-day-body">${groupsHtml}</div></details>`;
@@ -1690,7 +1714,7 @@ function renderCosts(){
     const catList=Object.keys(cats).sort((a,b)=>cats[b].sum-cats[a].sum);
     html+="<div class='cost-cat-title'>Tagesausgaben nach Kategorie</div>"+catList.map(k=>{
       const c=cats[k],pct=tag>0?c.sum/tag*100:0;
-      return `<div class="cost-cat-row"><div class="cost-cat-line"><span>${k}<small>${c.n} ${c.n===1?'Position':'Positionen'} · ${Math.round(pct)} %</small></span><span class="${pc}">EUR ${fmt(c.sum)}</span></div><div class="cost-cat-bar"><i style="width:${pct.toFixed(1)}%"></i></div></div>`;
+      return `<div class="cost-cat-row"><div class="cost-cat-line"><span>${expCatLabel(k)}<small>${c.n} ${c.n===1?'Position':'Positionen'} · ${Math.round(pct)} %</small></span><span class="${pc}">EUR ${fmt(c.sum)}</span></div><div class="cost-cat-bar"><i style="width:${pct.toFixed(1)}%"></i></div></div>`;
     }).join('');
   }
   document.getElementById('cost-list').innerHTML=html;
@@ -1932,6 +1956,8 @@ function toggleGuestView(){
   closeNavMenu();
   var neu=document.getElementById('section-neu');
   if(neu)neu.classList.remove('active');
+  // Zurück im Bearbeiten-Modus: immer den heutigen Tag öffnen
+  if(!guestView){try{currentDay=todayDayIndex();}catch(e){}}
   try{buildDaySlides();}catch(e){}
   try{renderCosts();}catch(e){}
   try{renderJournal();}catch(e){}
