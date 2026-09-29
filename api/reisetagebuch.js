@@ -3,8 +3,6 @@
 //   /reisetagebuch/<land>           -> alle öffentlichen Reisen eines Ziels
 //   /reisetagebuch/<land>/<name>    -> die Reise selbst (ausgeliefert wird die Vorlage)
 //   /reisevorlage.html?reise=<id>   -> alte Adresse: leitet auf die neue weiter, sofern vorhanden
-const fs = require('fs');
-const path = require('path');
 const S = require('./_shared');
 
 function send(res, status, html, cache) {
@@ -24,21 +22,10 @@ function notFound(res) {
   send(res, 404, html, 'public, s-maxage=60');
 }
 
-// Die Vorlage wird direkt aus der Datei gelesen (vercel.json: includeFiles). Nur wenn das nicht klappt,
-// wird sie als Rückfall per Abruf geholt. Zu kurze oder unvollständige Seiten werden nie ausgeliefert.
-function looksComplete(t) {
-  return typeof t === 'string' && t.length > 5000 && /<body/i.test(t) && /<\/html>\s*$/i.test(t);
-}
 async function fetchPage(origin, file) {
-  try {
-    const t = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
-    if (looksComplete(t)) return t;
-  } catch (e) { /* Rückfall */ }
   const r = await fetch(origin + '/' + file);
-  if (!r.ok) throw new Error('Seite nicht ladbar: ' + file + ' (' + r.status + ')');
-  const t = await r.text();
-  if (!looksComplete(t)) throw new Error('Seite unvollständig: ' + file);
-  return t;
+  if (!r.ok) throw new Error('Seite nicht ladbar: ' + file);
+  return r.text();
 }
 
 // Reise-Seite unter der schönen Adresse
@@ -165,11 +152,7 @@ module.exports = async (req, res) => {
     if (alt) return await altPage(res, origin, alt);
     return await overview(res);
   } catch (e) {
-    console.error('reisetagebuch:', e && e.stack ? e.stack : e);
-    const q2 = new URL(req.url, 'https://x.invalid').searchParams;
-    const id2 = S.clean(q2.get('reise') || q2.get('alt'));
-    // Alte Adresse: die Seite direkt ausliefern lassen (die Regel in vercel.json überspringt „direkt“)
-    res.setHeader('Location', id2 ? '/reisevorlage.html?reise=' + S.enc(id2) + '&direkt=1' : '/index.html');
+    res.setHeader('Location', '/index.html');
     res.status(302).end();
   }
 };
