@@ -288,24 +288,18 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fs-num{display:block;font-family:'Playfair Display',serif;font-size:32px;font-weight:400;color:var(--ink);line-height:1;margin-bottom:8px;}
 .fs-lbl{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);}
 /* FIGMA ROUTE */
-.fig-route-row{display:grid;grid-template-columns:150px 1fr 1.2fr;gap:24px;align-items:center;padding:20px 0;border-bottom:1px solid var(--rule);}
-.fig-route-days{font-size:11px;letter-spacing:.06em;color:var(--fog);text-transform:uppercase;display:flex;flex-direction:column;gap:3px;}
+.fig-route{border-bottom:1px solid var(--rule);}
+.fig-route-row{display:grid;grid-template-columns:160px 1.1fr 1.3fr;gap:24px;align-items:start;padding:22px 0;border-top:1px solid var(--rule);}
+.fig-route-days{font-size:11px;letter-spacing:.06em;color:var(--fog);text-transform:uppercase;display:flex;flex-direction:column;gap:4px;padding-top:3px;}
 .fig-route-cat{font-size:10px;letter-spacing:.1em;color:var(--terra);}
-.fig-route-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);}
-.fig-route-note{font-size:13px;color:var(--fog);line-height:1.5;}
-@media(max-width:820px){.fig-route-row{grid-template-columns:100px 1fr;gap:12px;}.fig-route-note{grid-column:2;font-size:12px;}}
-/* FIGMA EXCURSIONS */
-.fig-excursions{border-bottom:1px solid var(--rule);}
-.fig-excursion{display:grid;grid-template-columns:56px 1fr 180px 110px;gap:28px;align-items:start;padding:28px 0;border-top:1px solid var(--rule);transition:background .2s;}
-.fig-excursion:hover{background:rgba(181,113,74,.04);}
-.fig-ex-num{font-family:'Playfair Display',serif;font-size:13px;color:var(--fog);padding-top:4px;}
-.fig-ex-name{font-family:'Playfair Display',serif;font-size:21px;font-weight:400;color:var(--ink);margin:0 0 4px;}
-.fig-ex-type{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--terra);margin:0 0 12px;}
-.fig-ex-desc{font-size:14px;line-height:1.7;color:var(--fog);margin:0;}
-.fig-ex-meta{font-size:12px;color:var(--fog);line-height:1.7;padding-top:4px;}
-.fig-ex-price{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);text-align:right;padding-top:4px;}
-.fig-ex-actions{display:flex;gap:8px;margin-top:12px;}
-@media(max-width:820px){.fig-excursion{grid-template-columns:40px 1fr;gap:12px;}.fig-ex-meta,.fig-ex-price{grid-column:2;text-align:left;padding-top:8px;}}
+.fig-route-name{font-family:'Playfair Display',serif;font-size:19px;color:var(--ink);line-height:1.25;display:flex;flex-direction:column;gap:3px;}
+.fig-route-loc{font-family:'DM Sans',sans-serif;font-size:12px;color:var(--fog);letter-spacing:.02em;}
+.fig-route-note{font-size:13px;color:var(--fog);line-height:1.6;padding-top:3px;}
+@media(max-width:820px){
+  .fig-route-row{grid-template-columns:1fr;gap:6px;padding:20px 0;}
+  .fig-route-days{flex-direction:row;gap:10px;align-items:baseline;}
+  .fig-route-note{padding-top:6px;}
+}
 /* FIGMA GRAND TOTAL */
 .fig-grandtotal{display:flex;justify-content:space-between;align-items:center;margin-top:24px;padding-top:28px;border-top:2px solid var(--terra);}
 .fig-gt-label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);}
@@ -538,7 +532,6 @@ html.is-admin main{padding-top:40px;}
           <a class="fnav-link" href="#section-tage" onclick="jumpTo(event,'tage')"><span class="fmenu-t">Tag für Tag</span><span class="fmenu-sub">Der Tagesplan</span></a>
           <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')"><span class="fmenu-t">Route</span><span class="fmenu-sub">Alle Stationen</span></a>
           <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')"><span class="fmenu-t">Journal</span><span class="fmenu-sub">Ausgewählte Momente</span></a>
-          <a class="fnav-link" href="#section-ausfluege" onclick="jumpTo(event,'ausfluege')"><span class="fmenu-t">Ausflüge</span><span class="fmenu-sub">Erlebnisse &amp; Touren</span></a>
           <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')"><span class="fmenu-t">Kosten</span><span class="fmenu-sub">Gesamtübersicht</span></a>
           <a class="fnav-link" href="#section-naehe" onclick="jumpTo(event,'naehe')"><span class="fmenu-t">In der Nähe</span><span class="fmenu-sub">Sehenswertes &amp; Essen</span></a>
           <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')"><span class="fmenu-t">Gästebuch</span><span class="fmenu-sub">Nachricht hinterlassen</span></a>
@@ -580,7 +573,7 @@ html.is-admin main{padding-top:40px;}
 <div class="hero-dates" id="hero-dates" style="display:none;"></div>
 
 <div class="tabs-hidden" style="display:none;">
-  <button id="tab-tage"></button><button id="tab-route"></button><button id="tab-journal"></button><button id="tab-ausfluege"></button><button id="tab-kosten"></button><button id="tab-fotobuch"></button>
+  <button id="tab-tage"></button><button id="tab-route"></button><button id="tab-journal"></button><button id="tab-kosten"></button><button id="tab-fotobuch"></button>
 </div>
 
 <main>
@@ -594,36 +587,27 @@ html.is-admin main{padding-top:40px;}
   </div>
 
   <div class="section active" id="section-tage">
-    <div id="reisekarte-wrap" style="display:none;margin-bottom:28px;border:1px solid var(--rule);border-radius:4px;overflow:hidden;position:relative;z-index:0;isolation:isolate;">
-      <div id="reisekarte-map" style="width:100%;height:440px;background:#EDE8E0;pointer-events:none;"></div>
+    <div id="tage-content"></div>
+  </div>
+
+  <!-- ROUTE -->
+  <div class="section" id="section-route">
+    <div style="margin-bottom:22px">
+      <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:400;margin-bottom:6px">Vollständige Reiseroute</div>
+      <div style="font-size:.83rem;color:var(--fog)">Alle Flüge, Transfers, Ausflüge und Unterkünfte auf einen Blick.</div>
+    </div>
+    <div id="reisekarte-wrap" style="display:none;margin-bottom:32px;border:1px solid var(--rule);border-radius:4px;overflow:hidden;position:relative;z-index:0;isolation:isolate;">
+      <div id="reisekarte-map" style="width:100%;height:460px;background:#EDE8E0;pointer-events:none;"></div>
       <div id="karte-status" style="position:absolute;bottom:8px;left:8px;z-index:5;background:rgba(255,255,255,.9);border-radius:4px;padding:4px 10px;font-size:.72rem;color:var(--fog);pointer-events:none;"></div>
       <div id="karte-zoom" style="position:absolute;bottom:12px;right:12px;z-index:5;display:flex;flex-direction:column;gap:4px;">
         <button onclick="if(_leafletMap)_leafletMap.zoomIn()" style="width:36px;height:36px;border:1px solid var(--rule);background:#fff;border-radius:6px;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)">+</button>
         <button onclick="if(_leafletMap)_leafletMap.zoomOut()" style="width:36px;height:36px;border:1px solid var(--rule);background:#fff;border-radius:6px;font-size:20px;line-height:1;cursor:pointer;color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.15)">−</button>
       </div>
     </div>
-    <div id="tage-content"></div>
-  </div>
-
-  <!-- ROUTE -->
-  <div class="section" id="section-route">
-    <div style="margin-bottom:48px">
-      <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Reiseroute</p>
-      <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Alle Stationen<br><em>chronologisch</em></h2>
-    </div>
     <div class="timeline"><div id="timeline-items"></div></div>
   </div>
 
   <!-- JOURNAL -->
-  <!-- AUSFLÜGE -->
-  <div class="section" id="section-ausfluege">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">
-      <div><p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px">Ausflüge & Touren</p><h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Gebuchte<br><em>Erlebnisse</em></h2></div>
-      <button id="ausflug-add-btn" class="btn btn-sm" style="background:var(--tour);color:#fff;display:none" onclick="addCost('Ausflug')">+ Ausflug</button>
-    </div>
-    <div id="ausfluege-grid"></div>
-  </div>
-
   <!-- KOSTEN -->
   <div class="section" id="section-kosten">
     <div style="margin-bottom:40px">
@@ -2130,7 +2114,7 @@ async function applyBeleg(){
     }
   }
   closeBelegModal();
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();renderRoute();if(typeof renderKarte==='function')renderKarte();
+  renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();
   toast(done.length?('✓ '+done.join(' & ')+' angelegt!'):'Nichts ausgewählt.');
 }
 function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -2439,7 +2423,7 @@ async function delCostEl(btn){
   const ok=await sbDeleteCost(c.id);
   if(!ok){toast('Löschen fehlgeschlagen.');return;}
   costs=costs.filter(x=>String(x.id)!==String(id));
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();if(typeof renderKarte==='function')renderKarte();toast('Position gelöscht.');
+  renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();toast('Position gelöscht.');
 }
 function updateCostPreview(){
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
@@ -2471,45 +2455,11 @@ async function saveCost(){
     toast('Position hinzugefügt!');
   }
   document.getElementById('cost-modal').classList.remove('open');
-  renderCosts();renderHead();buildDaySlides();renderAusfluege();if(typeof renderKarte==='function')renderKarte();
+  renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();
 }
 function closeCostModal(){document.getElementById('cost-modal').classList.remove('open');}
 
 // ── AUSFLÜGE (= Kostenpositionen Kategorie 'Ausflug') ─────────────────────────
-function renderAusfluege(){
-  const grid=document.getElementById('ausfluege-grid');
-  if(!grid)return;
-  const addBtn=document.getElementById('ausflug-add-btn');
-  if(addBtn)addBtn.style.display=editMode?'inline-flex':'none';
-  const items=costs.filter(c=>c.cat==='Ausflug');
-  // nach Datum sortieren (ohne Datum ans Ende)
-  items.sort((a,b)=>{const x=a.datum||'9999';const y=b.datum||'9999';return x<y?-1:x>y?1:0;});
-  if(!items.length){
-    grid.innerHTML='<div class="empty"><div class="big">🎟️</div><div class="lbl">Noch keine Ausflüge</div><div class="sub">Erfasse einen Ausflug hier oder bei den Kosten (Kategorie „Ausflug") – er erscheint automatisch an beiden Stellen.</div>'+(editMode?'<button class="btn btn-sm" style="background:var(--tour);color:#fff" onclick="addCost(\'Ausflug\')">+ Ausflug hinzufügen</button>':'')+'</div>';
-    return;
-  }
-  grid.innerHTML='<div class="fig-excursions">'+items.map(function(c,idx){
-    const pi=parseInfo(c.info);
-    const eur=toEUR(c.amount,c.cur);
-    const dateStr=c.datum?new Date(c.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long'}):'Datum offen';
-    const amtStr=(c.cur!=='EUR')?fmt(c.amount)+' '+c.cur:'€ '+fmt(eur);
-    let meta=[];
-    if(pi.time)meta.push(esc(pi.time));
-    if(pi.pax)meta.push(esc(pi.pax)+' Pers.');
-    if(pi.ref&&editMode)meta.push('#'+esc(pi.ref.replace(/^#\s*/,'')));
-    const num=('0'+(idx+1)).slice(-2);
-    const btns=editMode?'<div class="fig-ex-actions"><button class="cost-edit-btn" data-id="'+c.id+'" onclick="editCostEl(this)">Bearbeiten</button><button class="cost-del-btn" data-id="'+c.id+'" onclick="delCostEl(this)">✕</button></div>':'';
-    return '<div class="fig-excursion">'
-      +'<span class="fig-ex-num">'+num+'</span>'
-      +'<div class="fig-ex-main"><h3 class="fig-ex-name">'+esc(c.label)+'</h3>'
-      +'<p class="fig-ex-type">'+dateStr+'</p>'
-      +(pi.text?'<p class="fig-ex-desc">'+esc(pi.text)+'</p>':'')
-      +btns+'</div>'
-      +'<div class="fig-ex-meta">'+(meta.length?meta.join('<br>'):'')+'</div>'
-      +(editMode?'<div class="fig-ex-price">'+amtStr+'</div>':'<div class="fig-ex-price"></div>')
-      +'</div>';
-  }).join('')+'</div>';
-}
 
 // ── ROUTE / TIMELINE (dynamisch aus Kostenpositionen) ─────────────────────────
 const ROUTE_DOT={Unterkunft:'var(--bush)',Flug:'#7c3aed',Transport:'#b45309',Ausflug:'#be185d',Sonstiges:'var(--fog)'};
@@ -2525,7 +2475,7 @@ function renderRoute(){
     c.innerHTML='<div class="empty"><div class="big">📍</div><div class="lbl">Noch keine Route</div><div class="sub">Erfasse Kostenpositionen mit Datum (Unterkunft, Flug, Transport, Ausflug) – sie erscheinen hier automatisch als Zeitstrahl.</div></div>';
     return;
   }
-  c.innerHTML=dated.map(function(x){
+  c.innerHTML='<div class="fig-route">'+dated.map(function(x){
     const dc=ROUTE_DOT[x.cat]||'var(--terra)';
     const dateStr=new Date(x.datum+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
     const pi=parseInfo(x.info);
@@ -2539,12 +2489,20 @@ function renderRoute(){
       if(pi.pax)meta.push(esc(pi.pax));
     }
     var catLabel={Unterkunft:'Unterkunft',Flug:'Flug',Transport:'Transfer',Ausflug:'Ausflug',Sonstiges:'Sonstiges'}[x.cat]||x.cat;
+    var dayLabel=dateStr;
+    if(x.cat==='Unterkunft'&&pi.bis){
+      // Zeitraum und Anzahl Nächte wie auf der Australien-Seite
+      var n=nightsBetween(x.datum,pi.bis);
+      var f=function(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});};
+      dayLabel=f(x.datum)+' – '+f(pi.bis);
+      if(n)catLabel+=' · '+n+(n===1?' Nacht':' Nächte');
+    }
     return '<div class="fig-route-row">'
-      +'<div class="fig-route-days">'+dateStr+'<span class="fig-route-cat">'+esc(catLabel)+'</span></div>'
+      +'<div class="fig-route-days">'+dayLabel+'<span class="fig-route-cat">'+esc(catLabel)+'</span></div>'
       +'<div class="fig-route-name">'+esc(x.label)+'</div>'
       +'<div class="fig-route-note">'+(meta.length?meta.join(' · '):'')+'</div>'
       +'</div>';
-  }).join('');
+  }).join('')+'</div>';
 }
 
 // ── NAVIGATION (durchscrollbar) ───────────────────────────────────────────────
@@ -2623,7 +2581,6 @@ function renderAll(){
   try{renderRoute();}catch(e){console.error(e);}
   try{if(typeof renderKarte==='function')renderKarte();}catch(e){console.error(e);}
   try{renderJournal();}catch(e){console.error(e);}
-  try{renderAusfluege();}catch(e){console.error(e);}
   try{renderCosts();}catch(e){console.error(e);}
   try{applyViewMode();}catch(e){console.error(e);}
   try{loadGuestbook();}catch(e){console.error(e);}
@@ -2782,7 +2739,6 @@ function toggleGuestView(){
   try{renderHead();}catch(e){}
   try{renderCosts();}catch(e){}
   try{renderTage();}catch(e){}
-  try{renderAusfluege();}catch(e){}
   try{renderRoute();}catch(e){}
   try{renderJournal();}catch(e){}
   try{applyViewMode();}catch(e){}
@@ -3095,6 +3051,8 @@ async function coordForDay(iso){
   if(!ort)return null;
   var key=ort.toLowerCase();
   if(_geoCache[key])return _geoCache[key];
+  // Besucher lösen keine Ortssuche aus – sie sehen die vom Besitzer gespeicherten Orte
+  if(!canEdit)return null;
   return await geocode(ort);
 }
 var _landCache={}; // land-name -> polys
@@ -3149,32 +3107,48 @@ function ensureLeaflet(){
   });
   return _leafletLoading;
 }
+var _karteRun=0;
+function whenNearViewport(el){
+  return new Promise(function(res){
+    if(!el||!('IntersectionObserver' in window)){res();return;}
+    var io=new IntersectionObserver(function(en){if(en[0].isIntersecting){io.disconnect();res();}},{rootMargin:'800px'});
+    io.observe(el);
+  });
+}
 async function renderKarte(){
   var wrap=document.getElementById('reisekarte-wrap');
   var status=document.getElementById('karte-status');
   var mapEl=document.getElementById('reisekarte-map');
   if(!wrap||!mapEl)return;
-  // Die Karte liegt im Bereich „Tag für Tag“ (nur für Besitzer sichtbar) – Besucher müssen nichts laden
-  if(!editMode){wrap.style.display='none';return;}
-  try{await ensureLeaflet();}catch(e){console.error(e);return;}
+  var run=++_karteRun;
   var days=buildDays();
   if(!days.length){wrap.style.display='none';return;}
-  wrap.style.display='block';
-  status.textContent='Orte werden ermittelt…';
-  // Koordinaten aller Tage sammeln (deine bestehende Logik)
+  // Karte und Kartenbibliothek erst laden, wenn der Bereich fast sichtbar ist
+  await whenNearViewport(document.getElementById('section-route')||wrap);
+  if(run!==_karteRun)return;
+  try{await ensureLeaflet();}catch(e){console.error(e);return;}
+  if(run!==_karteRun)return;
+  if(canEdit){wrap.style.display='block';status.textContent='Orte werden ermittelt…';}
+  // Koordinaten aller Tage sammeln
   var stationen=[], fehl=0, nr=0;
   for(var i=0;i<days.length;i++){
     var iso=days[i];
     var pt=await coordForDay(iso);
+    if(run!==_karteRun)return;
     if(pt){
       nr++;
       var stay=stayForDay(iso);
       var ortName=stay?(parseInfo(stay.info).text||stay.label).split('·')[0].trim():'';
       stationen.push({lat:pt.lat,lon:pt.lon,tag:nr,name:ortName||('Tag '+nr),iso:iso});
     }else fehl++;
-    await sleep(60);
+    if(canEdit)await sleep(60);
   }
-  if(!stationen.length){status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';return;}
+  if(!stationen.length){
+    if(canEdit){status.textContent='Noch keine Orte gefunden. Trage bei den Tagen eine Unterkunft mit Ort ein.';}
+    else{wrap.style.display='none';}
+    return;
+  }
+  wrap.style.display='block';
   // Doppelte aufeinanderfolgende Orte zusammenfassen
   var uniq=[];
   stationen.forEach(function(s){
