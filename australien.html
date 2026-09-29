@@ -423,7 +423,6 @@ html.fmenu-open{overflow:hidden;}
 main{display:flex;flex-direction:column;}
 #section-tage,#section-kosten{display:none;}
 html.is-admin #section-tage,html.is-admin #section-kosten{display:block;}
-html.is-admin #section-gaestebuch{display:none;}
 /* Admin: Bearbeitung (Tag für Tag + Eintrag-Formular) ganz oben */
 html.is-admin #section-tage{order:-3;}
 html.is-admin #section-neu{order:-2;}
@@ -902,7 +901,6 @@ function applyViewMode(){
   document.querySelectorAll('.fnav-link').forEach(function(a){
     var h=a.getAttribute('href');
     if(h==='#section-tage'||h==='#section-kosten')a.style.display=isAdmin?'':'none';
-    if(h==='#section-gaestebuch')a.style.display=isAdmin?'none':'';
   });
 }
 async function doLogout(){
