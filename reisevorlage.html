@@ -401,6 +401,7 @@ html.fmenu-open{overflow:hidden;}
 .fmenu-status{font-family:'Playfair Display',Georgia,serif;font-size:clamp(20px,2.2vw,24px);line-height:1.2;color:var(--ink);margin:0 0 20px;}
 .fmenu-dates{font-size:14px;line-height:1.7;color:var(--ink);margin:0;}
 .fmenu-actions{display:flex;flex-wrap:wrap;gap:10px;}
+.fmenu-dev{margin:18px 0 0;font-size:12px;line-height:1.6;color:var(--fog);word-break:break-all;}
 .fmenu-btn{display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 22px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--ink);background:transparent;border:1px solid rgba(26,23,20,.28);text-decoration:none;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s,border-color .2s;}
 .fmenu-btn:hover{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 .fmenu-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
@@ -489,6 +490,7 @@ html.is-admin main{padding-top:40px;}
           <p class="fmenu-trip" id="fmenu-trip"></p>
           <p class="fmenu-status" id="fmenu-status"></p>
           <p class="fmenu-dates" id="fmenu-dates"></p>
+          <p class="fmenu-dev" id="fmenu-dev" style="display:none"></p>
         </aside>
       </div>
       <div class="fmenu-actions">
@@ -2457,6 +2459,14 @@ function jumpTo(ev,tab){
   if(el)setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
 function updateMenuMeta(){
+  var dv=document.getElementById('fmenu-dev');
+  if(dv){
+    if(canEdit){
+      var did='';try{did=localStorage.getItem('travona_dev')||'';}catch(e){}
+      dv.textContent='Nur für dich sichtbar: Dieses Gerät wird nicht als Besuch gezählt.'+(did?' Geräte-Kennung: '+did:'');
+      dv.style.display='';
+    }else{dv.style.display='none';}
+  }
   var trip=document.getElementById('fmenu-trip'),st=document.getElementById('fmenu-status'),dt=document.getElementById('fmenu-dates');
   if(trip){
     var yr=tripHead.from?tripHead.from.slice(0,4):'';
@@ -2544,7 +2554,13 @@ async function trackVisit(){
     var heute=new Date().toISOString().slice(0,10);
     var visitKey='visit_'+REISE+'_'+devId+'_'+heute;
     var lastKey='travona_visit3_'+REISE;
-    if(localStorage.getItem(lastKey)!==heute){
+    // Besitzer werden nicht gezählt: eingeloggt = Gerät dauerhaft ausnehmen
+    var ausgenommen=false;
+    try{
+      if(canEdit)localStorage.setItem('travona_no_count','1');
+      ausgenommen=localStorage.getItem('travona_no_count')==='1';
+    }catch(e){}
+    if(!ausgenommen&&localStorage.getItem(lastKey)!==heute){
       var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE});
       if(ins.error){if(box)box.textContent='';return;}
       localStorage.setItem(lastKey,heute);
@@ -3096,7 +3112,7 @@ async function renderKarte(){
   if(run!==_karteRun)return;
   if(canEdit){wrap.style.display='block';status.textContent='Orte werden ermittelt…';}
   // Koordinaten aller Tage sammeln
-  var stationen=[], fehl=0, nr=0;
+  var stationen=[], fehl=0, nr=0, nichtGefunden=[];
   for(var i=0;i<days.length;i++){
     var iso=days[i];
     var pt=await coordForDay(iso);
@@ -3106,7 +3122,11 @@ async function renderKarte(){
       var stay=stayForDay(iso);
       var ortName=stay?(parseInfo(stay.info).text||stay.label).split('·')[0].trim():'';
       stationen.push({lat:pt.lat,lon:pt.lon,tag:nr,name:ortName||('Tag '+nr),iso:iso});
-    }else fehl++;
+    }else{
+      fehl++;
+      var _o=ortFuerTag(iso);
+      if(_o)nichtGefunden.push('Tag '+(i+1)+' „'+_o+'“');
+    }
     if(canEdit)await sleep(60);
   }
   if(!stationen.length){
@@ -3143,6 +3163,26 @@ async function renderKarte(){
   else{map.fitBounds(coords,{padding:[40,40]});}
   setTimeout(function(){map.invalidateSize();},200);
   status.textContent=nr+(nr===1?' Station':' Stationen');
+  // Hinweise nur für den Besitzer: Warum fehlt eine Station?
+  if(canEdit){
+    var hints=[];
+    if(nichtGefunden.length)hints.push('Ort nicht gefunden: '+nichtGefunden.join(', ')+' (unter „Tag für Tag“ bei „Ort für die Karte“ genauer eintragen)');
+    var lastDay=days[days.length-1];
+    var stays=costs.filter(function(c){return c.cat==='Unterkunft';});
+    var ohneDatum=stays.filter(function(c){return !c.datum;}).map(function(c){return c.label.split('·')[0].trim();});
+    var ausserhalb=stays.filter(function(c){
+      if(!c.datum||days.indexOf(c.datum)>=0)return false;
+      var bis=parseInfo(c.info).bis;
+      return !(bis&&c.datum<=lastDay&&bis>days[0]);
+    }).map(function(c){return c.label.split('·')[0].trim();});
+    if(ohneDatum.length)hints.push('Unterkunft ohne Datum: '+ohneDatum.join(', '));
+    if(ausserhalb.length)hints.push('Unterkunft außerhalb des Reisezeitraums: '+ausserhalb.join(', '));
+    if(hints.length){
+      status.textContent=nr+(nr===1?' Station':' Stationen')+' · '+hints.join(' · ');
+      status.style.maxWidth='calc(100% - 130px)';
+      status.style.lineHeight='1.4';
+    }
+  }
 }
 
 function drawKarte(svg,stationen,polys,land){
