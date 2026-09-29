@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /offline.html
+
+Sitemap: https://www.travona.de/sitemap.xml
