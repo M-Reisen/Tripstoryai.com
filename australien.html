@@ -503,6 +503,7 @@ html.is-admin main{padding-top:40px;}
         <a class="fmenu-btn" href="index.html">Übersicht</a>
         <button class="fmenu-btn" id="view-toggle-btn" onclick="toggleGuestView()" style="display:none" aria-pressed="false" title="So sehen Gäste die Seite"><span class="fnav-lbl">Gästeansicht</span></button>
         <button class="fmenu-btn" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
+        <button class="fmenu-btn" id="share-btn" onclick="shareTrip()">Teilen</button>
         <a class="fmenu-btn fmenu-btn--solid" id="fotobuch-btn" href="#" onclick="event.preventDefault();closeNavMenu();createPhotobook();">Fotobuch als PDF</a>
       </div>
     </div>
@@ -2041,6 +2042,29 @@ function renderTimeline(){
   }).join('')+'</div>';
 }
 
+// Reise teilen: auf dem Handy über das Teilen-Menü, sonst Link kopieren
+async function shareTrip(){
+  if(typeof tripVisibility!=='undefined'&&tripVisibility==='private'){
+    toast('Diese Reise ist privat. Stelle sie unter „Meine Reisen“ auf „Per Link“ oder „Öffentlich“.');
+    return;
+  }
+  var url=location.origin+location.pathname+location.search;
+  var title=document.title;
+  try{
+    if(navigator.share){
+      await navigator.share({title:title,text:'Schau dir das Reisetagebuch an:',url:url});
+      return;
+    }
+  }catch(e){
+    if(e&&e.name==='AbortError')return;
+  }
+  try{
+    await navigator.clipboard.writeText(url);
+    toast('Link kopiert!');
+  }catch(e2){
+    window.prompt('Link zum Kopieren:',url);
+  }
+}
 // Gästeansicht: zeigt die Seite so, wie Besucher sie sehen (ohne Bearbeiten-Funktionen)
 function toggleGuestView(){
   if(!canEdit){toast('Nur der Besitzer kann die Gästeansicht nutzen.');return;}
