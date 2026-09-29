@@ -2492,7 +2492,7 @@ function closeNavMenu(restoreFocus){
 function toggleNavMenu(){
   var menu=document.getElementById('fnav-right'),bg=document.getElementById('fnav-burger'),nav=document.getElementById('figma-nav');
   if(!menu)return;
-  if(menu.classList.contains('open')){closeNavMenu(true);return;}
+  if(menu.classList.contains('open')){closeNavMenu();return;}
   updateMenuMeta();
   menu.classList.add('open');
   if(nav)nav.classList.add('menu-open');
@@ -2530,6 +2530,8 @@ function buildDaySlides(){renderTage();}
 
 async function trackVisit(){
   var box=document.getElementById('visit-counter');
+  // Diagnose-Zeile: nur für den Besitzer sichtbar, hilft bei der Fehlersuche
+  var dbg=function(t){if(canEdit&&box){box.insertAdjacentHTML('beforeend','<div style="margin-top:8px;font-size:11px;letter-spacing:0;text-transform:none;opacity:.75">Diagnose: '+esc(t)+'</div>');}};
   try{
     var devId=localStorage.getItem('travona_dev');
     if(!devId){devId=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',devId);}
@@ -2538,13 +2540,14 @@ async function trackVisit(){
     var lastKey='travona_visit3_'+REISE;
     if(localStorage.getItem(lastKey)!==heute){
       var ins=await sb.from('kommentare').insert({ort:visitKey,name:'visit',nachricht:'',created_at:new Date().toISOString(),trip_id:REISE});
-      if(ins.error){if(box)box.textContent='';return;}
+      if(ins.error){if(box)box.textContent='';dbg('Besuch konnte nicht gespeichert werden: '+(ins.error.message||ins.error.code||'unbekannt'));return;}
       localStorage.setItem(lastKey,heute);
     }
     var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE+'_%');
-    if(res.error){if(box)box.textContent='';return;}
+    if(res.error){if(box)box.textContent='';dbg('Zähler konnte nicht gelesen werden: '+(res.error.message||res.error.code||'unbekannt'));return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
     if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
+    if(count===0)dbg('Abfrage ohne Fehler (Status '+res.status+'), aber keine Einträge für „visit_'+REISE+'_…“. Reise-Schlüssel prüfen oder die Leserechte der Tabelle kommentare.');
   }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
 }
 async function loadGuestbook(){
