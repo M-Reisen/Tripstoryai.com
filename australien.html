@@ -340,6 +340,11 @@ textarea{resize:vertical;min-height:100px;}
 .fnav-icon i:nth-child(2){top:8px;}
 .fnav-trigger.is-open .fnav-icon i:nth-child(1){top:4px;transform:rotate(45deg);}
 .fnav-trigger.is-open .fnav-icon i:nth-child(2){top:4px;transform:rotate(-45deg);}
+.fnav-share .fnav-share-ic{flex:0 0 auto;}
+@media(max-width:480px){
+  .fnav-bar-right{gap:10px;}
+  .fnav-bar-right:has(.fnav-chip:not([hidden])) .fnav-share-lbl{display:none;}
+}
 .fnav-logo:focus-visible,.fnav-trigger:focus-visible,.fnav-chip:focus-visible,.fmenu .fnav-link:focus-visible,.fmenu-btn:focus-visible{outline:2px solid var(--terra);outline-offset:3px;}
 html.fmenu-open{overflow:hidden;}
 /* Vollbild-Menü */
@@ -479,6 +484,7 @@ html.is-admin main{padding-top:40px;}
     </a>
     <div class="fnav-bar-right">
       <button class="fnav-chip" id="fnav-guestchip" onclick="toggleGuestView()" hidden>Gästeansicht beenden</button>
+      <button class="fnav-trigger fnav-share" id="fnav-share" onclick="shareTrip()" aria-label="Reise teilen"><span class="fnav-share-lbl">Teilen</span><svg class="fnav-share-ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button>
       <button class="fnav-trigger" id="fnav-burger" onclick="toggleNavMenu()" aria-expanded="false" aria-controls="fnav-right"><span class="fnav-trigger-lbl">Menü</span><span class="fnav-icon" aria-hidden="true"><i></i><i></i></span></button>
     </div>
   </div>
@@ -503,7 +509,6 @@ html.is-admin main{padding-top:40px;}
         <a class="fmenu-btn" href="index.html">Übersicht</a>
         <button class="fmenu-btn" id="view-toggle-btn" onclick="toggleGuestView()" style="display:none" aria-pressed="false" title="So sehen Gäste die Seite"><span class="fnav-lbl">Gästeansicht</span></button>
         <button class="fmenu-btn" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
-        <button class="fmenu-btn" id="share-btn" onclick="shareTrip()">Teilen</button>
         <a class="fmenu-btn fmenu-btn--solid" id="fotobuch-btn" href="#" onclick="event.preventDefault();closeNavMenu();createPhotobook();">Fotobuch als PDF</a>
       </div>
     </div>
