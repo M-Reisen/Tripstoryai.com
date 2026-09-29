@@ -2597,6 +2597,132 @@ function drawAusMap(upToBid){
   return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#EDE8E0" rx="3"/>'+restLine+doneLine+dots+'</svg>';
 }
 
+// ── FOTOBUCH-ANSICHT: Fotos vorbereiten und in einem Fenster mit „Schließen“ anzeigen ──
+var _pbBlobs=[],_pbCancel=false;
+function pbUnesc(s){return String(s).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
+// alle Bild-Adressen aus dem Fotobuch-HTML (so, wie sie dort stehen)
+function pbCollectImages(html){
+  const out=[],seen={};
+  String(html).replace(/<img[^>]*\ssrc="([^"]+)"/g,function(_,u){
+    if(u.indexOf('data:')===0||u.indexOf('blob:')===0||seen[u])return _;
+    seen[u]=1;out.push(u);return _;
+  });
+  return out;
+}
+function pbApplyBlobs(html,map){
+  Object.keys(map).forEach(function(orig){
+    if(map[orig])html=html.split('src="'+orig+'"').join('src="'+map[orig]+'"');
+  });
+  return html;
+}
+// Foto laden und auf höchstens maxDim Pixel verkleinern (spart Speicher am Handy); bei Problemen null
+function pbShrink(url,maxDim){
+  return new Promise(function(resolve){
+    const im=new Image();
+    im.crossOrigin='anonymous';
+    const t=setTimeout(function(){im.src='';resolve(null);},25000);
+    im.onload=function(){
+      clearTimeout(t);
+      try{
+        const sc=Math.min(1,maxDim/Math.max(im.naturalWidth,im.naturalHeight));
+        const c=document.createElement('canvas');
+        c.width=Math.max(1,Math.round(im.naturalWidth*sc));c.height=Math.max(1,Math.round(im.naturalHeight*sc));
+        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+        c.toBlob(function(b){resolve(b?URL.createObjectURL(b):null);},'image/jpeg',0.82);
+      }catch(e){resolve(null);}
+    };
+    im.onerror=function(){clearTimeout(t);resolve(null);};
+    im.src=url;
+  });
+}
+function pbProgress(text){
+  const ov=document.getElementById('pb-loading-overlay');
+  if(!ov)return;
+  let p=document.getElementById('pb-progress');
+  if(!p){
+    p=document.createElement('div');p.id='pb-progress';p.style.cssText='font-size:13px;opacity:.9;margin-top:10px;text-align:center;padding:0 24px';
+    ov.appendChild(p);
+    const c=document.createElement('button');c.textContent='Abbrechen';c.style.cssText='margin-top:18px;padding:10px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;cursor:pointer';
+    c.onclick=function(){_pbCancel=true;};ov.appendChild(c);
+  }
+  p.textContent=text;
+}
+function pbCloseViewer(){
+  const v=document.getElementById('pb-viewer');
+  if(v)v.remove();
+  document.documentElement.style.overflow='';
+  _pbBlobsRevoke();
+  window.removeEventListener('popstate',pbCloseViewer);
+}
+function _pbBlobsRevoke(){_pbBlobs.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});_pbBlobs=[];}
+function pbBackOrClose(){
+  if(history.state&&history.state.pb){history.back();}else{pbCloseViewer();}
+}
+async function pbShowViewer(html,title){
+  _pbCancel=false;_pbBlobsRevoke();
+  const ovEl=function(){return document.getElementById('pb-loading-overlay');};
+  try{
+    // 1) Fotos vorbereiten (verkleinern), höchstens 4 gleichzeitig
+    const urls=pbCollectImages(html);
+    const map={};
+    let done=0,next=0;
+    pbProgress('Fotos werden vorbereitet … 0 von '+urls.length);
+    async function worker(){
+      while(!_pbCancel&&next<urls.length){
+        const orig=urls[next++];
+        const blob=await pbShrink(pbUnesc(orig),1600);
+        if(blob){map[orig]=blob;_pbBlobs.push(blob);}
+        done++;pbProgress('Fotos werden vorbereitet … '+done+' von '+urls.length);
+      }
+    }
+    await Promise.all([worker(),worker(),worker(),worker()]);
+    if(_pbCancel){_pbBlobsRevoke();const o=ovEl();if(o)o.remove();toast('Abgebrochen.');return;}
+    html=pbApplyBlobs(html,map);
+    // 2) Bildschirm-Darstellung: Seiten untereinander, auf Handybreite verkleinert (beim Drucken ohne Wirkung)
+    html=html.replace('</head>','<style>@media screen{html{background:#cfc9c0}body{zoom:var(--pbz,1)}.pb-page{margin:0 auto 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style></head>');
+    // 3) Fenster mit Schließen- und Drucken-Knopf
+    pbCloseViewer();
+    const v=document.createElement('div');
+    v.id='pb-viewer';
+    v.style.cssText='position:fixed;inset:0;z-index:10000;background:#cfc9c0;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif;';
+    const bar=document.createElement('div');
+    bar.style.cssText='flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 14px 10px;background:#F4EFE8;border-bottom:1px solid #D8D0C4;';
+    const btn=function(label,fn,solid){
+      const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;
+      b.style.cssText='min-height:42px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid '+(solid?'#1A1714':'#D8D0C4')+';background:'+(solid?'#1A1714':'transparent')+';color:'+(solid?'#F4EFE8':'#1A1714')+';white-space:nowrap;';
+      return b;
+    };
+    const iframe=document.createElement('iframe');
+    iframe.style.cssText='flex:1 1 auto;width:100%;border:0;background:#cfc9c0;';
+    const ttl=document.createElement('div');
+    ttl.textContent=title||'Fotobuch';ttl.style.cssText='flex:1;min-width:0;font-size:13px;color:#6B6560;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    bar.appendChild(btn('← Schließen',pbBackOrClose,false));
+    bar.appendChild(ttl);
+    bar.appendChild(btn('Drucken / PDF',function(){try{iframe.contentWindow.focus();iframe.contentWindow.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},true));
+    bar.appendChild(btn('Neuer Tab',function(){
+      const u=URL.createObjectURL(new Blob([html],{type:'text/html'}));_pbBlobs.push(u);window.open(u,'_blank');
+    },false));
+    v.appendChild(bar);v.appendChild(iframe);
+    document.body.appendChild(v);
+    document.documentElement.style.overflow='hidden';
+    const fit=function(){try{const d=iframe.contentDocument;if(d&&d.documentElement)d.documentElement.style.setProperty('--pbz',Math.min(1,iframe.clientWidth/1125).toFixed(3));}catch(e){}};
+    iframe.onload=fit;window.addEventListener('resize',fit);
+    iframe.srcdoc=html;
+    // Zurück-Geste des Handys schließt das Fotobuch statt die Seite zu verlassen
+    try{history.pushState({pb:1},'');}catch(e){}
+    window.addEventListener('popstate',pbCloseViewer);
+    const o=ovEl();if(o)o.remove();
+    toast('✓ Fotobuch bereit. Tippe auf „Drucken / PDF“, um es zu speichern.');
+  }catch(e){
+    console.error('Fotobuch-Ansicht:',e);
+    const o=ovEl();if(o)o.remove();
+    // Rückfall: wie früher in einem neuen Tab öffnen
+    const win=window.open('','_blank');
+    if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
+    win.document.write(html);win.document.close();
+  }
+}
+
 async function createPhotobook(){
   // Nur für den Besitzer: Gäste können das Fotobuch nicht erstellen
   if(!editMode){try{toast('Das Fotobuch ist nur für den Besitzer verfügbar.');}catch(e){}return;}
@@ -2815,12 +2941,7 @@ async function createPhotobook(){
     +'.tp-title{font-family:"Playfair Display",serif;font-size:22px;font-style:italic;color:#2C5F6A;margin-bottom:7mm;}'
     +'.tp-text{font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.95;color:#3a352e;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
     +'</style>';
-  const win=window.open('','_blank');
-  if(!win){var o1=document.getElementById('pb-loading-overlay');if(o1)o1.remove();toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Travona Fotobuch – Australien 2026</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>');
-  win.document.close();
-  var o2=document.getElementById('pb-loading-overlay');if(o2)o2.remove();
-  toast('✓ Fotobuch geöffnet! Warte bis alle Fotos geladen sind, dann drucken.');
+  await pbShowViewer('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Travona Fotobuch – Australien 2026</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>', 'Fotobuch – Australien 2026');
 }
 
 function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
