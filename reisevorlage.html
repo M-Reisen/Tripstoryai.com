@@ -191,6 +191,12 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .photo-move-l{left:5px;}.photo-move-r{left:33px;}
 .photo-cap-btn{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:6px;padding:2px 6px;font-size:.62rem;cursor:pointer;z-index:2;}
 .photo-cap{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:.6rem;padding:3px 5px;line-height:1.3;text-align:center;z-index:1;}
+.photo-hide-btn{position:absolute;bottom:5px;right:5px;background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:2;}
+.photo-cell.photo-hidden img{opacity:.35;filter:grayscale(.7);}
+.photo-cell.photo-hidden .photo-hide-btn{background:var(--sunset);}
+.photo-hidden-tag{position:absolute;left:6px;right:6px;top:50%;transform:translateY(-50%);text-align:center;font-size:.64rem;line-height:1.3;color:#1A1714;background:rgba(244,239,232,.92);border-radius:6px;padding:4px 6px;pointer-events:none;z-index:1;}
+.photo-hide-new{display:block;margin-top:10px;font-size:.78rem;color:var(--fog);line-height:1.5;cursor:pointer;}
+.photo-hide-new input{margin-right:8px;vertical-align:-2px;}
 .photo-add{position:relative;flex:0 0 auto;width:140px;height:140px;border:2px dashed rgba(28,26,22,.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:.65rem;color:var(--fog);gap:2px;background:var(--paper);transition:all .15s;scroll-snap-align:start;}
 .photo-add:hover{border-color:var(--sunset);color:var(--sunset);background:#fff8f4;}
 .photo-add>span{display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -1240,11 +1246,12 @@ async function sbLoadPhotoMeta(){
     try{photoMeta[iso]=JSON.parse(r.nachricht||'{}');}catch(e){photoMeta[iso]={};}
     if(!photoMeta[iso].order)photoMeta[iso].order=[];
     if(!photoMeta[iso].captions)photoMeta[iso].captions={};
+    if(!Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=[];
   });
 }
 async function sbSavePhotoMeta(iso){
   const key=PFX+'photometa_'+iso;
-  const payload=JSON.stringify(photoMeta[iso]||{order:[],captions:{}});
+  const payload=JSON.stringify(photoMeta[iso]||{order:[],captions:{},hidden:[]});
   try{
     const {data}=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
     if(data&&data.length){
@@ -1262,6 +1269,37 @@ function orderedPhotos(iso,loaded){
   const newOnes=loaded.filter(u=>!inOrder.includes(u));
   return inOrder.concat(newOnes);
 }
+// ── FOTOS FÜR GÄSTE AUSBLENDEN (von Hand, ohne KI) ────────────────────────────
+// Ausgeblendete Fotos sieht nur der Besitzer, in der Gästeansicht und für Gäste nicht.
+function hiddenList(iso){
+  const m=photoMeta[iso];
+  return (m&&Array.isArray(m.hidden))?m.hidden:[];
+}
+function isHiddenPhoto(iso,url){return hiddenList(iso).indexOf(url)>=0;}
+// Fotos, die dem aktuellen Betrachter gezeigt werden dürfen
+function visiblePhotos(iso){
+  const all=photos[iso]||[];
+  return editMode?all.slice():all.filter(function(u){return !isHiddenPhoto(iso,u);});
+}
+async function toggleHidden(iso,idx){
+  if(!editMode)return;
+  const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
+  if(!photoMeta[iso])photoMeta[iso]={order:arr.slice(),captions:{},hidden:[]};
+  if(!Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=[];
+  const h=photoMeta[iso].hidden,i=h.indexOf(url);
+  if(i>=0){h.splice(i,1);toast('Foto ist wieder für Gäste sichtbar.');}
+  else{h.push(url);toast('Foto ist für Gäste ausgeblendet.');}
+  await sbSavePhotoMeta(iso);
+  renderTage();
+  try{renderJournal();}catch(e){}
+}
+// Einstellung: neue Fotos zuerst nur für den Besitzer (gilt für dieses Gerät)
+function hideNewOn(){try{return localStorage.getItem('tv_hide_new')==='1';}catch(e){return false;}}
+function setHideNew(on){try{localStorage.setItem('tv_hide_new',on?'1':'0');}catch(e){} toast(on?'Neue Fotos sind zunächst nur für dich sichtbar.':'Neue Fotos sind sofort für Gäste sichtbar.');}
+function hideNewHTML(){
+  return '<label class="photo-hide-new"><input type="checkbox" onchange="setHideNew(this.checked)"'+(hideNewOn()?' checked':'')+'>Neue Fotos zuerst nur für mich <span>(Gäste sehen sie erst, wenn du sie mit dem Auge freigibst)</span></label>';
+}
+
 function captionFor(iso,url){
   const meta=photoMeta[iso];
   return (meta&&meta.captions&&meta.captions[url])||'';
@@ -1561,9 +1599,12 @@ function renderDayCard(days){
     const arr=photos[iso]||[];
     let cells=arr.map(function(url,pi){
       const cap=captionFor(iso,url);
-      let html='<div class="photo-cell">'
+      const hid=isHiddenPhoto(iso,url);
+      let html='<div class="photo-cell'+(hid?' photo-hidden':'')+'">'
         +'<img src="'+url+'" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
+      if(editMode&&hid)html+='<div class="photo-hidden-tag">Für Gäste ausgeblendet</div>';
       if(editMode){
+        html+='<button class="photo-hide-btn" title="'+(hid?'Für Gäste einblenden':'Für Gäste ausblenden')+'" onclick="toggleHidden(\''+iso+'\','+pi+')">'+(hid?'🚫':'👁')+'</button>';
         html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
         if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
         if(pi<arr.length-1)html+='<button class="photo-move photo-move-r" onclick="movePhoto(\''+iso+'\','+pi+',1)">▶</button>';
@@ -1577,7 +1618,7 @@ function renderDayCard(days){
       ?'<label class="photo-add"><span style="font-size:1.4rem">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,\''+iso+'\')"></label>'
       :'';
     if(arr.length||editMode){
-      photoHTML='<div class="photo-grid">'+cells+addCell+'</div>';
+      photoHTML='<div class="photo-grid">'+cells+addCell+'</div>'+(editMode?hideNewHTML():'');
     }
   }
 
@@ -1703,22 +1744,27 @@ async function handlePhotos(event,iso){
   const files=Array.from(event.target.files);if(!files.length)return;
   if(!Array.isArray(photos[iso]))photos[iso]=[];
   toast('Lade '+files.length+' Foto(s) hoch…');
-  let ok=0, fehler=[];
+  let ok=0, fehler=[], zunaechstVersteckt=0;
+  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{},hidden:[]};
+  if(!Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=[];
+  const hideNew=hideNewOn();
   for(const f of files){
     try{
       const url=await sbUploadPhoto(iso,f);
-      if(url){photos[iso].push(url);ok++;}
+      if(url){
+        photos[iso].push(url);ok++;
+        if(hideNew){photoMeta[iso].hidden.push(url);zunaechstVersteckt++;}
+      }
       else{fehler.push(f.name);}
     }catch(e){fehler.push(f.name+' ('+(e.message||e)+')');}
   }
-  if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
   photoMeta[iso].order=photos[iso].slice();
   await sbSavePhotoMeta(iso);
   renderTage();
   if(fehler.length){
     alert(ok+' Foto(s) gespeichert.\n\n'+fehler.length+' Foto(s) fehlgeschlagen:\n'+fehler.slice(0,5).join('\n'));
   }else{
-    toast(ok+' Foto(s) gespeichert!');
+    toast(ok+' Foto(s) gespeichert!'+(zunaechstVersteckt?' Sie sind zunächst nur für dich sichtbar.':''));
   }
 }
 async function delPhoto(iso,idx){
@@ -1731,6 +1777,7 @@ async function delPhoto(iso,idx){
   if(photoMeta[iso]){
     if(photoMeta[iso].order)photoMeta[iso].order=arr.slice();
     if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
+    if(Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=photoMeta[iso].hidden.filter(function(u){return u!==url;});
     await sbSavePhotoMeta(iso);
   }
   renderTage();toast('Foto gelöscht.');
@@ -2760,7 +2807,7 @@ async function renderJournal(){
   for(var i=0;i<days.length;i++){
     var iso=days[i];
     var e=entries[iso];
-    var ph=(photos[iso]||[]);
+    var ph=visiblePhotos(iso);
     if(e&&e.text&&e.text.trim()){
       items.push({iso:iso,at:e.at,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
     }
