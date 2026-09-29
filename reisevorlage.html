@@ -976,6 +976,7 @@ async function initAuth(){
 // Tag-für-Tag nur für Besitzer/Admin sichtbar; Besucher sehen nur das schicke Design
 function applyViewMode(){
   var isAdmin=!!editMode;
+  try{qxUpdateFab();}catch(e){}
   // Sichtbarkeit & Reihenfolge steuert das CSS über html.is-admin (kein Springen der Seite)
   document.documentElement.classList.toggle('is-admin',!!isAdmin);
   document.querySelectorAll('.fnav-link').forEach(function(a){
@@ -2375,6 +2376,189 @@ async function delExpense(iso,idx){
   renderTage();renderCosts();toast('Ausgabe gelöscht.');
 }
 function closeExpenseModal(){document.getElementById('expense-modal').classList.remove('open');}
+
+// ── SCHNELLERFASSUNG FÜR TAGESAUSGABEN (Knopf „＋ Ausgabe“ und ?schnell=1) ─────
+function qxTrip(){return REISE;}
+var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Taxi','🚕'],['🎫','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
+var QX_DEFCUR='EUR';
+var _qxCat='',_qxBusy=false;
+function qxDays(){return buildDays();}
+function qxLS(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){}return null;}
+function qxTodayISO(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+// Standarddatum: heute, sonst der nächstgelegene Reisetag
+function qxDefaultDate(days,today){
+  days=days||[];today=today||qxTodayISO();
+  if(!days.length)return today;
+  if(days.indexOf(today)>=0)return today;
+  return today<days[0]?days[0]:days[days.length-1];
+}
+function qxParseAmount(s){const a=parseFloat(String(s==null?'':s).replace(',','.'));return isNaN(a)?0:a;}
+function qxCatName(tok){for(const c of QX_CATS){if(c[0]===tok)return c[1];}return 'Ausgabe';}
+function qxDayTotal(iso){
+  return (dayExpenses[iso]||[]).reduce(function(s,e){return s+toEUR(e.amount,e.cur||'EUR');},0);
+}
+// ── Ausgaben, die ohne Netz nicht gespeichert werden konnten ──
+function qxOutboxKey(){return 'tv_qx_outbox_'+qxTrip();}
+function qxOutbox(){try{return JSON.parse(qxLS(qxOutboxKey())||'[]')||[];}catch(e){return [];}}
+function qxOutboxSave(list){qxLS(qxOutboxKey(),JSON.stringify(list));qxRefreshPending();}
+async function qxFlush(){
+  if(!currentUser||!editMode||navigator.onLine===false)return;
+  let list=qxOutbox();if(!list.length)return;
+  const rest=[];let sent=0,dropped=0;
+  for(const it of list){
+    const id=await sbSaveExpense(it.iso,it.cat,it.label,it.amount,it.cur);
+    if(id!==null){
+      if(!dayExpenses[it.iso])dayExpenses[it.iso]=[];
+      dayExpenses[it.iso].push({id:id,cat:it.cat,label:it.label,amount:it.amount,cur:it.cur});sent++;
+    }else{
+      it.tries=(it.tries||0)+1;
+      if(it.tries>=5)dropped++;else rest.push(it);
+    }
+  }
+  qxOutboxSave(rest);
+  if(sent){qxRerender();toast('✓ '+sent+(sent===1?' vermerkte Ausgabe':' vermerkte Ausgaben')+' übertragen.');}
+  if(dropped)toast(dropped+(dropped===1?' Ausgabe':' Ausgaben')+' konnte(n) nicht übertragen werden. Bitte noch einmal erfassen.');
+}
+function qxRerender(){renderTage();renderCosts();}
+// ── Oberfläche ──
+function qxEl(id){return document.getElementById(id);}
+function qxBuild(){
+  if(qxEl('qx-ov'))return;
+  const st=document.createElement('style');
+  st.textContent='#qx-fab{position:fixed;right:16px;bottom:calc(92px + env(safe-area-inset-bottom));z-index:9000;height:52px;padding:0 20px;border-radius:999px;border:0;background:#1A1714;color:#F4EFE8;font:500 15px "DM Sans",sans-serif;box-shadow:0 6px 20px rgba(26,23,20,.3);cursor:pointer;display:none;align-items:center;gap:8px;}'
+  +'#qx-fab:active{transform:scale(.97);}html.fmenu-open #qx-fab{display:none !important;}'
+  +'#qx-ov{position:fixed;inset:0;z-index:9500;background:rgba(26,23,20,.55);display:none;align-items:flex-end;justify-content:center;}'
+  +'#qx-sheet{width:100%;max-width:520px;background:#F4EFE8;color:#1A1714;border-radius:20px 20px 0 0;padding:16px 18px calc(24px + env(safe-area-inset-bottom));max-height:94vh;overflow:auto;font-family:"DM Sans",sans-serif;}'
+  +'#qx-sheet h2{font-family:"Playfair Display",serif;font-weight:400;font-size:22px;margin:0;}'
+  +'.qx-row{display:flex;gap:10px;align-items:center;}'
+  +'#qx-sheet input,#qx-sheet select{font:16px "DM Sans",sans-serif;color:#1A1714;background:#fff;border:1.5px solid #D8D0C4;border-radius:12px;padding:12px 14px;min-width:0;width:100%;box-sizing:border-box;}'
+  +'#qx-amt{font-size:32px !important;font-weight:500;padding:10px 14px !important;}'
+  +'#qx-cur{width:112px !important;flex:0 0 auto;}'
+  +'.qx-chips{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}'
+  +'.qx-chip{border:1.5px solid #D8D0C4;background:#fff;border-radius:999px;padding:10px 14px;font:500 14px "DM Sans",sans-serif;color:#1A1714;cursor:pointer;}'
+  +'.qx-chip[aria-pressed="true"]{background:rgba(181,113,74,.16);border-color:#B5714A;font-weight:600;}'
+  +'.qx-btn{min-height:50px;border-radius:14px;border:1.5px solid #1A1714;background:#1A1714;color:#F4EFE8;font:600 15px "DM Sans",sans-serif;cursor:pointer;flex:1;}'
+  +'.qx-btn.alt{background:transparent;color:#1A1714;}.qx-btn:disabled{opacity:.55;}'
+  +'.qx-info{font-size:13px;color:#6B6560;margin:8px 2px 0;}'
+  +'.qx-help{font-size:12px;color:#6B6560;margin-top:14px;line-height:1.5;}.qx-help button{border:0;background:none;color:#B5714A;font:500 12px "DM Sans",sans-serif;text-decoration:underline;cursor:pointer;padding:0;}'
+  +'@media print{#qx-fab,#qx-ov{display:none !important;}}';
+  document.head.appendChild(st);
+  const fab=document.createElement('button');fab.id='qx-fab';fab.type='button';fab.innerHTML='<span style="font-size:22px;line-height:1">＋</span> Ausgabe';fab.onclick=qxOpen;
+  document.body.appendChild(fab);
+  const ov=document.createElement('div');ov.id='qx-ov';
+  ov.onclick=function(e){if(e.target===ov)qxClose();};
+  ov.innerHTML='<div id="qx-sheet" role="dialog" aria-modal="true" aria-label="Ausgabe erfassen">'
+    +'<div class="qx-row" style="justify-content:space-between;margin-bottom:12px"><h2>Ausgabe erfassen</h2><button type="button" onclick="qxClose()" aria-label="Schließen" style="border:0;background:none;font-size:26px;cursor:pointer;color:#6B6560;padding:4px 8px">✕</button></div>'
+    +'<div class="qx-row"><input id="qx-amt" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"><select id="qx-cur" aria-label="Währung"></select></div>'
+    +'<div class="qx-chips" id="qx-chips"></div>'
+    +'<input id="qx-label" type="text" placeholder="Bezeichnung (optional), z. B. Kaffee" autocomplete="off">'
+    +'<div class="qx-row" style="margin-top:10px"><input id="qx-date" type="date" aria-label="Datum"></div>'
+    +'<div class="qx-info" id="qx-info"></div>'
+    +'<div class="qx-row" style="margin-top:14px"><button type="button" class="qx-btn alt" id="qx-more" onclick="qxSave(true)">＋ Noch eine</button><button type="button" class="qx-btn" id="qx-ok" onclick="qxSave(false)">Speichern</button></div>'
+    +'<div class="qx-help" id="qx-pending" style="display:none"></div>'
+    +'<div class="qx-help">Tipp: Als eigenes Symbol auf dem Startbildschirm ablegen – die Seite mit <b>?schnell=1</b> öffnen und im Teilen-Menü „Zum Home-Bildschirm“ wählen. <button type="button" onclick="qxCopyLink()">Adresse kopieren</button></div>'
+    +'</div>';
+  document.body.appendChild(ov);
+  // Währungen und Kategorien füllen
+  qxEl('qx-cur').innerHTML=Object.keys(FX).map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+  qxEl('qx-cur').value=Object.keys(FX).indexOf(qxLS('tv_qx_cur_'+qxTrip())||'')>=0?qxLS('tv_qx_cur_'+qxTrip()):QX_DEFCUR;
+  const chips=qxEl('qx-chips');
+  QX_CATS.forEach(function(c){
+    const b=document.createElement('button');b.type='button';b.className='qx-chip';b.setAttribute('data-c',c[0]);
+    b.textContent=(c[2]||c[0])+' '+c[1];
+    b.onclick=function(){qxPick(c[0]);};chips.appendChild(b);
+  });
+  const last=qxLS('tv_qx_cat_'+qxTrip());
+  qxPick(QX_CATS.some(function(c){return c[0]===last;})?last:QX_CATS[0][0]);
+  qxEl('qx-date').addEventListener('change',qxInfo);
+  qxEl('qx-amt').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();qxSave(false);}});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')qxClose();});
+  window.addEventListener('online',function(){qxFlush();});
+}
+function qxPick(tok){
+  _qxCat=tok;
+  const chips=qxEl('qx-chips');if(!chips)return;
+  Array.prototype.forEach.call(chips.children,function(b){b.setAttribute('aria-pressed',b.getAttribute('data-c')===tok?'true':'false');});
+}
+function qxInfo(){
+  const el=qxEl('qx-info');if(!el)return;
+  const iso=qxEl('qx-date').value||qxDefaultDate(qxDays());
+  const t=qxDayTotal(iso);
+  const lbl=(iso===qxTodayISO())?'Heute':new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});
+  el.textContent=t>0?(lbl+' bisher: EUR '+fmt(t)):(lbl+': noch keine Ausgaben');
+}
+function qxRefreshPending(){
+  const p=qxEl('qx-pending');if(!p)return;
+  const n=qxOutbox().length;
+  p.style.display=n?'block':'none';
+  p.textContent=n?(n+(n===1?' Ausgabe wartet':' Ausgaben warten')+' auf die Übertragung (kein Netz). Sie wird automatisch nachgeholt.'):'';
+}
+function qxUpdateFab(){
+  qxBuild();
+  const fab=qxEl('qx-fab');if(!fab)return;
+  fab.style.display=(editMode&&currentUser)?'flex':'none';
+}
+function qxOpen(){
+  if(!editMode||!currentUser){toast('Bitte als Besitzer anmelden.');return;}
+  qxBuild();
+  const days=qxDays();
+  const d=qxEl('qx-date');
+  if(days.length){d.min=days[0];d.max=days[days.length-1];}else{d.removeAttribute('min');d.removeAttribute('max');}
+  d.value=qxDefaultDate(days);
+  qxEl('qx-amt').value='';qxEl('qx-label').value='';
+  qxInfo();qxRefreshPending();
+  qxEl('qx-ov').style.display='flex';
+  setTimeout(function(){const a=qxEl('qx-amt');if(a)a.focus();},150);
+}
+function qxClose(){const o=qxEl('qx-ov');if(o)o.style.display='none';}
+async function qxSave(again){
+  if(_qxBusy)return;
+  const amt=qxParseAmount(qxEl('qx-amt').value);
+  if(amt<=0){toast('Bitte einen Betrag eingeben.');qxEl('qx-amt').focus();return;}
+  const iso=qxEl('qx-date').value||qxDefaultDate(qxDays());
+  const cat=_qxCat||QX_CATS[0][0];
+  const cur=qxEl('qx-cur').value||QX_DEFCUR;
+  const label=qxEl('qx-label').value.trim()||qxCatName(cat);
+  _qxBusy=true;qxEl('qx-ok').disabled=true;qxEl('qx-more').disabled=true;
+  qxLS('tv_qx_cat_'+qxTrip(),cat);qxLS('tv_qx_cur_'+qxTrip(),cur);
+  let saved=false;
+  try{
+    const id=(navigator.onLine===false)?null:await sbSaveExpense(iso,cat,label,amt,cur);
+    if(id!==null){
+      if(!dayExpenses[iso])dayExpenses[iso]=[];
+      dayExpenses[iso].push({id:id,cat:cat,label:label,amount:amt,cur:cur});
+      qxRerender();saved=true;
+      toast('✓ '+fmt(amt)+' '+cur+' gespeichert');
+    }else{
+      const list=qxOutbox();list.push({iso:iso,cat:cat,label:label,amount:amt,cur:cur,tries:0});qxOutboxSave(list);
+      toast('Kein Netz? Die Ausgabe ist auf dem Gerät vermerkt und wird später übertragen.');
+    }
+  }finally{
+    _qxBusy=false;qxEl('qx-ok').disabled=false;qxEl('qx-more').disabled=false;
+  }
+  qxEl('qx-amt').value='';qxEl('qx-label').value='';qxInfo();
+  if(again){setTimeout(function(){qxEl('qx-amt').focus();},50);}else{qxClose();}
+}
+function qxLink(){const u=new URL(location.href);u.searchParams.set('schnell','1');u.hash='';return u.toString();}
+async function qxCopyLink(){
+  const l=qxLink();
+  try{await navigator.clipboard.writeText(l);toast('Adresse kopiert. Öffne sie in Safari und wähle „Zum Home-Bildschirm“.');}
+  catch(e){window.prompt('Diese Adresse als Symbol ablegen:',l);}
+}
+// Start: Anzeige-Knopf prüfen, vermerkte Ausgaben nachholen, ?schnell=1 automatisch öffnen
+function qxInit(){
+  let tries=0;
+  const t=setInterval(function(){
+    tries++;
+    if(editMode&&currentUser){
+      clearInterval(t);
+      qxUpdateFab();qxFlush();
+      try{if(new URLSearchParams(location.search).get('schnell')==='1')qxOpen();}catch(e){}
+    }else if(tries>60){clearInterval(t);}
+  },500);
+}
+setTimeout(qxInit,1500);
+
 
 // ── WECHSELKURSE UI ───────────────────────────────────────────────────────────
 function renderFXSettings(){
