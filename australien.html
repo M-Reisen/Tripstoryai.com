@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Australien">
+<meta name="theme-color" content="#F4EFE8">
 <meta name="description" content="Queensland &amp; Great Barrier Reef – 13. September bis 10. Oktober 2026.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Travona">
@@ -503,6 +509,7 @@ html.is-admin main{padding-top:40px;}
           <p class="fmenu-status" id="fmenu-status"></p>
           <p class="fmenu-dates">13. September bis 10. Oktober 2026<br>Queensland &amp; Great Barrier Reef</p>
           <p class="fmenu-dev" id="fmenu-dev" style="display:none"></p>
+          <p class="fmenu-dev" id="fmenu-tip" style="display:none"></p>
         </aside>
       </div>
       <div class="fmenu-actions">
@@ -1459,6 +1466,15 @@ function jumpTo(ev,tab){
   if(el)setTimeout(function(){el.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
 function updateMenuMeta(){
+  var tp=document.getElementById('fmenu-tip');
+  if(tp){
+    var standalone=false;
+    try{standalone=(window.navigator.standalone===true)||window.matchMedia('(display-mode: standalone)').matches;}catch(e){}
+    if(canEdit&&!standalone){
+      tp.textContent='App-Tipp: Wähle im Teilen-Menü deines Browsers „Zum Home-Bildschirm“. Dann öffnet sich dieses Tagebuch wie eine App.';
+      tp.style.display='';
+    }else{tp.style.display='none';}
+  }
   var dv=document.getElementById('fmenu-dev');
   if(dv){
     if(canEdit){
