@@ -3018,7 +3018,7 @@ function pbCollectImages(html){
 }
 function pbApplyBlobs(html,map){
   Object.keys(map).forEach(function(orig){
-    if(map[orig])html=html.split('src="'+orig+'"').join('src="'+map[orig]+'"');
+    if(map[orig])html=html.split('src="'+orig+'"').join('src="'+map[orig]+'" data-o="'+orig+'" onerror="this.onerror=null;this.src=this.getAttribute(\'data-o\')"');
   });
   return html;
 }
@@ -3054,12 +3054,17 @@ function pbProgress(text){
   }
   p.textContent=text;
 }
-function pbCloseViewer(){
+// nur die Ansicht entfernen (die vorbereiteten Fotos bleiben erhalten)
+function pbRemoveViewer(){
   const v=document.getElementById('pb-viewer');
   if(v)v.remove();
+  window.removeEventListener('popstate',pbCloseViewer);
+}
+// Ansicht schließen und die vorbereiteten Fotos freigeben
+function pbCloseViewer(){
+  pbRemoveViewer();
   document.documentElement.style.overflow='';
   _pbBlobsRevoke();
-  window.removeEventListener('popstate',pbCloseViewer);
 }
 function _pbBlobsRevoke(){_pbBlobs.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});_pbBlobs=[];}
 function pbBackOrClose(){
@@ -3088,7 +3093,7 @@ async function pbShowViewer(html,title){
     // 2) Bildschirm-Darstellung: Seiten untereinander, auf Handybreite verkleinert (beim Drucken ohne Wirkung)
     html=html.replace('</head>','<style>@media screen{html{background:#cfc9c0}body{zoom:var(--pbz,1)}.pb-page{margin:0 auto 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style></head>');
     // 3) Fenster mit Schließen- und Drucken-Knopf
-    pbCloseViewer();
+    pbRemoveViewer();
     const v=document.createElement('div');
     v.id='pb-viewer';
     v.style.cssText='position:fixed;inset:0;z-index:10000;background:#cfc9c0;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif;';
