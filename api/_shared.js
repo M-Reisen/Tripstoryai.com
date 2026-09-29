@@ -92,7 +92,7 @@ function tripDesc(meta, row) {
 }
 
 // Vorhandene Vorschau-/Such-Angaben entfernen und neue vor </head> einsetzen
-function injectHead(html, { title, tags, id }) {
+function injectHead(html, { title, tags, id, route }) {
   html = html
     .replace(/<meta\s+property="og:[^>]*>\s*/gi, '')
     .replace(/<meta\s+name="twitter:[^>]*>\s*/gi, '')
@@ -101,6 +101,8 @@ function injectHead(html, { title, tags, id }) {
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, '');
   if (title) html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
   if (id) html = html.replace(/<head>/i, '<head>\n<script>window.__REISE_ID=' + JSON.stringify(id) + ';</script>');
+  // Reise vom Server nicht auffindbar (z. B. privat): die Seite schlägt sie mit der Anmeldung des Besuchers selbst nach
+  else if (route) html = html.replace(/<head>/i, '<head>\n<script>window.__ROUTE=' + JSON.stringify(route) + ';</script>');
   return html.replace('</head>', tags + '\n</head>');
 }
 
@@ -176,7 +178,7 @@ function cardHtml(row) {
     '</div></a>';
 }
 
-function listPage({ title, desc, path, robots, crumbs, h1, lead, inner }) {
+function listPage({ title, desc, path, robots, crumbs, h1, lead, inner, script }) {
   const url = BASE + path;
   return '<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="UTF-8">\n' +
     '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
@@ -191,7 +193,7 @@ function listPage({ title, desc, path, robots, crumbs, h1, lead, inner }) {
     '<section class="hero"><div class="crumbs">' + crumbs + '</div><h1>' + esc(h1) + '</h1><p class="lead">' + esc(lead) + '</p></section>\n' +
     '<main class="wrap">' + inner + '</main>\n' +
     '<footer><a href="/index.html">Community</a> · <a href="/reisetagebuch">Reiseziele</a> · <a href="/vorteile.html">Eigenes Tagebuch starten</a> · <a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a></footer>\n' +
-    '</body>\n</html>\n';
+    (script || '') + '</body>\n</html>\n';
 }
 
 module.exports = {
