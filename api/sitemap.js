@@ -1,40 +1,28 @@
-// Sitemap für Suchmaschinen: Startseite, Vorteile-Seite und alle öffentlichen Reisen.
-// Wird über vercel.json unter /sitemap.xml ausgeliefert.
-const SUPABASE_URL = 'https://celihvrblqqivtlvzbjp.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4'; // öffentlicher anon-Key (derselbe wie in den Seiten)
-const BASE = 'https://www.travona.de';
-
-// Reisen mit eigener Seite (statt der Vorlage)
-const SPECIAL_PAGES = { 'australien-2026': 'australien.html' };
+// Sitemap für Suchmaschinen (unter /sitemap.xml): Startseite, Vorteile, Reiseziele
+// und alle öffentlichen Reisen mit ihrer schönen Adresse.
+const S = require('./_shared');
 
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 module.exports = async (req, res) => {
-  const urls = [BASE + '/', BASE + '/vorteile.html'];
+  const urls = [S.BASE + '/', S.BASE + '/vorteile.html'];
   try {
-    const r = await fetch(
-      SUPABASE_URL + '/rest/v1/trips?visibility=eq.public&select=id&order=created_at.desc&limit=1000',
-      { headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY } }
-    );
-    if (r.ok) {
-      const rows = await r.json();
-      rows.forEach((t) => {
-        if (!t.id) return;
-        urls.push(
-          Object.prototype.hasOwnProperty.call(SPECIAL_PAGES, t.id)
-            ? BASE + '/' + SPECIAL_PAGES[t.id]
-            : BASE + '/reisevorlage.html?reise=' + encodeURIComponent(t.id)
-        );
-      });
+    const rows = (await S.getTrips('visibility=eq.public&order=created_at.desc&limit=1000')) || [];
+    const lands = new Set();
+    rows.forEach((r) => {
+      if (!r.id) return;
+      if (r.land_slug && r.slug) S.landsOf(r).forEach((l) => lands.add(l.slug));
+      urls.push(S.BASE + S.tripPath(r));
+    });
+    if (lands.size) {
+      urls.push(S.BASE + '/reisetagebuch');
+      Array.from(lands).sort().forEach((l) => urls.push(S.BASE + '/reisetagebuch/' + l));
     }
-  } catch (e) { /* im Fehlerfall wenigstens die festen Seiten ausliefern */ }
+  } catch (e) { /* im Fehlerfall wenigstens die festen Seiten */ }
 
-  const body =
-    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  const body = '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
-    urls.map((u) => '  <url><loc>' + xml(u) + '</loc></url>').join('\n') +
-    '\n</urlset>\n';
-
+    urls.map((u) => '  <url><loc>' + xml(u) + '</loc></url>').join('\n') + '\n</urlset>\n';
   res.setHeader('Content-Type', 'application/xml; charset=utf-8');
   res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
   res.status(200).send(body);
