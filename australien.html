@@ -525,10 +525,10 @@ html.is-admin main{padding-top:40px;}
 <div class="figma-stats">
   <div class="figma-stats-inner">
     <div class="figma-stat"><span class="fs-num" id="stat-days">28</span><span class="fs-lbl">Tage</span></div>
-    <div class="figma-stat"><span class="fs-num">11</span><span class="fs-lbl">Unterkünfte</span></div>
-    <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Ausflüge</span></div>
-    <div class="figma-stat"><span class="fs-num">6</span><span class="fs-lbl">Flüge</span></div>
-    <div class="figma-stat"><span class="fs-num">3.200 km</span><span class="fs-lbl">Strecke</span></div>
+    <div class="figma-stat"><span class="fs-num" id="stat-stays">11</span><span class="fs-lbl">Unterkünfte</span></div>
+    <div class="figma-stat"><span class="fs-num" id="stat-tours">6</span><span class="fs-lbl">Ausflüge</span></div>
+    <div class="figma-stat"><span class="fs-num" id="stat-flights">6</span><span class="fs-lbl">Flüge</span></div>
+    <div class="figma-stat"><span class="fs-num" id="stat-km">2.430 km</span><span class="fs-lbl">Luftlinie</span></div>
   </div>
 </div>
 
@@ -1761,8 +1761,20 @@ var AU_STOPS=[
       var last=first+Math.max(bk.nights||1,1)-1;
       st.days=(last>first)?('Tag '+(first+1)+'–'+(last+1)):('Tag '+(first+1));
     });
-    var sd=document.getElementById('stat-days');
-    if(sd)sd.textContent=DAYS.length;
+    var setStat=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
+    setStat('stat-days',DAYS.length);
+    setStat('stat-stays',BOOKINGS.length);
+    setStat('stat-tours',TIMELINE.filter(function(t){return t.type==='tour';}).length);
+    setStat('stat-flights',TIMELINE.filter(function(t){return t.cls==='flight';}).length);
+    // Strecke: Luftlinie zwischen den Stationen in Australien
+    var rad=Math.PI/180,km=0;
+    for(var k=1;k<AU_STOPS.length;k++){
+      var p=AU_STOPS[k-1],q=AU_STOPS[k];
+      var dLa=(q.lat-p.lat)*rad,dLo=(q.lng-p.lng)*rad;
+      var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(p.lat*rad)*Math.cos(q.lat*rad)*Math.sin(dLo/2)*Math.sin(dLo/2);
+      km+=6371*2*Math.asin(Math.sqrt(h));
+    }
+    setStat('stat-km',(Math.round(km/10)*10).toLocaleString('de-DE')+' km');
   }catch(e){console.error('Tage:',e);}
 })();
 var _leafletWait=false;
