@@ -1382,11 +1382,16 @@ function renderHead(){
   // Stats
   const days=buildDays();
   const stations=new Set(costs.filter(c=>c.cat==='Unterkunft').map(c=>c.label)).size;
+  const tours=costs.filter(c=>c.cat==='Ausflug').length;
+  const flights=costs.filter(c=>c.cat==='Flug').length;
   const total=costs.reduce((s,c)=>s+toEUR(c.amount,c.cur),0);
+  const stat=function(id,num,lbl){return `<div class="figma-stat"><span class="fs-num" id="${id}">${num}</span><span class="fs-lbl">${lbl}</span></div>`;};
   let stats='';
-  if(days.length){stats+=`<div class="figma-stat"><span class="fs-num">${days.length}</span><span class="fs-lbl">Tage</span></div>`;}
-  if(stations){stats+=`<div class="figma-stat"><span class="fs-num">${stations}</span><span class="fs-lbl">Unterkünfte</span></div>`;}
-  if(costs.length){stats+=`<div class="figma-stat"><span class="fs-num">${costs.length}</span><span class="fs-lbl">Positionen</span></div>`;}
+  if(days.length)stats+=stat('stat-days',days.length,'Tage');
+  if(stations)stats+=stat('stat-stays',stations,'Unterkünfte');
+  if(tours)stats+=stat('stat-tours',tours,'Ausflüge');
+  if(flights)stats+=stat('stat-flights',flights,'Flüge');
+  if(_statKm)stats+=stat('stat-km',_statKm.toLocaleString('de-DE')+' km','Luftlinie');
   document.getElementById('hero-stats').innerHTML=stats;
   document.getElementById('hero-stats-wrap').style.display=stats?'block':'none';
   document.getElementById('hero-edit-wrap').style.display=editMode?'block':'none';
@@ -3047,6 +3052,24 @@ function ensureLeaflet(){
   });
   return _leafletLoading;
 }
+// Luftlinie zwischen den Stationen (Summe der Teilstrecken), gerundet auf 10 km
+var _statKm=null;
+async function computeStatKm(){
+  var days=buildDays();
+  if(!days.length){_statKm=null;return;}
+  var pts=[];
+  for(var i=0;i<days.length;i++){
+    var pt=await coordForDay(days[i]);
+    if(pt){
+      var last=pts[pts.length-1];
+      if(!(last&&Math.abs(last.lat-pt.lat)<0.01&&Math.abs(last.lon-pt.lon)<0.01))pts.push(pt);
+    }
+    if(canEdit)await sleep(60);
+  }
+  var km=0;
+  for(var k=1;k<pts.length;k++)km+=haversineKm(pts[k-1],pts[k]);
+  _statKm=(pts.length>1&&km>=10)?Math.round(km/10)*10:null;
+}
 var _karteRun=0;
 function whenNearViewport(el){
   return new Promise(function(res){
@@ -3221,7 +3244,7 @@ async function init(){
   try{renderAll();}catch(e){console.error('renderAll:',e);}
   applyHeroImage().catch(function(e){console.error('Hero:',e);});
   // Reisekarte laden (Geocache zuerst, dann zeichnen)
-  try{await loadGeoCache();renderKarte();}catch(e){console.error('Karte:',e);}
+  try{await loadGeoCache();renderKarte();computeStatKm().then(function(){renderHead();}).catch(function(e){console.error('Strecke:',e);});}catch(e){console.error('Karte:',e);}
 }
 // ── NAV-VERHALTEN: Hintergrund beim Scrollen, aktuelle Sektion im Menü, Schließen ──
 (function(){
