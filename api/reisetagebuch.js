@@ -31,7 +31,15 @@ async function fetchPage(origin, file) {
 // Reise-Seite unter der schönen Adresse
 async function tripPage(res, origin, land, slug) {
   const rows = await S.getTrips('land_slug=eq.' + S.enc(land) + '&slug=eq.' + S.enc(slug) + '&limit=1');
-  if (!rows || !rows.length) return notFound(res);
+  if (!rows || !rows.length) {
+    // Der Server sieht nur öffentliche und „per Link“ geteilte Reisen. Private Reisen (und unbekannte
+    // Adressen) bekommen die Vorlage ohne Angaben; sie schlägt die Reise mit der Anmeldung des Besuchers nach.
+    const generic = await fetchPage(origin, 'reisevorlage.html');
+    const html404 = S.injectHead(generic, {
+      title: null, tags: '<meta name="robots" content="noindex, nofollow">', route: { land, slug }
+    });
+    return send(res, 200, html404, 'public, s-maxage=60');
+  }
   const row = rows[0];
   const file = S.has(S.SPECIAL_PAGES, row.id) ? S.SPECIAL_PAGES[row.id] : 'reisevorlage.html';
   let html = await fetchPage(origin, file);
