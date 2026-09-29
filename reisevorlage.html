@@ -2470,7 +2470,7 @@ function updateMenuMeta(){
   if(dv){
     if(canEdit){
       var did='';try{did=localStorage.getItem('travona_dev')||'';}catch(e){}
-      dv.textContent='Nur für dich sichtbar: Dieses Gerät wird nicht als Besuch gezählt.'+(did?' Geräte-Kennung: '+did:'');
+      dv.textContent='Nur für dich sichtbar: Dieses Gerät wird nicht als Aufruf gezählt.'+(did?' Geräte-Kennung: '+did:'');
       dv.style.display='';
     }else{dv.style.display='none';}
   }
@@ -2575,7 +2575,21 @@ async function trackVisit(){
     var res=await sb.from('kommentare').select('ort',{count:'exact'}).like('ort','visit_'+REISE+'_%');
     if(res.error){if(box)box.textContent='';return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
-    if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
+    // Unterschiedliche Besucher: verschiedene Geräte-Kennungen unter allen Besuchen dieser Reise
+    var besucher=null;
+    if(count>0&&count<=20000){
+      try{
+        var vpre='visit_'+REISE+'_',seen={},from=0,step=1000;
+        while(from<count){
+          var pg=await sb.from('kommentare').select('ort').like('ort',vpre+'%').order('ort').range(from,from+step-1);
+          if(pg.error||!pg.data||!pg.data.length)break;
+          pg.data.forEach(function(r){seen[String(r.ort).slice(vpre.length).split('_')[0]]=1;});
+          from+=step;
+        }
+        besucher=Object.keys(seen).length;
+      }catch(e2){}
+    }
+    if(box)box.textContent=(besucher!=null?besucher+' Besucher · ':'')+count+(count===1?' Aufruf':' Aufrufe');
   }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
 }
 async function loadGuestbook(){
