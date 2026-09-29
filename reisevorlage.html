@@ -409,6 +409,17 @@ html:not(.is-admin) #fotobuch-btn{display:none;}
   html:not(.is-admin) body>*{display:none !important;}
   html:not(.is-admin) body::before{content:"Drucken ist für Gäste nicht vorgesehen.";display:block;padding:40px;font-family:'DM Sans',sans-serif;font-size:16px;}
 }
+/* Hinweis „Mit Travona erstellt“ (für Gäste; im Bearbeiten-Modus ausgeblendet) */
+.tv-promo{width:100%;max-width:1200px;margin:0 auto;padding:64px 32px 8px;text-align:center;box-sizing:border-box;}
+.tv-promo-inner{border-top:1px solid var(--rule);padding-top:48px;}
+.tv-promo-eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin:0 0 14px;}
+.tv-promo-title{font-family:'Playfair Display',serif;font-size:clamp(24px,3.4vw,34px);font-weight:400;line-height:1.2;color:var(--ink);margin:0 auto 12px;max-width:560px;}
+.tv-promo-text{font-size:14px;line-height:1.7;color:var(--fog);margin:0 auto 26px;max-width:460px;}
+.tv-promo-actions{display:flex;flex-wrap:wrap;gap:14px 22px;align-items:center;justify-content:center;}
+.tv-promo-link{font-size:13px;color:var(--ink);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--rule);transition:text-decoration-color .2s;}
+.tv-promo-link:hover{text-decoration-color:var(--terra);}
+.tv-promo-link:focus-visible{outline:2px solid var(--terra);outline-offset:3px;}
+html.is-admin .tv-promo{display:none;}
 .fmenu-btn{display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 22px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--ink);background:transparent;border:1px solid rgba(26,23,20,.28);text-decoration:none;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s,border-color .2s;}
 .fmenu-btn:hover{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 .fmenu-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
@@ -596,6 +607,17 @@ html.is-admin main{padding-top:40px;}
       <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
     </div>
   </div>
+<section class="tv-promo" aria-label="Über Travona">
+  <div class="tv-promo-inner">
+    <p class="tv-promo-eyebrow">Mit Travona erstellt</p>
+    <h2 class="tv-promo-title">Deine nächste Reise verdient ein eigenes Tagebuch.</h2>
+    <p class="tv-promo-text">Tagesplan, Fotos, Karte und Kosten an einem Ort – und mit Familie und Freunden teilbar.</p>
+    <div class="tv-promo-actions">
+      <a class="fmenu-btn fmenu-btn--solid" href="meine-reisen.html">Eigenes Tagebuch starten</a>
+      <a class="tv-promo-link" href="index.html">Mehr über Travona</a>
+    </div>
+  </div>
+</section>
   <div id="visit-counter" style="max-width:1200px;margin:0 auto;text-align:center;padding:32px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);"></div>
 </main>
 
