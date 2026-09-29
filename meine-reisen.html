@@ -138,6 +138,10 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .field textarea{resize:vertical;min-height:64px;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .help{font-size:.72rem;color:var(--fog);margin-top:4px;line-height:1.4;}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border:1px solid var(--line);border-radius:999px;font-size:.8rem;background:var(--surface2);}
+.chip button{border:0;background:none;color:var(--fog);font-size:1rem;line-height:1;cursor:pointer;padding:0 6px;}
+.chip button:hover{color:var(--ink);}
 .status-pick{display:flex;gap:8px;}
 .status-opt{flex:1;text-align:center;padding:9px 6px;border:1.5px solid var(--line);border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s;background:var(--paper);}
 .status-opt.sel{color:#fff;border-color:transparent;}
@@ -259,12 +263,13 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
         <div class="help">Wird automatisch aus dem Datum gesetzt — du kannst es aber überschreiben.</div>
       </div>
       <div class="field-row">
-        <div class="field"><label>Reiseland</label><input type="text" id="t-land" placeholder="z.B. Kroatien" maxlength="40"></div>
+        <div class="field"><label>Reiseland</label><select id="t-land"></select></div>
         <div class="field"><label>Adressname</label><input type="text" id="t-slug" placeholder="wird automatisch erstellt" maxlength="60"></div>
       </div>
       <div class="field">
         <label>Weitere Länder <span style="text-transform:none;font-weight:400">(optional)</span></label>
-        <input type="text" id="t-weitere" placeholder="z.B. Slowenien, Österreich" maxlength="120">
+        <select id="t-weitere-add"></select>
+        <div class="chips" id="t-weitere-chips"></div>
       </div>
       <div class="help" id="slug-preview" style="margin:-6px 0 14px"></div>
       <div class="field">
@@ -584,7 +589,7 @@ function openNewTrip(){
   document.getElementById('tm-title').textContent = 'Neue Reise';
   setField('t-id',''); setField('t-name',''); setField('t-emoji','');
   setField('t-loc',''); setField('t-from',''); setField('t-to','');
-  setField('t-note',''); setField('t-img',''); setField('t-land',''); setField('t-slug',''); setField('t-weitere','');
+  setField('t-note',''); setField('t-img',''); setLand(''); setField('t-slug',''); setWeitere([]);
   updateSlugPreview();
   pickStatus('');
   pickVis('private');
@@ -598,7 +603,7 @@ function editTrip(ev,id){
   document.getElementById('tm-title').textContent = 'Reise bearbeiten';
   setField('t-id',t.id); setField('t-name',t.name||''); setField('t-emoji',t.emoji||'');
   setField('t-loc',t.loc||''); setField('t-from',t.from||''); setField('t-to',t.to||'');
-  setField('t-note',t.note||''); setField('t-img',t.img||''); setField('t-land',t.land||''); setField('t-slug',t.slug||''); setField('t-weitere',(t.weitere||[]).map(function(w){return w.name;}).join(', '));
+  setField('t-note',t.note||''); setField('t-img',t.img||''); setLand(t.land||''); setField('t-slug',t.slug||''); setWeitere(t.weitere||[]);
   updateSlugPreview();
   pickStatus(t.status||'');
   pickVis(t.visibility||'private');
@@ -691,7 +696,7 @@ async function saveTrip(){
     land: landSlug ? land : '',
     land_slug: landSlug,
     slug: slug,
-    weitere: landSlug ? parseWeitere(val('t-weitere'), landSlug) : []
+    weitere: landSlug ? _weitere.filter(function(w){return w.slug!==landSlug;}) : []
   };
 
   var ok = await saveTripDB(data);   // kann data.slug anpassen (bei doppeltem Namen)
@@ -731,22 +736,57 @@ function autoSlug(){
   if(/^\d+$/.test(s)) s='reise-'+s;
   return s||('reise'+(yr?'-'+yr:''));
 }
-// „Slowenien, Österreich“ -> [{name:'Slowenien',slug:'slowenien'},{name:'Österreich',slug:'oesterreich'}]
-function parseWeitere(text, mainSlug){
-  var out=[], seen={};
-  seen[mainSlug]=true;
-  String(text||'').split(/[,;]/).forEach(function(part){
-    var name=part.trim().substring(0,40);
-    var slug=slugAscii(name);
-    if(name && slug && !seen[slug] && out.length<8){ seen[slug]=true; out.push({name:name,slug:slug}); }
-  });
-  return out;
+// ── LÄNDERAUSWAHL ────────────────────────────────────────────────────────
+var COUNTRIES=["Afghanistan", "Ägypten", "Albanien", "Algerien", "Andorra", "Angola", "Antigua und Barbuda", "Äquatorialguinea", "Argentinien", "Armenien", "Aruba", "Aserbaidschan", "Äthiopien", "Australien", "Bahamas", "Bahrain", "Bangladesch", "Barbados", "Belarus", "Belgien", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivien", "Bosnien und Herzegowina", "Botsuana", "Brasilien", "Brunei", "Bulgarien", "Burkina Faso", "Burundi", "Chile", "China", "Costa Rica", "Curaçao", "Dänemark", "Demokratische Republik Kongo", "Deutschland", "Dominica", "Dominikanische Republik", "Dschibuti", "Ecuador", "El Salvador", "Elfenbeinküste", "Eritrea", "Estland", "Eswatini", "Färöer-Inseln", "Fidschi", "Finnland", "Frankreich", "Französisch-Polynesien", "Gabun", "Gambia", "Georgien", "Ghana", "Gibraltar", "Grenada", "Griechenland", "Grönland", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hongkong", "Indien", "Indonesien", "Irak", "Iran", "Irland", "Island", "Israel", "Italien", "Jamaika", "Japan", "Jemen", "Jordanien", "Kaimaninseln", "Kambodscha", "Kamerun", "Kanada", "Kap Verde", "Kasachstan", "Katar", "Kenia", "Kirgisistan", "Kiribati", "Kolumbien", "Komoren", "Kosovo", "Kroatien", "Kuba", "Kuwait", "Laos", "Lesotho", "Lettland", "Libanon", "Liberia", "Libyen", "Liechtenstein", "Litauen", "Luxemburg", "Macau", "Madagaskar", "Malawi", "Malaysia", "Malediven", "Mali", "Malta", "Marokko", "Marshallinseln", "Mauretanien", "Mauritius", "Mexiko", "Mikronesien", "Moldau", "Monaco", "Mongolei", "Montenegro", "Mosambik", "Myanmar", "Namibia", "Nauru", "Nepal", "Neukaledonien", "Neuseeland", "Nicaragua", "Niederlande", "Niger", "Nigeria", "Nordkorea", "Nordmazedonien", "Norwegen", "Oman", "Österreich", "Pakistan", "Palau", "Panama", "Papua-Neuguinea", "Paraguay", "Peru", "Philippinen", "Polen", "Portugal", "Puerto Rico", "Republik Kongo", "Ruanda", "Rumänien", "Russland", "Salomonen", "Sambia", "Samoa", "San Marino", "São Tomé und Príncipe", "Saudi-Arabien", "Schweden", "Schweiz", "Senegal", "Serbien", "Seychellen", "Sierra Leone", "Simbabwe", "Singapur", "Slowakei", "Slowenien", "Somalia", "Spanien", "Sri Lanka", "St. Kitts und Nevis", "St. Lucia", "St. Vincent und die Grenadinen", "Südafrika", "Sudan", "Südkorea", "Südsudan", "Suriname", "Syrien", "Tadschikistan", "Taiwan", "Tansania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad und Tobago", "Tschad", "Tschechien", "Tunesien", "Türkei", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "Ungarn", "Uruguay", "USA", "Usbekistan", "Vanuatu", "Vatikanstadt", "Venezuela", "Vereinigte Arabische Emirate", "Vereinigtes Königreich", "Vietnam", "Zentralafrikanische Republik", "Zypern"];
+var BELIEBT=["Deutschland", "Österreich", "Schweiz", "Italien", "Spanien", "Frankreich", "Kroatien", "Griechenland", "Portugal", "Türkei", "Thailand", "USA", "Australien", "Neuseeland", "Costa Rica"];
+var _weitere=[];   // gewählte weitere Länder: [{name, slug}]
+
+function optionHTML(name){ return '<option value="'+escapeAttr(name)+'">'+escapeHTML(name)+'</option>'; }
+function buildCountrySelects(){
+  var sorted=COUNTRIES.slice().sort(function(a,b){return a.localeCompare(b,'de');});
+  var rest=sorted.filter(function(n){return BELIEBT.indexOf(n)<0;});
+  var list='<optgroup label="Beliebt">'+BELIEBT.map(optionHTML).join('')+'</optgroup>'+
+           '<optgroup label="Alle Länder">'+rest.map(optionHTML).join('')+'</optgroup>';
+  var land=document.getElementById('t-land');
+  if(land) land.innerHTML='<option value="">– kein Reiseland –</option>'+list;
+  var add=document.getElementById('t-weitere-add');
+  if(add) add.innerHTML='<option value="">+ Land hinzufügen …</option>'+list;
 }
+// Reiseland setzen; ältere Freitext-Werte bleiben als eigene Auswahl erhalten
+function setLand(name){
+  var sel=document.getElementById('t-land'); if(!sel) return;
+  var found=false;
+  for(var i=0;i<sel.options.length;i++){ if(sel.options[i].value===name){found=true;break;} }
+  if(name && !found){
+    var o=document.createElement('option'); o.value=name; o.textContent=name+' (bisherige Eingabe)';
+    sel.insertBefore(o,sel.options[1]||null);
+  }
+  sel.value=name||'';
+}
+function setWeitere(list){ _weitere=(list||[]).map(function(w){return {name:w.name,slug:w.slug};}); renderWeitere(); }
+function renderWeitere(){
+  var box=document.getElementById('t-weitere-chips'); if(!box) return;
+  box.innerHTML=_weitere.map(function(w,i){
+    return '<span class="chip">'+escapeHTML(w.name)+'<button type="button" aria-label="Entfernen" onclick="removeWeitere('+i+')">&times;</button></span>';
+  }).join('');
+  updateSlugPreview();
+}
+function addWeitere(){
+  var sel=document.getElementById('t-weitere-add'); if(!sel||!sel.value) return;
+  var name=sel.value, slug=slugAscii(name);
+  sel.value='';
+  if(slug===slugAscii(val('t-land'))){ toast('Das ist schon dein Reiseland.'); return; }
+  if(_weitere.some(function(w){return w.slug===slug;})) return;
+  if(_weitere.length>=8){ toast('Höchstens 8 weitere Länder.'); return; }
+  _weitere.push({name:name,slug:slug});
+  renderWeitere();
+}
+function removeWeitere(i){ _weitere.splice(i,1); renderWeitere(); }
 function updateSlugPreview(){
   var el=document.getElementById('slug-preview'); if(!el) return;
   var ls=slugAscii(val('t-land'));
   if(!ls){ el.textContent='Mit einem Reiseland bekommt deine Reise eine schöne Adresse, z. B. travona.de/reisetagebuch/kroatien/wohnmobil-2026'; return; }
-  var extra=parseWeitere(val('t-weitere'),ls).map(function(w){return w.name;});
+  var extra=_weitere.filter(function(w){return w.slug!==ls;}).map(function(w){return w.name;});
   el.textContent='Adresse: travona.de/reisetagebuch/'+ls+'/'+(slugAscii(val('t-slug'))||autoSlug())+(extra.length?' · Erscheint auch bei: '+extra.join(', '):'');
 }
 function escapeHTML(s){
@@ -762,9 +802,14 @@ function toast(msg){
 }
 
 // Adress-Vorschau live aktualisieren
-['t-name','t-from','t-land','t-slug','t-weitere'].forEach(function(id){
+buildCountrySelects();
+['t-name','t-from','t-slug'].forEach(function(id){
   var el=document.getElementById(id); if(el) el.addEventListener('input',updateSlugPreview);
 });
+(function(){
+  var land=document.getElementById('t-land'); if(land) land.addEventListener('change',updateSlugPreview);
+  var add=document.getElementById('t-weitere-add'); if(add) add.addEventListener('change',addWeitere);
+})();
 
 // ── INIT ─────────────────────────────────────────────────────────────────
 async function initApp(){
