@@ -402,6 +402,13 @@ html.fmenu-open{overflow:hidden;}
 .fmenu-dates{font-size:14px;line-height:1.7;color:var(--ink);margin:0;}
 .fmenu-actions{display:flex;flex-wrap:wrap;gap:10px;}
 .fmenu-dev{margin:18px 0 0;font-size:12px;line-height:1.6;color:var(--fog);word-break:break-all;}
+.fmenu-btn--solid#fotobuch-btn{display:inline-flex;}
+html:not(.is-admin) #fotobuch-btn{display:none;}
+/* Gäste: Drucken der Seite nicht vorgesehen */
+@media print{
+  html:not(.is-admin) body>*{display:none !important;}
+  html:not(.is-admin) body::before{content:"Drucken ist für Gäste nicht vorgesehen.";display:block;padding:40px;font-family:'DM Sans',sans-serif;font-size:16px;}
+}
 .fmenu-btn{display:inline-flex;align-items:center;justify-content:center;height:42px;padding:0 22px;border-radius:999px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--ink);background:transparent;border:1px solid rgba(26,23,20,.28);text-decoration:none;cursor:pointer;white-space:nowrap;transition:background-color .2s,color .2s,border-color .2s;}
 .fmenu-btn:hover{background:var(--ink);color:var(--paper);border-color:var(--ink);}
 .fmenu-btn[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
@@ -497,7 +504,7 @@ html.is-admin main{padding-top:40px;}
         <a class="fmenu-btn" href="index.html">Übersicht</a>
         <button class="fmenu-btn" id="view-toggle-btn" onclick="toggleGuestView()" style="display:none" aria-pressed="false" title="So sehen Gäste die Seite"><span class="fnav-lbl">Gästeansicht</span></button>
         <button class="fmenu-btn" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
-        <a class="fmenu-btn fmenu-btn--solid" href="#" onclick="event.preventDefault();closeNavMenu();createPhotobook();">Fotobuch als PDF</a>
+        <a class="fmenu-btn fmenu-btn--solid" id="fotobuch-btn" href="#" onclick="event.preventDefault();closeNavMenu();createPhotobook();">Fotobuch als PDF</a>
       </div>
     </div>
   </div>
@@ -2713,6 +2720,8 @@ function toggleGuestView(){
 
 // ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
 async function createPhotobook(){
+  // Nur für den Besitzer: Gäste können das Fotobuch nicht erstellen
+  if(!editMode){try{toast('Das Fotobuch ist nur für den Besitzer verfügbar.');}catch(e){}return;}
   var _ov=document.createElement('div');
   _ov.id='pb-loading-overlay';
   _ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(26,23,20,.72);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:\'DM Sans\',sans-serif;';
@@ -2740,12 +2749,6 @@ async function createPhotobook(){
   let tagNr=0;
   const seenHotels={};
   const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
-  // DIAGNOSE: welche Unterkünfte + Daten
-  var _diag='UNTERKÜNFTE: '+allStays.map(function(c){return c.label.split('·')[0].trim()+' ('+c.datum+', id='+c.id+')';}).join(' | ');
-  var _hotelHits=[];
-  allStays.forEach(function(c){ if(days.indexOf(c.datum)>=0)_hotelHits.push(c.datum+'✓'); else _hotelHits.push(c.datum+'✗NICHT-IN-DAYS'); });
-  console.log(_diag);
-  pages.unshift('<div class="pb-page" style="padding:15mm;font-size:11px;font-family:monospace;color:#333;word-break:break-all;"><b>DIAGNOSE:</b><br><br>'+_diag+'<br><br>days: '+days[0]+' bis '+days[days.length-1]+' ('+days.length+' Tage)<br><br>Anreise-Tage in days? '+_hotelHits.join(' | ')+'</div>');
   for(const iso of days){
     // Eigene Unterkunfts-Seite, wenn heute der Anreisetag einer Unterkunft ist
     const stayStart=allStays.find(c=>c.datum===iso);
