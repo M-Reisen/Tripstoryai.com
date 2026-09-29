@@ -7,10 +7,14 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|SkypeUriPreview|Applebot|Pinterest|Googlebot).*"
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|SkypeUriPreview|Applebot|Pinterest|Googlebot|bingbot|DuckDuckBot).*"
         }
       ],
       "destination": "/api/reise"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
     }
   ]
 }
