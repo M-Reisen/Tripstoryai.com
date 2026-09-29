@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/reisevorlage.html",
+      "has": [
+        { "type": "query", "key": "reise" },
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|LinkedInBot|Discordbot|SkypeUriPreview|Applebot|Pinterest|Googlebot).*"
+        }
+      ],
+      "destination": "/api/reise"
+    }
+  ]
+}
