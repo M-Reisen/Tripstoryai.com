@@ -489,7 +489,7 @@ html.is-admin main{padding-top:40px;}
 
 <nav class="figma-nav" id="figma-nav" aria-label="Hauptmenü">
   <div class="fnav-bar">
-    <a class="fnav-logo" href="index.html" aria-label="Zur Übersicht">
+    <a class="fnav-logo" href="/index.html" aria-label="Zur Übersicht">
       <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona" class="fnav-logo-img">
     </a>
     <div class="fnav-bar-right">
@@ -517,7 +517,7 @@ html.is-admin main{padding-top:40px;}
         </aside>
       </div>
       <div class="fmenu-actions">
-        <a class="fmenu-btn" href="index.html">Übersicht</a>
+        <a class="fmenu-btn" href="/index.html">Übersicht</a>
         <button class="fmenu-btn" id="view-toggle-btn" onclick="toggleGuestView()" style="display:none" aria-pressed="false" title="So sehen Gäste die Seite"><span class="fnav-lbl">Gästeansicht</span></button>
         <button class="fmenu-btn" id="logout-btn" onclick="doLogout()" style="display:none">Abmelden</button>
         <a class="fmenu-btn fmenu-btn--solid" id="fotobuch-btn" href="#" onclick="event.preventDefault();closeNavMenu();createPhotobook();">Fotobuch als PDF</a>
@@ -716,8 +716,8 @@ html.is-admin main{padding-top:40px;}
     <h2 class="tv-promo-title">Deine nächste Reise verdient ein eigenes Tagebuch.</h2>
     <p class="tv-promo-text">Tagesplan, Fotos, Karte und Kosten an einem Ort – und mit Familie und Freunden teilbar.</p>
     <div class="tv-promo-actions">
-      <a class="fmenu-btn fmenu-btn--solid" href="vorteile.html">Eigenes Tagebuch starten</a>
-      <a class="tv-promo-link" href="index.html">Mehr über Travona</a>
+      <a class="fmenu-btn fmenu-btn--solid" href="/vorteile.html">Eigenes Tagebuch starten</a>
+      <a class="tv-promo-link" href="/index.html">Mehr über Travona</a>
     </div>
   </div>
 </section>
@@ -725,9 +725,11 @@ html.is-admin main{padding-top:40px;}
 </main>
 
 <footer style="max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);">
-  <a href="impressum.html" style="color:var(--fog);text-decoration:none;margin:0 10px;">Impressum</a>
+  <a href="/reisetagebuch" style="color:var(--fog);text-decoration:none;margin:0 10px;">Reiseziele</a>
   <span style="opacity:.4">·</span>
-  <a href="datenschutz.html" style="color:var(--fog);text-decoration:none;margin:0 10px;">Datenschutz</a>
+  <a href="/impressum.html" style="color:var(--fog);text-decoration:none;margin:0 10px;">Impressum</a>
+  <span style="opacity:.4">·</span>
+  <a href="/datenschutz.html" style="color:var(--fog);text-decoration:none;margin:0 10px;">Datenschutz</a>
   <span style="opacity:.4">·</span>
   <span style="margin:0 10px;">© 2026 Travona</span>
 </footer>
@@ -967,7 +969,7 @@ function applyViewMode(){
 async function doLogout(){
   try{localStorage.removeItem('au26_admin');}catch(e){}
   await sb.auth.signOut();
-  location.href='index.html';
+  location.href='/index.html';
 }
 // ── KI über sichere Edge Function ───────────────────────────
 var AI_PROXY_URL=SUPABASE_URL+'/functions/v1/ai-proxy';
@@ -1193,7 +1195,7 @@ async function initApp(){
   let allowed=true;
   try{allowed=await initAuth();}catch(e){console.error('Auth:',e);}
   if(!allowed){
-    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Sora,sans-serif;font-weight:700;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
+    document.body.innerHTML='<div style="max-width:420px;margin:80px auto;padding:30px;text-align:center;font-family:Inter,sans-serif;color:#3a2d22"><div style="font-size:2.5rem">🔒</div><h2 style="font-family:Sora,sans-serif;font-weight:700;margin:12px 0">Diese Reise ist privat</h2><p style="color:#7a7167;font-size:.9rem;line-height:1.6">Du hast keinen Zugriff auf dieses Reisetagebuch. Melde dich an, wenn es deins ist.</p><a href="/index.html" style="display:inline-block;margin-top:18px;background:#e07b3f;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:600">← Zur Übersicht</a></div>';
     return;
   }
   // Ansicht (Admin/Besucher) sofort festlegen, bevor Daten nachladen

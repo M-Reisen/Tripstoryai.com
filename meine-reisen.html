@@ -258,6 +258,15 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
         </div>
         <div class="help">Wird automatisch aus dem Datum gesetzt — du kannst es aber überschreiben.</div>
       </div>
+      <div class="field-row">
+        <div class="field"><label>Reiseland</label><input type="text" id="t-land" placeholder="z.B. Kroatien" maxlength="40"></div>
+        <div class="field"><label>Adressname</label><input type="text" id="t-slug" placeholder="wird automatisch erstellt" maxlength="60"></div>
+      </div>
+      <div class="field">
+        <label>Weitere Länder <span style="text-transform:none;font-weight:400">(optional)</span></label>
+        <input type="text" id="t-weitere" placeholder="z.B. Slowenien, Österreich" maxlength="120">
+      </div>
+      <div class="help" id="slug-preview" style="margin:-6px 0 14px"></div>
       <div class="field">
         <label>Kurzbeschreibung</label>
         <textarea id="t-note" placeholder="Ein Satz, der Lust auf die Reise macht…"></textarea>
@@ -379,19 +388,41 @@ function dbToTrip(r){
   return {
     id:r.id, name:meta.name||'Reise', emoji:meta.emoji||'🧳', loc:meta.loc||'',
     from:meta.from||'', to:meta.to||'', status:meta.status||'', note:meta.note||'',
-    img:meta.img||'', visibility:r.visibility||'private'
+    img:meta.img||'', visibility:r.visibility||'private',
+    land:r.land||'', land_slug:r.land_slug||'', slug:r.slug||'',
+    weitere:Array.isArray(r.weitere)?r.weitere:[]
   };
 }
 // UI-Objekt -> DB-Felder (Metadaten als JSON in title)
 function tripToDB(t){
   var meta={name:t.name,emoji:t.emoji,loc:t.loc,from:t.from,to:t.to,status:t.status,note:t.note,img:t.img};
-  return {id:t.id, owner:currentUser.id, title:JSON.stringify(meta), visibility:t.visibility||'private'};
+  return {id:t.id, owner:currentUser.id, title:JSON.stringify(meta), visibility:t.visibility||'private',
+    land:t.land||null, land_slug:t.land_slug||null, slug:t.slug||null,
+    weitere:(t.weitere&&t.weitere.length)?t.weitere:null};
 }
 async function saveTripDB(t){
-  var row=tripToDB(t);
-  var res=await sb.from('trips').upsert(row).select();
-  if(res.error){toast('Speichern fehlgeschlagen: '+res.error.message);return false;}
-  return true;
+  var baseSlug=t.slug;
+  for(var attempt=0;attempt<6;attempt++){
+    var row=tripToDB(t);
+    var res=await sb.from('trips').upsert(row).select();
+    if(!res.error)return true;
+    var msg=((res.error.message||'')+' '+(res.error.details||''));
+    // Adressname schon vergeben -> Zahl anhängen und noch einmal versuchen
+    if((res.error.code==='23505'||/duplicate key/i.test(msg))&&t.slug){
+      t.slug=baseSlug+'-'+(attempt+2);
+      continue;
+    }
+    // Neue Spalten fehlen noch in Supabase -> ohne Adressfelder speichern
+    if(/does not exist|schema cache/i.test(msg)&&/land|slug|weitere/i.test(msg)){
+      delete row.land; delete row.land_slug; delete row.slug; delete row.weitere;
+      var r2=await sb.from('trips').upsert(row).select();
+      if(!r2.error){toast('Gespeichert, aber die Adressfelder sind in Supabase noch nicht eingerichtet.');return true;}
+      toast('Speichern fehlgeschlagen: '+r2.error.message);return false;
+    }
+    toast('Speichern fehlgeschlagen: '+res.error.message);return false;
+  }
+  toast('Adressname konnte nicht vergeben werden. Bitte einen anderen wählen.');
+  return false;
 }
 async function deleteTripDB(id){
   var res=await sb.from('trips').delete().eq('id',id);
@@ -502,7 +533,7 @@ function cardHTML(t){
     return '<div class="trip-card placeholder">'+inner+'</div>';
   }
   // Immer die Vorlage mit Reise-Schlüssel (nur feste Sonderseiten weichen ab)
-  var href = tripPage(t.id);
+  var href = tripPage(t);
   return '<a class="trip-card" href="'+escapeAttr(href)+'">'+inner+'</a>';
 }
 
@@ -553,7 +584,8 @@ function openNewTrip(){
   document.getElementById('tm-title').textContent = 'Neue Reise';
   setField('t-id',''); setField('t-name',''); setField('t-emoji','');
   setField('t-loc',''); setField('t-from',''); setField('t-to','');
-  setField('t-note',''); setField('t-img','');
+  setField('t-note',''); setField('t-img',''); setField('t-land',''); setField('t-slug',''); setField('t-weitere','');
+  updateSlugPreview();
   pickStatus('');
   pickVis('private');
   document.getElementById('trip-modal').classList.add('open');
@@ -566,7 +598,8 @@ function editTrip(ev,id){
   document.getElementById('tm-title').textContent = 'Reise bearbeiten';
   setField('t-id',t.id); setField('t-name',t.name||''); setField('t-emoji',t.emoji||'');
   setField('t-loc',t.loc||''); setField('t-from',t.from||''); setField('t-to',t.to||'');
-  setField('t-note',t.note||''); setField('t-img',t.img||'');
+  setField('t-note',t.note||''); setField('t-img',t.img||''); setField('t-land',t.land||''); setField('t-slug',t.slug||''); setField('t-weitere',(t.weitere||[]).map(function(w){return w.name;}).join(', '));
+  updateSlugPreview();
   pickStatus(t.status||'');
   pickVis(t.visibility||'private');
   document.getElementById('trip-modal').classList.add('open');
@@ -597,16 +630,17 @@ function pickVis(v){
 }
 // Feste Sonderseiten (nur vom Betreiber festgelegt). Alle anderen Reisen laufen über die Vorlage.
 var SPECIAL_PAGES={'australien-2026':'australien.html'};
-function tripPage(id){
-  if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id))return SPECIAL_PAGES[id];
-  return 'reisevorlage.html?reise='+encodeURIComponent(id);
+// Adresse einer Reise: schöne Adresse (Land + Adressname), sonst die lange
+function tripPage(t){
+  var id=(t&&typeof t==='object')?t.id:t;
+  if(t&&typeof t==='object'&&t.land_slug&&t.slug)return '/reisetagebuch/'+t.land_slug+'/'+t.slug;
+  if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id))return '/'+SPECIAL_PAGES[id];
+  return '/reisevorlage.html?reise='+encodeURIComponent(id);
 }
 function tripShareUrl(){
   var id=val('t-id');
-  var page=tripPage(id);
-  // absolute URL bauen
-  var base=location.href.replace(/[^/]*$/,'');
-  return base+page;
+  var t=trips.find(function(x){return x.id===id;});
+  return location.origin+tripPage(t||id);
 }
 function updateShareBox(){
   var box=document.getElementById('share-box');
@@ -632,13 +666,17 @@ function copyShareLink(){
   }
 }
 
-function saveTrip(){
+async function saveTrip(){
   var name = val('t-name').trim();
   if(!name){ toast('Bitte einen Namen eingeben.'); return; }
   var from = val('t-from'), to = val('t-to');
   if(from && to && to < from){ toast('„Bis" liegt vor „Von".'); return; }
 
   var tripId = editingId || slugify(name) + '-' + Date.now().toString(36);
+  // Schöne Adresse: nur mit Reiseland; Adressname automatisch, wenn leer
+  var land = val('t-land').trim();
+  var landSlug = slugAscii(land);
+  var slug = landSlug ? (slugAscii(val('t-slug')) || autoSlug()) : '';
   var data = {
     id: tripId,
     name: name,
@@ -649,16 +687,21 @@ function saveTrip(){
     status: pickedStatus,   // '' = automatisch
     note: val('t-note').trim(),
     img: val('t-img').trim(),
-    visibility: pickedVis || 'private'
+    visibility: pickedVis || 'private',
+    land: landSlug ? land : '',
+    land_slug: landSlug,
+    slug: slug,
+    weitere: landSlug ? parseWeitere(val('t-weitere'), landSlug) : []
   };
 
+  var ok = await saveTripDB(data);   // kann data.slug anpassen (bei doppeltem Namen)
+  if(!ok) return;                    // Formular bleibt offen
   if(editingId){
     var i = trips.findIndex(function(x){return x.id===editingId;});
     if(i>=0) trips[i] = data;
   } else {
     trips.push(data);
   }
-  saveTripDB(data);
   closeTripModal();
   render();
   toast(editingId ? 'Reise aktualisiert!' : 'Reise hinzugefügt!');
@@ -672,6 +715,40 @@ function slugify(s){
     .replace(/[äàá]/g,'a').replace(/[öòó]/g,'o').replace(/[üùú]/g,'u').replace(/ß/g,'ss')
     .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,40) || 'reise';
 }
+// Adressname: klein, ohne Umlaute und Sonderzeichen (ä -> ae, ß -> ss)
+function slugAscii(s){
+  return String(s||'').toLowerCase()
+    .replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').substring(0,60).replace(/-+$/,'');
+}
+// Vorschlag aus Reisename und Jahr, ohne das Reiseland zu wiederholen
+function autoSlug(){
+  var ls=slugAscii(val('t-land')), s=slugAscii(val('t-name')), from=val('t-from');
+  if(ls){ if(s===ls) s=''; else if(s.indexOf(ls+'-')===0) s=s.slice(ls.length+1); }
+  var yr=from?from.slice(0,4):'';
+  if(yr && s.indexOf(yr)<0) s=(s?s+'-':'')+yr;
+  if(/^\d+$/.test(s)) s='reise-'+s;
+  return s||('reise'+(yr?'-'+yr:''));
+}
+// „Slowenien, Österreich“ -> [{name:'Slowenien',slug:'slowenien'},{name:'Österreich',slug:'oesterreich'}]
+function parseWeitere(text, mainSlug){
+  var out=[], seen={};
+  seen[mainSlug]=true;
+  String(text||'').split(/[,;]/).forEach(function(part){
+    var name=part.trim().substring(0,40);
+    var slug=slugAscii(name);
+    if(name && slug && !seen[slug] && out.length<8){ seen[slug]=true; out.push({name:name,slug:slug}); }
+  });
+  return out;
+}
+function updateSlugPreview(){
+  var el=document.getElementById('slug-preview'); if(!el) return;
+  var ls=slugAscii(val('t-land'));
+  if(!ls){ el.textContent='Mit einem Reiseland bekommt deine Reise eine schöne Adresse, z. B. travona.de/reisetagebuch/kroatien/wohnmobil-2026'; return; }
+  var extra=parseWeitere(val('t-weitere'),ls).map(function(w){return w.name;});
+  el.textContent='Adresse: travona.de/reisetagebuch/'+ls+'/'+(slugAscii(val('t-slug'))||autoSlug())+(extra.length?' · Erscheint auch bei: '+extra.join(', '):'');
+}
 function escapeHTML(s){
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -683,6 +760,11 @@ function toast(msg){
   t.textContent=msg; t.classList.add('show');
   setTimeout(function(){t.classList.remove('show');},2600);
 }
+
+// Adress-Vorschau live aktualisieren
+['t-name','t-from','t-land','t-slug','t-weitere'].forEach(function(id){
+  var el=document.getElementById(id); if(el) el.addEventListener('input',updateSlugPreview);
+});
 
 // ── INIT ─────────────────────────────────────────────────────────────────
 async function initApp(){

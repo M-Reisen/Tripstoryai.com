@@ -196,6 +196,8 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
 </section>
 
 <footer style="max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);">
+  <a href="/reisetagebuch" style="color:var(--fog);text-decoration:none;margin:0 12px;">Reiseziele</a>
+  <span style="opacity:.4">·</span>
   <a href="impressum.html" style="color:var(--fog);text-decoration:none;margin:0 12px;">Impressum</a>
   <span style="opacity:.4">·</span>
   <a href="datenschutz.html" style="color:var(--fog);text-decoration:none;margin:0 12px;">Datenschutz</a>
@@ -217,7 +219,7 @@ function toast(m){var t=document.getElementById('toast');t.textContent=m;t.class
 function dbToTrip(r){
   var meta={};
   try{meta=JSON.parse(r.title||'{}');}catch(e){meta={name:r.title||'Reise'};}
-  return {id:r.id,owner:r.owner,name:meta.name||'Reise',emoji:meta.emoji||'🧳',loc:meta.loc||'',from:meta.from||'',to:meta.to||'',note:meta.note||'',img:meta.img||''};
+  return {id:r.id,owner:r.owner,name:meta.name||'Reise',emoji:meta.emoji||'🧳',loc:meta.loc||'',from:meta.from||'',to:meta.to||'',note:meta.note||'',img:meta.img||'',land_slug:r.land_slug||'',slug:r.slug||''};
 }
 function fmtRange(from,to){
   if(!from)return '';
@@ -238,11 +240,16 @@ function tripPage(id){
   return 'reisevorlage.html?reise='+encodeURIComponent(id);
 }
 function tripHref(t){
+  // Schöne Adresse, sobald Reiseland und Adressname gesetzt sind
+  if(t.land_slug&&t.slug)return '/reisetagebuch/'+t.land_slug+'/'+t.slug;
   return tripPage(t.id);
 }
 
 async function loadCommunity(){
-  var res=await sb.from('trips').select('id,owner,title,visibility').eq('visibility','public').order('created_at',{ascending:false});
+  var res=await sb.from('trips').select('id,owner,title,visibility,land_slug,slug').eq('visibility','public').order('created_at',{ascending:false});
+  if(res.error){ // Spalten noch nicht eingerichtet: wie bisher laden
+    res=await sb.from('trips').select('id,owner,title,visibility').eq('visibility','public').order('created_at',{ascending:false});
+  }
   var loading=document.getElementById('loading');
   var grid=document.getElementById('grid');
   var sub=document.getElementById('count-sub');
