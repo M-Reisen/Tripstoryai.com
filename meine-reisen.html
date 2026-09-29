@@ -136,7 +136,9 @@ main{max-width:1100px;margin:0 auto;padding:40px 24px 90px;}
 .field input,.field select,.field textarea{width:100%;padding:10px 13px;border:1.5px solid var(--line);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .16s;}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--sunset);background:var(--surface2);}
 .field textarea{resize:vertical;min-height:64px;}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{min-width:0;}
+.field input[type=date]{display:block;min-width:0;max-width:100%;min-height:46px;}
+.field-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;}
 .help{font-size:.72rem;color:var(--fog);margin-top:4px;line-height:1.4;}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 12px;border:1px solid var(--line);border-radius:999px;font-size:.8rem;background:var(--surface2);}
@@ -174,7 +176,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
   .hero{padding:46px 18px 40px;}
   .hero-stats{gap:24px;}
   main{padding:30px 18px 70px;}
-  .field-row{grid-template-columns:1fr;}
+  .field-row{grid-template-columns:minmax(0,1fr);}
 }
 </style>
 </head>
@@ -699,6 +701,8 @@ async function saveTripInner(){
   // Schöne Adresse: nur mit Reiseland; Adressname automatisch, wenn leer
   var land = val('t-land').trim();
   var landSlug = slugAscii(land);
+  // Neue Reisen brauchen ein Reiseland, damit sie immer eine schöne Adresse bekommen
+  if(!editingId && !landSlug){ toast('Bitte ein Reiseland wählen (bei Rundreisen: „Weltweit“).'); return; }
   var slug = landSlug ? (slugAscii(val('t-slug')) || autoSlug()) : '';
   var data = {
     id: tripId,
@@ -755,8 +759,8 @@ function autoSlug(){
   return s||('reise'+(yr?'-'+yr:''));
 }
 // ── LÄNDERAUSWAHL ────────────────────────────────────────────────────────
-var COUNTRIES=["Afghanistan", "Ägypten", "Albanien", "Algerien", "Andorra", "Angola", "Antigua und Barbuda", "Äquatorialguinea", "Argentinien", "Armenien", "Aruba", "Aserbaidschan", "Äthiopien", "Australien", "Bahamas", "Bahrain", "Bangladesch", "Barbados", "Belarus", "Belgien", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivien", "Bosnien und Herzegowina", "Botsuana", "Brasilien", "Brunei", "Bulgarien", "Burkina Faso", "Burundi", "Chile", "China", "Costa Rica", "Curaçao", "Dänemark", "Demokratische Republik Kongo", "Deutschland", "Dominica", "Dominikanische Republik", "Dschibuti", "Ecuador", "El Salvador", "Elfenbeinküste", "Eritrea", "Estland", "Eswatini", "Färöer-Inseln", "Fidschi", "Finnland", "Frankreich", "Französisch-Polynesien", "Gabun", "Gambia", "Georgien", "Ghana", "Gibraltar", "Grenada", "Griechenland", "Grönland", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hongkong", "Indien", "Indonesien", "Irak", "Iran", "Irland", "Island", "Israel", "Italien", "Jamaika", "Japan", "Jemen", "Jordanien", "Kaimaninseln", "Kambodscha", "Kamerun", "Kanada", "Kap Verde", "Kasachstan", "Katar", "Kenia", "Kirgisistan", "Kiribati", "Kolumbien", "Komoren", "Kosovo", "Kroatien", "Kuba", "Kuwait", "Laos", "Lesotho", "Lettland", "Libanon", "Liberia", "Libyen", "Liechtenstein", "Litauen", "Luxemburg", "Macau", "Madagaskar", "Malawi", "Malaysia", "Malediven", "Mali", "Malta", "Marokko", "Marshallinseln", "Mauretanien", "Mauritius", "Mexiko", "Mikronesien", "Moldau", "Monaco", "Mongolei", "Montenegro", "Mosambik", "Myanmar", "Namibia", "Nauru", "Nepal", "Neukaledonien", "Neuseeland", "Nicaragua", "Niederlande", "Niger", "Nigeria", "Nordkorea", "Nordmazedonien", "Norwegen", "Oman", "Österreich", "Pakistan", "Palau", "Panama", "Papua-Neuguinea", "Paraguay", "Peru", "Philippinen", "Polen", "Portugal", "Puerto Rico", "Republik Kongo", "Ruanda", "Rumänien", "Russland", "Salomonen", "Sambia", "Samoa", "San Marino", "São Tomé und Príncipe", "Saudi-Arabien", "Schweden", "Schweiz", "Senegal", "Serbien", "Seychellen", "Sierra Leone", "Simbabwe", "Singapur", "Slowakei", "Slowenien", "Somalia", "Spanien", "Sri Lanka", "St. Kitts und Nevis", "St. Lucia", "St. Vincent und die Grenadinen", "Südafrika", "Sudan", "Südkorea", "Südsudan", "Suriname", "Syrien", "Tadschikistan", "Taiwan", "Tansania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad und Tobago", "Tschad", "Tschechien", "Tunesien", "Türkei", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "Ungarn", "Uruguay", "USA", "Usbekistan", "Vanuatu", "Vatikanstadt", "Venezuela", "Vereinigte Arabische Emirate", "Vereinigtes Königreich", "Vietnam", "Zentralafrikanische Republik", "Zypern"];
-var BELIEBT=["Deutschland", "Österreich", "Schweiz", "Italien", "Spanien", "Frankreich", "Kroatien", "Griechenland", "Portugal", "Türkei", "Thailand", "USA", "Australien", "Neuseeland", "Costa Rica"];
+var COUNTRIES=["Weltweit","Afghanistan", "Ägypten", "Albanien", "Algerien", "Andorra", "Angola", "Antigua und Barbuda", "Äquatorialguinea", "Argentinien", "Armenien", "Aruba", "Aserbaidschan", "Äthiopien", "Australien", "Bahamas", "Bahrain", "Bangladesch", "Barbados", "Belarus", "Belgien", "Belize", "Benin", "Bermuda", "Bhutan", "Bolivien", "Bosnien und Herzegowina", "Botsuana", "Brasilien", "Brunei", "Bulgarien", "Burkina Faso", "Burundi", "Chile", "China", "Costa Rica", "Curaçao", "Dänemark", "Demokratische Republik Kongo", "Deutschland", "Dominica", "Dominikanische Republik", "Dschibuti", "Ecuador", "El Salvador", "Elfenbeinküste", "Eritrea", "Estland", "Eswatini", "Färöer-Inseln", "Fidschi", "Finnland", "Frankreich", "Französisch-Polynesien", "Gabun", "Gambia", "Georgien", "Ghana", "Gibraltar", "Grenada", "Griechenland", "Grönland", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hongkong", "Indien", "Indonesien", "Irak", "Iran", "Irland", "Island", "Israel", "Italien", "Jamaika", "Japan", "Jemen", "Jordanien", "Kaimaninseln", "Kambodscha", "Kamerun", "Kanada", "Kap Verde", "Kasachstan", "Katar", "Kenia", "Kirgisistan", "Kiribati", "Kolumbien", "Komoren", "Kosovo", "Kroatien", "Kuba", "Kuwait", "Laos", "Lesotho", "Lettland", "Libanon", "Liberia", "Libyen", "Liechtenstein", "Litauen", "Luxemburg", "Macau", "Madagaskar", "Malawi", "Malaysia", "Malediven", "Mali", "Malta", "Marokko", "Marshallinseln", "Mauretanien", "Mauritius", "Mexiko", "Mikronesien", "Moldau", "Monaco", "Mongolei", "Montenegro", "Mosambik", "Myanmar", "Namibia", "Nauru", "Nepal", "Neukaledonien", "Neuseeland", "Nicaragua", "Niederlande", "Niger", "Nigeria", "Nordkorea", "Nordmazedonien", "Norwegen", "Oman", "Österreich", "Pakistan", "Palau", "Panama", "Papua-Neuguinea", "Paraguay", "Peru", "Philippinen", "Polen", "Portugal", "Puerto Rico", "Republik Kongo", "Ruanda", "Rumänien", "Russland", "Salomonen", "Sambia", "Samoa", "San Marino", "São Tomé und Príncipe", "Saudi-Arabien", "Schweden", "Schweiz", "Senegal", "Serbien", "Seychellen", "Sierra Leone", "Simbabwe", "Singapur", "Slowakei", "Slowenien", "Somalia", "Spanien", "Sri Lanka", "St. Kitts und Nevis", "St. Lucia", "St. Vincent und die Grenadinen", "Südafrika", "Sudan", "Südkorea", "Südsudan", "Suriname", "Syrien", "Tadschikistan", "Taiwan", "Tansania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad und Tobago", "Tschad", "Tschechien", "Tunesien", "Türkei", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "Ungarn", "Uruguay", "USA", "Usbekistan", "Vanuatu", "Vatikanstadt", "Venezuela", "Vereinigte Arabische Emirate", "Vereinigtes Königreich", "Vietnam", "Zentralafrikanische Republik", "Zypern"];
+var BELIEBT=["Weltweit","Deutschland", "Österreich", "Schweiz", "Italien", "Spanien", "Frankreich", "Kroatien", "Griechenland", "Portugal", "Türkei", "Thailand", "USA", "Australien", "Neuseeland", "Costa Rica"];
 var _weitere=[];   // gewählte weitere Länder: [{name, slug}]
 
 function optionHTML(name){ return '<option value="'+escapeAttr(name)+'">'+escapeHTML(name)+'</option>'; }
@@ -766,7 +770,7 @@ function buildCountrySelects(){
   var list='<optgroup label="Beliebt">'+BELIEBT.map(optionHTML).join('')+'</optgroup>'+
            '<optgroup label="Alle Länder">'+rest.map(optionHTML).join('')+'</optgroup>';
   var land=document.getElementById('t-land');
-  if(land) land.innerHTML='<option value="">– kein Reiseland –</option>'+list;
+  if(land) land.innerHTML='<option value="">– bitte wählen –</option>'+list;
   var add=document.getElementById('t-weitere-add');
   if(add) add.innerHTML='<option value="">+ Land hinzufügen …</option>'+list;
 }

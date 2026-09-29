@@ -3391,10 +3391,24 @@ async function saveTagOrt(iso){
 }
 
 async function init(){
+  // Schöne Adresse, die der Server nicht auflösen konnte (z. B. private Reise):
+  // mit der Anmeldung des Besuchers selbst nachschlagen – Besitzer sehen so auch private Reisen
+  if(!REISE&&window.__ROUTE){
+    try{
+      const rr=await sb.from('trips').select('id').eq('land_slug',window.__ROUTE.land).eq('slug',window.__ROUTE.slug).limit(1);
+      if(rr.data&&rr.data.length){
+        REISE=String(rr.data[0].id).toLowerCase().replace(/[^a-z0-9_-]/g,'');
+        PFX=REISE+'_';
+      }
+    }catch(e){console.error('Adresse auflösen:',e);}
+  }
   if(!REISE){
+    const unknown=!!window.__ROUTE;
     document.getElementById('hero-eyebrow').textContent='Hinweis';
-    document.getElementById('hero-title').innerHTML='Keine Reise ausgewählt';
-    document.getElementById('hero-sub').innerHTML='Diese Seite wird über die Startseite mit einer Reise geöffnet. Bitte kehre zur <a href="/index.html" style="color:var(--sunset)">Übersicht</a> zurück und wähle oder erstelle eine Reise.';
+    document.getElementById('hero-title').innerHTML=unknown?'Reise nicht gefunden':'Keine Reise ausgewählt';
+    document.getElementById('hero-sub').innerHTML=unknown
+      ?'Diese Reise ist privat oder die Adresse stimmt nicht. Gehört sie dir, melde dich unter <a href="/meine-reisen.html" style="color:var(--sunset)">Meine Reisen</a> an. Sonst geht es hier zur <a href="/index.html" style="color:var(--sunset)">Übersicht</a>.'
+      :'Diese Seite wird über die Startseite mit einer Reise geöffnet. Bitte kehre zur <a href="/index.html" style="color:var(--sunset)">Übersicht</a> zurück und wähle oder erstelle eine Reise.';
     return;
   }
   // Zugriff prüfen
