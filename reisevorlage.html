@@ -2547,7 +2547,23 @@ async function trackVisit(){
     if(res.error){if(box)box.textContent='';dbg('Zähler konnte nicht gelesen werden: '+(res.error.message||res.error.code||'unbekannt'));return;}
     var count=(res.count!=null)?res.count:((res.data&&res.data.length)||0);
     if(box)box.textContent=count+(count===1?' Besuch':' Besuche');
-    if(count===0)dbg('Abfrage ohne Fehler (Status '+res.status+'), aber keine Einträge für „visit_'+REISE+'_…“. Reise-Schlüssel prüfen oder die Leserechte der Tabelle kommentare.');
+    if(count===0){
+      dbg('Abfrage ohne Fehler (Status '+res.status+'), aber keine Einträge für „visit_'+REISE+'_…“.');
+      // Zusatz-Prüfung: Was ist für diese Reise überhaupt sichtbar?
+      try{
+        var info=[];
+        info.push('Heutiger Besuch bereits gemeldet: '+(localStorage.getItem(lastKey)===heute?'ja':'nein'));
+        var p1=await sb.from('kommentare').select('id',{count:'exact',head:true}).like('ort','visit_%');
+        info.push('Besuche aller Reisen sichtbar: '+(p1.error?('Fehler – '+p1.error.message):p1.count));
+        var p2=await sb.from('kommentare').select('id',{count:'exact',head:true}).eq('trip_id',REISE);
+        info.push('Einträge mit trip_id dieser Reise: '+(p2.error?('Fehler – '+p2.error.message):p2.count));
+        var p3=await sb.from('kommentare').select('ort').ilike('ort','%'+REISE+'%').limit(200);
+        var kinds={};(p3.data||[]).forEach(function(r){var k=String(r.ort).split('_')[0];kinds[k]=(kinds[k]||0)+1;});
+        var kl=Object.keys(kinds).map(function(k){return k+': '+kinds[k];}).join(', ');
+        info.push('Einträge mit dem Reise-Schlüssel im Namen: '+((p3.data||[]).length)+(kl?' ('+kl+')':''));
+        dbg(info.join(' · '));
+      }catch(e2){dbg('Zusatz-Prüfung fehlgeschlagen: '+(e2.message||e2));}
+    }
   }catch(e){if(box)box.textContent='Zähler-Fehler: '+(e.message||e);}
 }
 async function loadGuestbook(){
