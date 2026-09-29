@@ -28,6 +28,7 @@ module.exports = async (req, res) => {
     let html = await pageRes.text();
 
     let meta = null;
+    let vis = null;
     if (id) {
       const r = await fetch(
         SUPABASE_URL + '/rest/v1/trips?id=eq.' + encodeURIComponent(id) + '&select=title,visibility',
@@ -36,6 +37,7 @@ module.exports = async (req, res) => {
       if (r.ok) {
         const rows = await r.json();
         // Nur öffentliche und „per Link“ geteilte Reisen bekommen eine eigene Vorschau
+        if (rows.length) vis = rows[0].visibility;
         if (rows.length && (rows[0].visibility === 'public' || rows[0].visibility === 'link')) {
           try { meta = JSON.parse(rows[0].title || '{}'); } catch (e) { meta = { name: rows[0].title }; }
         }
@@ -63,7 +65,11 @@ module.exports = async (req, res) => {
         '<meta name="twitter:title" content="' + esc(title) + '">',
         '<meta name="twitter:description" content="' + esc(desc) + '">',
         '<meta name="twitter:image" content="' + esc(image) + '">',
-        '<meta name="description" content="' + esc(desc) + '">'
+        '<meta name="description" content="' + esc(desc) + '">',
+        // Nur öffentliche Reisen sollen in Suchmaschinen erscheinen
+        vis === 'public'
+          ? '<meta name="robots" content="index, follow">\n<link rel="canonical" href="' + esc(url) + '">'
+          : '<meta name="robots" content="noindex, nofollow">'
       ].join('\n');
 
       html = html
@@ -72,6 +78,11 @@ module.exports = async (req, res) => {
         .replace(/<meta\s+name="description"[^>]*>\s*/gi, '')
         .replace(/<title>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>')
         .replace('</head>', tags + '\n</head>');
+    }
+
+    // Private, „per Link“ geteilte und unbekannte Reisen: nicht in Suchmaschinen aufnehmen
+    if (!(meta && meta.name)) {
+      html = html.replace('</head>', '<meta name="robots" content="noindex, nofollow">\n</head>');
     }
 
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
