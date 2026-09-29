@@ -248,7 +248,7 @@ async function loadCommunity(){
   loading.style.display='none';
   if(!trips.length){
     sub.textContent='Noch keine öffentlichen Reisen';
-    grid.innerHTML='<div class="empty"><div class="big">🗺️</div><div>Noch sind keine Reisen öffentlich geteilt.<br>Sei die erste Person, die ein Tagebuch teilt!</div><a class="btn btn-violet" href="vorteile.html">Reise starten</a></div>';
+    grid.innerHTML='<div class="empty"><div class="big">🗺️</div><div>Noch sind keine Reisen öffentlich geteilt.</div></div>';
     return;
   }
   sub.textContent=trips.length+(trips.length===1?' Reise':' Reisen')+' zum Entdecken';
