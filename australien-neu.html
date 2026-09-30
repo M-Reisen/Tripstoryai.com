@@ -653,6 +653,21 @@ html.app-guestview body{padding-top:48px;}
 #section-kosten .cost-title{display:none;}
 #section-neu{padding-top:0;}
 #section-neu .form-card{margin-top:8px;}
+
+/* Ort ändern */
+.ah-edit{color:var(--a-acc) !important;font-weight:700;margin-top:4px;}
+.st-card[data-au-ort],.ah-stay[data-au-ort]{cursor:pointer;}
+.ao-ov{position:fixed;inset:0;z-index:9700;background:rgba(26,23,20,.55);display:flex;align-items:flex-end;justify-content:center;}
+.ao-sheet{width:100%;max-width:520px;background:#F7F1E8;border-radius:28px 28px 0 0;padding:12px 18px calc(24px + env(safe-area-inset-bottom));font-family:'DM Sans',sans-serif;color:#1A1714;}
+.ao-grip{width:44px;height:5px;border-radius:3px;background:#E6DCCB;margin:0 auto 14px;}
+.ao-title{font-weight:700;font-size:20px;}
+.ao-sub{font-size:13px;color:#5F5953;margin:4px 0 14px;}
+.ao-sheet input{width:100%;box-sizing:border-box;border:0;border-radius:18px;box-shadow:0 2px 10px rgba(26,23,20,.07);padding:15px 16px;font:500 17px 'DM Sans',sans-serif;background:#fff;color:#1A1714;}
+.ao-hint{font-size:12.5px;color:#5F5953;line-height:1.45;margin:10px 4px 16px;}
+.ao-btn{display:block;width:100%;min-height:54px;border:0;border-radius:27px;background:#A8522F;color:#fff;font:700 16px 'DM Sans',sans-serif;margin-bottom:10px;cursor:pointer;}
+.ao-btn.alt{background:#fff;color:#1A1714;box-shadow:0 2px 10px rgba(26,23,20,.07);}
+.ao-btn:disabled{opacity:.6;}
+.ao-cancel{display:block;width:100%;min-height:46px;border:0;background:none;color:#5F5953;font:600 15px 'DM Sans',sans-serif;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -3449,6 +3464,7 @@ initApp();
   if(typeof W.sleep!=='function')W.sleep=function(ms){return new Promise(function(r){setTimeout(r,ms);});};
 
   /* Reisepositionen aus den festen Daten dieser Seite (Unterkünfte, Flüge/Transfers, Ausflüge) */
+  function buildCosts(){
   var C=[];
   BOOKINGS.forEach(function(b){
     C.push({id:'s'+b.id,cat:'Unterkunft',label:b.name,info:(b.loc||'')+'‖‖‖‖'+addDays(b.datum,b.nights),datum:b.datum,amount:b.price||0,cur:'EUR',_bid:b.id});
@@ -3461,8 +3477,11 @@ initApp();
     }
   });
   W.costs=C;
+  }
+  buildCosts();
 
   W.stayForDay=function(iso){
+    var C=W.costs;
     for(var i=0;i<C.length;i++){
       var c=C[i];if(c.cat!=='Unterkunft')continue;
       var bis=W.parseInfo(c.info).bis;
@@ -3480,6 +3499,127 @@ initApp();
   var km=0;
   for(var i=1;i<AU_STOPS.length;i++)km+=W.haversineKm({lat:AU_STOPS[i-1].lat,lon:AU_STOPS[i-1].lng},{lat:AU_STOPS[i].lat,lon:AU_STOPS[i].lng});
   W._statKm=Math.round(km);
+
+  /* Leaflet nur einmal laden (die Seite lädt sonst bei jedem Aufruf ein weiteres Skript) */
+  var _lfP=null;
+  W.ensureLeaflet=function(){
+    if(W.L)return Promise.resolve();
+    if(_lfP)return _lfP;
+    _lfP=new Promise(function(res,rej){
+      var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      sc.onload=res;sc.onerror=function(){_lfP=null;rej(new Error('Leaflet konnte nicht geladen werden'));};
+      document.head.appendChild(sc);
+    });
+    return _lfP;
+  };
+
+  /* ---------- Orte der Stationen ändern (z. B. „Whitsunday Islands“ → „Hamilton Island“) ----------
+     Gespeichert wird in einer eigenen Zeile (ort = tagort_stationen, ohne trip_id), die die bisherige
+     Seite nie einliest. Gäste sehen den geänderten Ort, weil sie dieselbe Zeile lesen. */
+  var OVK='tagort_stationen';
+  W._auOv={};W._auUiReady=false;
+  W.applyAuOverrides=function(){
+    BOOKINGS.forEach(function(b){
+      if(b._o===undefined)b._o={loc:b.loc};
+      var ov=W._auOv[b.id];
+      b.loc=(ov&&ov.n)?ov.n:b._o.loc;
+      var ix=MAPSTOPS.findIndex(function(m){return m.bid===b.id;});
+      if(ix<0)return;
+      var st=AU_STOPS[ix];
+      if(st._o===undefined)st._o={name:st.name,lat:st.lat,lng:st.lng};
+      if(ov&&ov.n){st.name=ov.n;if(ov.lat!=null&&ov.lon!=null){st.lat=ov.lat;st.lng=ov.lon;}else{st.lat=st._o.lat;st.lng=st._o.lng;}}
+      else{st.name=st._o.name;st.lat=st._o.lat;st.lng=st._o.lng;}
+    });
+    buildCosts();
+  };
+  W.auRefreshUI=function(){
+    try{buildDaySlides();}catch(e){}
+    try{renderTimeline();}catch(e){}
+    try{if(typeof _auMap!=='undefined'&&_auMap){_auMap.remove();_auMap=null;}renderAuKarte();}catch(e){}
+    try{if(W.appRefresh)W.appRefresh();}catch(e){}
+  };
+  W.loadAuOverrides=async function(){
+    try{
+      var r=await sb.from('kommentare').select('nachricht').eq('ort',OVK).limit(1);
+      if(r&&r.data&&r.data[0]){try{W._auOv=JSON.parse(r.data[0].nachricht||'{}')||{};}catch(e){W._auOv={};}}
+    }catch(e){}
+    W.applyAuOverrides();
+    if(W._auUiReady)W.auRefreshUI();
+  };
+  W.auSaveOverrides=async function(){
+    var row={name:'stationen',nachricht:JSON.stringify(W._auOv),created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null};
+    var ex=await sb.from('kommentare').select('id').eq('ort',OVK).limit(1);
+    var res;
+    if(ex&&ex.data&&ex.data.length)res=await sb.from('kommentare').update(row).eq('id',ex.data[0].id);
+    else res=await sb.from('kommentare').insert(Object.assign({ort:OVK},row));
+    if(res&&res.error)throw res.error;
+  };
+  async function geoOrt(name){
+    var qs=[name+', Australia',name];
+    for(var i=0;i<qs.length;i++){
+      try{
+        var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=de&q='+encodeURIComponent(qs[i]));
+        var d=await r.json();
+        if(d&&d[0])return {lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
+      }catch(e){}
+      await W.sleep(400);
+    }
+    return null;
+  }
+  function aoClose(){var o=document.getElementById('au-ort-ov');if(o&&o.parentNode)o.parentNode.removeChild(o);}
+  W.auOrtClose=aoClose;
+  W.auOrtOpen=function(bid){
+    if(!editMode)return;
+    var b=BOOKINGS.find(function(x){return x.id===bid;});if(!b)return;
+    aoClose();
+    var orig=b._o?b._o.loc:b.loc,has=!!W._auOv[bid];
+    var ov=document.createElement('div');ov.id='au-ort-ov';ov.className='ao-ov';
+    ov.innerHTML='<div class="ao-sheet" role="dialog" aria-modal="true" aria-label="Ort ändern">'
+      +'<div class="ao-grip"></div><div class="ao-title">Ort ändern</div>'
+      +'<div class="ao-sub">Station: '+W.esc(b.name)+' · '+W.esc(b.dateStr||'')+'</div>'
+      +'<input id="ao-in" type="text" autocomplete="off" value="'+W.esc(b.loc)+'" placeholder="z. B. Hamilton Island">'
+      +'<div class="ao-hint" id="ao-hint">Die Karte springt auf den eingegebenen Ort (Suche über OpenStreetMap).</div>'
+      +'<button type="button" class="ao-btn" id="ao-save" onclick="auOrtSave(\''+bid+'\')">Speichern</button>'
+      +(has?'<button type="button" class="ao-btn alt" onclick="auOrtReset(\''+bid+'\')">Zurücksetzen auf „'+W.esc(orig)+'“</button>':'')
+      +'<button type="button" class="ao-cancel" onclick="auOrtClose()">Abbrechen</button></div>';
+    ov.addEventListener('click',function(e){if(e.target===ov)aoClose();});
+    document.body.appendChild(ov);
+    var inp=document.getElementById('ao-in');if(inp&&inp.focus){try{inp.focus();inp.select();}catch(e){}}
+  };
+  async function aoPersist(msg){
+    try{await W.auSaveOverrides();}
+    catch(e){var h=document.getElementById('ao-hint');if(h)h.textContent='Speichern nicht möglich: '+((e&&e.message)||'Fehler');return false;}
+    W.applyAuOverrides();W.auRefreshUI();aoClose();
+    try{toast(msg);}catch(e){}
+    return true;
+  }
+  W.auOrtSave=async function(bid){
+    var inp=document.getElementById('ao-in'),h=document.getElementById('ao-hint'),btn=document.getElementById('ao-save');
+    var name=inp?String(inp.value||'').trim():'';
+    if(!name){if(h)h.textContent='Bitte einen Ort eingeben.';return;}
+    var b=BOOKINGS.find(function(x){return x.id===bid;});
+    var orig=b&&b._o?b._o.loc:(b?b.loc:'');
+    if(name===orig&&!W._auOv[bid]){aoClose();return;}
+    if(btn)btn.disabled=true;
+    if(h)h.textContent='Suche Ort …';
+    var g=await geoOrt(name);
+    W._auOv[bid]={n:name,lat:g?g.lat:null,lon:g?g.lon:null};
+    var ok=await aoPersist(g?'Ort gespeichert.':'Ort gespeichert, auf der Karte aber nicht gefunden.');
+    if(!ok&&btn)btn.disabled=false;
+  };
+  W.auOrtReset=async function(bid){
+    delete W._auOv[bid];
+    await aoPersist('Ort zurückgesetzt.');
+  };
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target.closest('[data-au-ort]'):null;
+    if(!t)return;
+    var bid=t.getAttribute('data-au-ort');
+    if(bid)W.auOrtOpen(bid);
+  });
+  var _ra=W.renderAll;
+  if(_ra)W.renderAll=function(){var r=_ra.apply(this,arguments);W._auUiReady=true;return r;};
+  W.loadAuOverrides();
 
   W.visiblePhotos=function(d){return (typeof photos!=='undefined'&&photos[d])||[];};
   W.orderedPhotos=function(d,l){return loadPhotoOrder(d,l);};
@@ -3636,8 +3776,8 @@ initApp();
     html+='<div class="ah-date"><b>'+E(dt.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'}))+'</b>'+(!cs&&line.length?'<span>'+E(line.join(' · '))+'</span>':'')+'</div>';
     if(cs){
       var cph=photoFor(cs.iso);
-      html+='<div class="st-card ah-stay"><div class="st-ph"'+(cph?' style="background-image:url(\''+esc(cph)+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
-        +'<div class="st-tx"><small>'+(ph.p==='during'?'Heute in':(ph.p==='after'?'Zuletzt in':'Station'))+'</small><b>'+E(cs.name||cs.label)+'</b>'+(nightTxt?'<small>'+E(nightTxt)+'</small>':'')+'</div></div>';
+      html+='<div class="st-card ah-stay" data-au-ort="'+E((cs.stay&&cs.stay._bid)||'')+'"><div class="st-ph"'+(cph?' style="background-image:url(\''+esc(cph)+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
+        +'<div class="st-tx"><small>'+(ph.p==='during'?'Heute in':(ph.p==='after'?'Zuletzt in':'Station'))+'</small><b>'+E(cs.name||cs.label)+'</b>'+(nightTxt?'<small>'+E(nightTxt)+'</small>':'')+'<small class="ah-edit">Ort ändern</small></div></div>';
     }
     var o1=ph.p==='before'?[ph.n,'Tage bis zur Abreise']:(ph.p==='during'?[ph.total-ph.n,'Tage noch']:[ph.total,'Tage']);
     html+='<div class="ah-stats">'+stat(o1[0],o1[1])+(total?stat(ph.p==='before'?total:(done+'/'+total),'Stationen'):'')+(km?stat(km,'km Luftlinie'):'')+'</div>';
@@ -3721,7 +3861,7 @@ initApp();
       L.marker([s.lat,s.lon],{icon:L.divIcon({className:'pm-wrap',html:p.html,iconSize:[p.size,p.size],iconAnchor:[p.size/2,p.size/2]}),interactive:false}).addTo(map);
     });
     if(pts.length===1)map.setView(pts[0],8);else map.fitBounds(pts,{padding:[28,28]});
-    setTimeout(function(){try{map.invalidateSize();}catch(e){}},250);
+    [250,900,2200,4500].forEach(function(ms){setTimeout(function(){try{if(miniMap!==map)return;map.invalidateSize();if(pts.length===1)map.setView(pts[0],8);else map.fitBounds(pts,{padding:[28,28]});}catch(e){}},ms);});
   }
 
   /* ---------- Mehr ---------- */
@@ -3849,8 +3989,8 @@ initApp();
       var url=photoFor(st.iso),next=sts[i+1];
       var when=shortDate(st.iso)+(st.bis?' – '+shortDate(st.bis):'');
       var chip=st.nights>0?'<span class="st-chip">'+st.nights+(st.nights===1?' Nacht':' Nächte')+'</span>':'';
-      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(url)+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
-        +'<div class="st-tx"><b>'+E(st.name||st.label)+'</b><small>'+E(when)+'</small></div>'+chip+'</div>';
+      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'"'+(isOwner()&&st.stay._bid?' data-au-ort="'+E(st.stay._bid)+'"':'')+'><div class="st-ph"'+(url?' style="background-image:url(\''+esc(url)+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
+        +'<div class="st-tx"><b>'+E(st.name||st.label)+'</b><small>'+E(when)+'</small>'+(isOwner()&&st.stay._bid?'<small class="ah-edit">Ort ändern</small>':'')+'</div>'+chip+'</div>';
       if(next)html+='<div class="st-km" data-a="'+esc(st.iso)+'" data-b="'+esc(next.iso)+'"><span>…</span></div>';
     });
     el.innerHTML=html;
@@ -3947,6 +4087,7 @@ initApp();
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
+  window.appRefresh=function(){heroSig='';renderHero();renderStations();decorateRouteMap();};
   show(cur,true);
   try{refreshLogin();refreshStations();}catch(e){}
 })();
