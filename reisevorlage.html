@@ -754,6 +754,11 @@ html.app-guestview body{padding-top:48px;}
 .buch-applybar{position:sticky;bottom:0;margin:12px -18px 0;padding:14px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0));z-index:5;}
 .buch-apply{display:block;width:100%;min-height:58px;border:0;border-radius:29px;background:var(--a-acc);color:#fff;font:700 17px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(168,82,47,.35);padding:0 16px;}
 .buch-apply:disabled{opacity:.6;box-shadow:none;}
+
+/* Leere Tage im Tagebuch (nur für die Besitzerin) */
+.fj-none{color:var(--a-fog) !important;font-style:italic;}
+.fj-write{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;margin-top:12px;border:0;border-radius:24px;background:var(--a-acc);color:#fff;font:700 15px 'DM Sans',sans-serif;cursor:pointer;}
+.fig-journal-entry.fj-empty .fj-text{padding-bottom:22px;}
 </style>
 </head>
 <body>
@@ -3441,13 +3446,14 @@ async function renderJournal(){
   if(!c)return;
   var run=++_journalRun;
   var days=buildDays();
-  var withText=days.filter(function(iso){var e=entries[iso];return e&&e.text&&e.text.trim();});
+  var _heuteIso=qxTodayISO();
+  var withText=days.filter(function(iso){var e=entries[iso];return (e&&e.text&&e.text.trim())||(editMode&&iso<=_heuteIso);});
   if(!withText.length){
     updateJournalInfo([]);
     c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
     return;
   }
-  updateJournalInfo(withText.map(function(iso){return entries[iso].at;}));
+  updateJournalInfo(withText.filter(function(iso){return entries[iso]&&entries[iso].text;}).map(function(iso){return entries[iso].at;}));
   var pending=withText.filter(function(iso){return photos[iso]===undefined;});
   // 1. Durchgang: Text sofort, Foto-Flächen mit fester Größe reservieren (kein Springen)
   drawJournal(pending.length>0);
@@ -3466,8 +3472,9 @@ async function renderJournal(){
     var iso=days[i];
     var e=entries[iso];
     var ph=visiblePhotos(iso);
-    if(e&&e.text&&e.text.trim()){
-      items.push({iso:iso,at:e.at,titel:e.titel||'',ort:e.ort||'',text:e.text.trim(),tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
+    var _hat=e&&e.text&&e.text.trim();
+    if(_hat||(editMode&&iso<=_heuteIso)){
+      items.push({iso:iso,at:e?e.at:'',titel:e?(e.titel||''):'',ort:e?(e.ort||''):'',text:_hat?e.text.trim():'',leer:!_hat,tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
     }
   }
   c.innerHTML='<div class="fig-journal">'+items.map(function(e,idx){
@@ -3489,10 +3496,10 @@ async function renderJournal(){
       img='<div class="fj-img fj-noimg"><div class="fj-tag">Tag '+e.tag+'</div><span>Kein Foto</span></div>';
     }
     var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+((!editMode&&isNewEntry(e.at))?'<span class="fj-new">Neu</span>':'')+'</p>'
-      +'<h3 class="fj-loc">'+esc(e.titel||e.ort||('Tag '+e.tag))+'</h3>'
+      +'<h3 class="fj-loc">'+esc(e.titel||e.ort||(e.leer?(ortFuerTag(e.iso)||('Tag '+e.tag)):('Tag '+e.tag)))+'</h3>'
       +'<p class="fj-date">'+dateStr+(e.ort?' · '+esc(e.ort):'')+'</p>'
-      +'<p class="fj-body">'+esc(e.text)+'</p></div>';
-    return '<div class="fig-journal-entry'+rev+'" data-jiso="'+e.iso+'">'+img+text+'</div>';
+      +(e.leer?'<p class="fj-body fj-none">Noch kein Eintrag für diesen Tag.</p><button type="button" class="fj-write" onclick="openEntry(\''+e.iso+'\')">Eintrag schreiben</button></div>':'<p class="fj-body">'+esc(e.text)+'</p></div>');
+    return '<div class="fig-journal-entry'+rev+(e.leer?' fj-empty':'')+'" data-jiso="'+e.iso+'">'+img+text+'</div>';
   }).join('')+'</div>';
   bindJournalCounters();
   }
@@ -4372,7 +4379,7 @@ init();
   var VIEWS={heute:'section-tage',tagebuch:'section-journal',route:'section-route',kosten:'section-kosten',gaestebuch:'section-gaestebuch',mehr:'section-mehr'};
   var OLD={tage:'heute',journal:'tagebuch',route:'route',kosten:'kosten',gaestebuch:'gaestebuch'};
   var cur=document.documentElement.classList.contains('is-admin')?'heute':'tagebuch';
-  var modeInit=false,lastOwner=null,heroSig='',miniRun=0,miniMap=null;
+  var modeInit=false,lastOwner=null,heroSig='',miniRun=0,miniMap=null,_userDay=false,_jDays=null;
   try{
     if((window.navigator.standalone===true)||window.matchMedia('(display-mode: standalone)').matches)document.documentElement.classList.add('standalone');
   }catch(e){}
@@ -4531,6 +4538,10 @@ init();
     var want=(isOwner()&&cur==='heute')||(!isOwner()&&cur==='tagebuch');
     if(!want){el.innerHTML='';heroSig='';return;}
     var days=buildDays();
+    if(isOwner()&&cur==='heute'&&!_userDay&&typeof renderTage==='function'&&days.length){
+      var _ix=days.indexOf(qxDefaultDate(days));
+      if(_ix>=0&&_ix!==currentDay){currentDay=_ix;try{renderTage();}catch(e){}}
+    }
     if(!days.length){
       el.innerHTML='<div class="ah-head"><div><div class="ah-eb">'+(isOwner()?'Neues Reisetagebuch':'Reisetagebuch')+'</div><div class="ah-title">'+E(tripHead.title||'Deine Reise')+'</div></div></div>';
       heroSig='';return;
@@ -5028,11 +5039,20 @@ init();
   window.renderHead=function(){
     if(_rh)_rh.apply(this,arguments);
     try{renderHero();setHeaders();refreshStations();}catch(e){console.error('Kopfbereich:',e);}
+    try{
+      var _sg=buildDays().join(',');
+      if(_jDays!==null&&_sg!==_jDays&&typeof renderJournal==='function')renderJournal();
+      _jDays=_sg;
+    }catch(e){}
   };
   var _rk=window.renderKarte;
   if(_rk)window.renderKarte=async function(){var r=await _rk.apply(this,arguments);try{await decorateRouteMap();}catch(e){}return r;};
   var _ahi=window.applyHeroImage;
   if(_ahi)window.applyHeroImage=async function(){var r=await _ahi.apply(this,arguments);photosSoon();return r;};
+  ['slideDay','goToDay'].forEach(function(n){
+    var f=window[n];
+    if(typeof f==='function')window[n]=function(){_userDay=true;return f.apply(this,arguments);};
+  });
   var _jt=window.jumpTo;
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
