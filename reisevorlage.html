@@ -719,6 +719,15 @@ html.app-guestview body{padding-top:48px;}
 .fig-journal-entry{scroll-margin-top:24px;}
 .fig-journal-entry.fj-flash{animation:fjflash 1.9s ease;}
 @keyframes fjflash{0%{box-shadow:0 0 0 0 rgba(168,82,47,.0);}15%{box-shadow:0 0 0 6px rgba(168,82,47,.35);}100%{box-shadow:0 0 0 0 rgba(168,82,47,0);}}
+
+/* Foto-Knöpfe: größer und gut lesbar */
+.photo-move,.photo-hide-btn,.photo-cap-btn,.photo-cell-edit{width:32px !important;height:32px !important;min-width:0;border-radius:50% !important;padding:0 !important;display:flex !important;align-items:center;justify-content:center;background:rgba(26,23,20,.72) !important;color:#fff !important;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+.photo-cell.photo-hidden .photo-hide-btn{background:var(--a-acc) !important;}
+.photo-del,.photo-cell-del{width:30px !important;height:30px !important;font-size:.9rem !important;box-shadow:0 1px 5px rgba(0,0,0,.35);}
+.photo-move-l{left:6px !important;}
+.photo-move-r{left:44px !important;}
+.photo-move svg,.photo-hide-btn svg,.photo-cap-btn svg,.photo-cell-edit svg{width:16px;height:16px;display:block;pointer-events:none;}
+.cost-edit-btn svg{width:15px;height:15px;display:block;pointer-events:none;}
 </style>
 </head>
 <body>
@@ -4814,12 +4823,44 @@ init();
     return nv;
   }
   window.appStripEmoji=stripEmojiText;
+  function allEmoji(str){
+    var t=String(str||'').replace(/[\s\uFE0F\u200D]/g,'');
+    if(!t)return false;
+    return Array.from(t).every(function(c){return EMO_T.test(c)&&KEEP.indexOf(c)<0;});
+  }
+  window.appIsEmojiOnly=allEmoji;
+  var SV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var ICO={
+    left:SV+'<path d="M15 5l-7 7 7 7"/></svg>',
+    right:SV+'<path d="M9 5l7 7-7 7"/></svg>',
+    pencil:SV+'<path d="M5 19l1-4L16.5 4.5a1.8 1.8 0 0 1 2.5 2.5L8.5 17.5z"/><path d="M14.5 6.5l3 3"/></svg>',
+    eye:SV+'<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+    eyeoff:SV+'<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M4 4l16 16"/></svg>'
+  };
+  function iconFor(cls,hidden){
+    if(/photo-move-l/.test(cls))return ICO.left;
+    if(/photo-move-r/.test(cls))return ICO.right;
+    if(/photo-cap-btn|photo-cell-edit|cost-edit-btn/.test(cls))return ICO.pencil;
+    if(/photo-hide-btn/.test(cls))return hidden?ICO.eyeoff:ICO.eye;
+    return null;
+  }
+  window.appIconFor=iconFor;
+  function iconButtons(root){
+    Array.prototype.forEach.call(root.querySelectorAll('button'),function(b){
+      if(b.querySelector&&b.querySelector('svg'))return;
+      if(!allEmoji(b.textContent))return;
+      var svg=iconFor(String(b.className||''),!!(b.closest&&b.closest('.photo-hidden')));
+      if(svg)b.innerHTML=svg;
+    });
+  }
   function stripTree(root){
+    try{iconButtons(root);}catch(e){}
     var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null),nodes=[],n;
     while((n=w.nextNode()))nodes.push(n);
     nodes.forEach(function(t){
       var v=t.nodeValue;if(!v||!EMO_T.test(v))return;
       var p=t.parentNode;if(p&&p.closest&&p.closest(SKIP))return;
+      if(p&&p.tagName==='BUTTON'&&allEmoji(p.textContent))return;
       t.nodeValue=stripEmojiText(v);
     });
   }
