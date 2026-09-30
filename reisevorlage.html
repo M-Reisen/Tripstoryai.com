@@ -1168,8 +1168,9 @@ async function initAuth(){
     const {data}=await sb.from('trips').select('owner,visibility').eq('id',REISE).limit(1);
     if(data&&data.length){tripOwner=data[0].owner;tripVisibility=data[0].visibility||'private';}
     try{
-      const lr=await sb.from('trips').select('land,weitere').eq('id',REISE).limit(1);
+      const lr=await sb.from('trips').select('land,weitere,title').eq('id',REISE).limit(1);
       if(lr&&lr.data&&lr.data[0]){
+        try{const mm=JSON.parse(lr.data[0].title||'{}');if(mm&&/^https:\/\//i.test(mm.img||''))window.__tripImg=mm.img;}catch(e){}
         const ls=[lr.data[0].land].concat(Array.isArray(lr.data[0].weitere)?lr.data[0].weitere:[]);
         window.__tripLands=ls.filter(function(l){return l&&String(l).toLowerCase()!=='weltweit';});
       }
@@ -4626,6 +4627,7 @@ init();
   function coverURL(){
     var im=document.getElementById('hero-bg-img'),s=(im&&im.src)||'';
     if(s.indexOf('/titelbilder/')>=0)return s;
+    if(window.__tripImg)return window.__tripImg;
     var sts=stationList();
     for(var i=0;i<sts.length;i++){var u=photoFor(sts[i].iso);if(u)return u;}
     return null;

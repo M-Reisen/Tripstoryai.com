@@ -3655,6 +3655,15 @@ initApp();
   });
   var _ra=W.renderAll;
   if(_ra)W.renderAll=function(){var r=_ra.apply(this,arguments);W._auUiReady=true;return r;};
+  /* Titelbild der Übersicht („Meine Reisen“) übernehmen */
+  W.loadAuCover=async function(){
+    try{
+      var r=await sb.from('trips').select('title').eq('id',REISE_ID).limit(1);
+      var m=JSON.parse((r&&r.data&&r.data[0]&&r.data[0].title)||'{}');
+      if(m&&/^https:\/\//i.test(m.img||'')&&m.img!==W.__tripImg){W.__tripImg=m.img;if(W._auUiReady&&W.appRefresh)W.appRefresh();}
+    }catch(e){}
+  };
+  W.loadAuCover();
   W.loadAuOverrides();
 
   W.visiblePhotos=function(d){return (typeof photos!=='undefined'&&photos[d])||[];};
@@ -4066,8 +4075,7 @@ initApp();
   function photoSig(){return stationList().map(function(s){return photoFor(s.iso)||'';}).join(',')+'|'+(coverURL()||'');}
   function coverURL(){
     var sts=stationList();
-    for(var i=0;i<sts.length;i++){var u=photoFor(sts[i].iso);if(u)return u;}
-    return String(HERO_IMG_URL).replace('w=1800&h=1000','w=1100&h=700');
+    return window.__tripImg||String(HERO_IMG_URL).replace('w=1800&h=1000','w=1100&h=700');
   }
   async function loadOwnPhotos(){
     var days=lyDays(),todo=[];
