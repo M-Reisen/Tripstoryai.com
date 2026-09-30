@@ -636,6 +636,24 @@ html.app-guestview body{padding-top:48px;}
 @media print{#app-tabs,#app-plus,#app-guestbar,#app-hero{display:none !important;}}
 
 .ah-test{padding:14px 22px 0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--a-acc);}
+
+#app-diag{max-width:720px;margin:0 auto;padding:8px 20px 0;font-size:11px;color:var(--a-fog);letter-spacing:.02em;}
+html.app-guestview #app-diag{padding-top:10px;}
+@media print{#app-diag{display:none !important;}}
+
+/* Schnellerfassung im Stil der App */
+#qx-ov{z-index:9600 !important;}
+#qx-sheet{background:#F7F1E8 !important;border-radius:28px 28px 0 0 !important;padding-top:12px !important;}
+#qx-sheet::before{content:'';display:block;width:44px;height:5px;border-radius:3px;background:#E6DCCB;margin:0 auto 12px;}
+#qx-sheet h2{font-family:'DM Sans',sans-serif !important;font-weight:700 !important;font-size:20px !important;}
+#qx-sheet input,#qx-sheet select{border:0 !important;border-radius:18px !important;box-shadow:0 2px 10px rgba(26,23,20,.07) !important;}
+#qx-amt{font-weight:700 !important;}
+.qx-chip{border:0 !important;background:#fff !important;box-shadow:0 2px 10px rgba(26,23,20,.07);border-radius:22px !important;min-height:44px;}
+.qx-chip[aria-pressed="true"]{background:#1A1714 !important;color:#F7F1E8 !important;}
+.qx-btn{border-radius:27px !important;min-height:54px !important;border:0 !important;background:#A8522F !important;}
+.qx-btn.alt{background:#fff !important;color:#1A1714 !important;box-shadow:0 2px 10px rgba(26,23,20,.07);}
+.app-exp-btn{background:#A8522F !important;color:#fff !important;border-radius:22px !important;min-height:44px;padding:0 18px !important;font-weight:700 !important;}
+#buch-btn{border-radius:22px !important;min-height:44px;padding:0 18px !important;background:#fff !important;color:#1A1714 !important;box-shadow:0 2px 10px rgba(26,23,20,.07);font-weight:700 !important;}
 </style>
 </head>
 <body>
@@ -705,6 +723,7 @@ html.app-guestview body{padding-top:48px;}
   <button id="tab-tage"></button><button id="tab-route"></button><button id="tab-journal"></button><button id="tab-kosten"></button><button id="tab-fotobuch"></button>
 </div>
 
+<div id="app-diag">Testfassung</div>
 <div id="app-hero" class="app-hero"></div>
 <main>
   <!-- TAG FÜR TAG -->
@@ -747,7 +766,7 @@ html.app-guestview body{padding-top:48px;}
       <p style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px" class="app-eb">Reisekosten</p>
       <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px">
         <h2 style="font-family:'Playfair Display',serif;font-size:clamp(32px,4vw,48px);font-weight:400;color:var(--ink);margin:0;line-height:1.1">Kosten</h2>
-        <button id="buch-btn" class="btn btn-sm" style="background:var(--reef);color:#fff;display:none" onclick="openBuch()">Buchungen einlesen</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-sm app-exp-btn" onclick="qxOpen()">＋ Ausgabe</button><button id="buch-btn" class="btn btn-sm" style="background:var(--reef);color:#fff;display:none" onclick="openBuch()">Buchungen einlesen</button></div>
       </div>
     </div>
     <div class="cost-card">
@@ -789,6 +808,7 @@ html.app-guestview body{padding-top:48px;}
 </main>
 
 <footer style="max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);">
+  <a id="app-login" href="/meine-reisen.html" onclick="appLogin(event)" style="display:none;color:var(--fog);text-decoration:none;margin:0 10px;">Anmelden</a> <span id="app-login-dot" style="opacity:.4;display:none">·</span>
   <a href="/reisetagebuch" style="color:var(--fog);text-decoration:none;margin:0 10px;">Reiseziele</a>
   <span style="opacity:.4">·</span>
   <a href="/impressum.html" style="color:var(--fog);text-decoration:none;margin:0 10px;">Impressum</a>
@@ -800,16 +820,6 @@ html.app-guestview body{padding-top:48px;}
 <div style="text-align:center;padding:20px;font-size:.7rem;color:var(--fog);opacity:.6">Travona</div>
 
 <nav id="app-tabs" aria-label="Hauptnavigation"></nav>
-<div id="app-plus" role="dialog" aria-modal="true" aria-label="Erfassen">
-  <div class="ap-sheet">
-    <div class="ap-grip"></div>
-    <div class="ap-title">Was möchtest du festhalten?</div>
-    <button type="button" class="ap-btn" data-pa="ausgabe"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19v4"/><path d="M4 7.5V17a2 2 0 0 0 2 2h13v-4"/><path d="M19 9h-3a2 2 0 0 0 0 4h3z"/></svg></i>Ausgabe erfassen</button>
-    <button type="button" class="ap-btn" data-pa="foto"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.6l1.2-1.6h5.4L16 6h1.5A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.2"/></svg></i>Foto hinzufügen</button>
-    <button type="button" class="ap-btn" data-pa="notiz"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19l1-4L16.5 4.5a1.8 1.8 0 0 1 2.5 2.5L8.5 17.5z"/><path d="M14.5 6.5l3 3"/></svg></i>Tagebucheintrag schreiben</button>
-    <button type="button" class="ap-cancel">Abbrechen</button>
-  </div>
-</div>
 <div id="app-guestbar"><span>Gästeansicht: So sehen Besucher die Seite.</span><button type="button" onclick="toggleGuestView()">Beenden</button></div>
 <!-- REISEKOPF-MODAL -->
 <div class="overlay" id="head-modal" onclick="if(event.target===this)closeTripHead()">
@@ -4414,13 +4424,34 @@ init();
     var t=ev.target;if(!t||!t.closest)return;
     var b;
     if((b=t.closest('#app-tabs [data-v]'))){show(b.getAttribute('data-v'));return;}
-    if(t.closest('#app-tabs [data-plus]')){openPlus();return;}
+    if(t.closest('#app-tabs [data-plus]')){plusAct('ausgabe');return;}
     if((b=t.closest('[data-plus-act]'))){plusAct(b.getAttribute('data-plus-act'));return;}
     if((b=t.closest('#app-plus [data-pa]'))){plusAct(b.getAttribute('data-pa'));return;}
     if(t.closest('#app-plus .ap-cancel')||t.id==='app-plus'){closePlus();return;}
     if((b=t.closest('[data-go]'))){var g=b.getAttribute('data-go');if(g==='route')show('route');else if(g==='teilen')shareTrip();return;}
     if((b=t.closest('#mehr-body [data-act]'))){act(b.getAttribute('data-act'));return;}
   });
+
+  /* ---------- Test-Info oben: zeigt, wer die Seite gerade sieht ---------- */
+  function diag(){
+    var el=document.getElementById('app-diag');if(!el)return;
+    var u=(typeof currentUser!=='undefined')?currentUser:null;
+    var rolle=editMode?'Besitzer':((typeof canEdit!=='undefined'&&canEdit)?'Besitzer (Gästeansicht)':(u?'angemeldet, aber nicht Besitzer dieser Reise':'Gast'));
+    el.textContent='Testfassung · '+(u?'angemeldet als '+(u.email||'?'):'nicht angemeldet')+' · '+rolle;
+  }
+  setInterval(function(){try{diag();}catch(e){}},1000);
+
+  /* ---------- Anmelde-Link für den Besitzer (nur ohne Anmeldung sichtbar) ---------- */
+  function refreshLogin(){
+    var a=document.getElementById('app-login'),d=document.getElementById('app-login-dot');
+    var show=!(typeof currentUser!=='undefined'&&currentUser);
+    if(a)a.style.display=show?'':'none';
+    if(d)d.style.display=show?'':'none';
+  }
+  window.appLogin=function(ev){
+    if(ev&&ev.preventDefault)ev.preventDefault();
+    location.href='/meine-reisen.html?weiter='+encodeURIComponent(location.pathname+location.search);
+  };
 
   /* ---------- Einhängen in die bestehende Seite ---------- */
   var _avm=window.applyViewMode;
@@ -4435,6 +4466,7 @@ init();
       modeInit=true;lastOwner=owner;
       heroSig='';
       show(want,true);
+      refreshLogin();diag();
     }catch(e){console.error('App-Ansicht:',e);}
   };
   var _rh=window.renderHead;
@@ -4447,6 +4479,7 @@ init();
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
   show(cur,true);
+  try{refreshLogin();diag();}catch(e){}
 })();
 
 </script>
