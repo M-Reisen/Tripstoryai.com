@@ -728,6 +728,32 @@ html.app-guestview body{padding-top:48px;}
 .photo-move-r{left:44px !important;}
 .photo-move svg,.photo-hide-btn svg,.photo-cap-btn svg,.photo-cell-edit svg{width:16px;height:16px;display:block;pointer-events:none;}
 .cost-edit-btn svg{width:15px;height:15px;display:block;pointer-events:none;}
+
+/* Buchungen einlesen: Dateiliste, großer Knopf, Datumsfelder innerhalb der Karte */
+#buch-modal input,#buch-modal select,#buch-modal textarea{width:100%;min-width:0;max-width:100%;box-sizing:border-box;}
+#buch-modal input[type=date]{-webkit-appearance:none;appearance:none;display:block;height:52px;}
+#buch-modal .buch-use input,#buch-modal .buch-day input[type=checkbox]{width:auto;}
+#buch-modal .field-row{display:flex;gap:10px;}
+#buch-modal .field-row>.field{flex:1;min-width:0;}
+#buch-read-btn{display:block;width:100%;min-height:56px;border:0;border-radius:28px;background:#1A1714;color:#F7F1E8;font:700 17px 'DM Sans',sans-serif;cursor:pointer;margin-top:12px;}
+#buch-read-btn:disabled{opacity:.55;}
+.bf-head{font-weight:700;font-size:.82rem;color:var(--a-ink);margin:12px 0 8px;}
+.bf-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;box-shadow:var(--a-sh);padding:8px 10px;margin-bottom:8px;}
+.bf-th{flex:0 0 46px;width:46px;height:46px;border-radius:10px;object-fit:cover;background:var(--a-sand);}
+.bf-pdf{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;color:var(--a-fog);}
+.bf-tx{flex:1;min-width:0;}
+.bf-tx b{display:block;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bf-tx small{display:block;font-size:.76rem;color:var(--a-fog);margin-top:2px;}
+.bf-row.bf-busy .bf-st{color:var(--a-acc);font-weight:700;}
+.bf-row.bf-done .bf-st{color:#2f7a4b;font-weight:700;}
+.bf-row.bf-err .bf-st,.bf-tx .bf-err{color:#b3261e;font-weight:700;}
+.bf-row.bf-skip{border:1.5px dashed var(--a-acc);}
+.bf-again{margin-top:6px;border:0;background:none;color:var(--a-acc);font:700 .78rem 'DM Sans',sans-serif;padding:4px 0;cursor:pointer;}
+.bf-x{flex:0 0 42px;width:42px;height:42px;border:0;border-radius:21px;background:var(--a-sand);font-size:1rem;color:var(--a-ink);cursor:pointer;padding:0;}
+.buch-prog{color:var(--a-fog);font-size:.85rem;padding:10px 0;}
+.buch-applybar{position:sticky;bottom:0;margin:12px -18px 0;padding:14px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0));z-index:5;}
+.buch-apply{display:block;width:100%;min-height:58px;border:0;border-radius:29px;background:var(--a-acc);color:#fff;font:700 17px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(168,82,47,.35);padding:0 16px;}
+.buch-apply:disabled{opacity:.6;box-shadow:none;}
 </style>
 </head>
 <body>
@@ -2325,22 +2351,9 @@ function buchPrompt(){
     +'"tageseintrag" nur bei einem konkreten Erlebnis (Ausflug, Tour, Restaurantbesuch, Veranstaltung), sonst weglassen oder leer lassen; schreibe ihn sachlich aus Sicht der Buchung ohne Schwärmerei und ohne Ausrufezeichen, nichts dazuerfinden. '
     +'Ignoriere Werbung, Bedingungen und Zahlungshinweise, die keine gebuchte Leistung sind.';
 }
-function openBuch(){
-  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
-  _buchItems=[];
-  document.getElementById('buch-status').innerHTML='';
-  document.getElementById('buch-result').style.display='none';
-  document.getElementById('buch-files').value='';
-  document.getElementById('buch-files-list').textContent='';
-  document.getElementById('buch-text').value='';
-  const b=document.getElementById('buch-read-btn');if(b){b.disabled=false;b.textContent='Auslesen';}
-  document.getElementById('buch-modal').classList.add('open');
-}
+
 function closeBuchModal(){document.getElementById('buch-modal').classList.remove('open');}
-function buchFilesChanged(ev){
-  const f=Array.from(ev.target.files||[]);
-  document.getElementById('buch-files-list').textContent=f.length?(f.length+(f.length===1?' Datei gewählt: ':' Dateien gewählt: ')+f.map(function(x){return x.name;}).join(', ')):'';
-}
+
 // KI-Antwort in saubere Werte überführen
 function normBuch(p,quelle){
   p=p||{};
@@ -2368,127 +2381,12 @@ function normBuch(p,quelle){
     quelle:quelle||''
   };
 }
-function buchNorm(t){return String(t||'').toLowerCase().replace(/[^a-z0-9äöüß]+/g,'');}
+
 // Gibt es diese Position schon? (gleiche Kategorie, gleiches Datum, ähnliche Bezeichnung)
-function buchIstDoppelt(it){
-  return costs.some(function(c){
-    return c.cat===it.cat&&(c.datum||'')===(it.datum||'')&&buchNorm(c.label)===buchNorm(it.label);
-  });
-}
-async function readBuchungen(){
-  const files=Array.from(document.getElementById('buch-files').files||[]);
-  const text=val('buch-text').trim();
-  if(!files.length&&text.length<20){toast('Bitte Dateien wählen oder Text einfügen.');return;}
-  if(files.length>6){toast('Bitte höchstens 6 Dateien auf einmal.');return;}
-  const btn=document.getElementById('buch-read-btn');
-  const status=document.getElementById('buch-status');
-  document.getElementById('buch-result').style.display='none';
-  btn.disabled=true;btn.textContent='Liest aus …';
-  const prompt=buchPrompt();
-  const found=[],fehler=[];
-  try{
-    for(let i=0;i<files.length;i++){
-      status.innerHTML='<div style="color:var(--fog);font-size:.85rem;padding:10px 0">⏳ Datei '+(i+1)+' von '+files.length+' wird ausgelesen … (kann 10–20 Sek. dauern)</div>';
-      try{
-        const out=await aiCallWithFile(prompt,files[i],3000);
-        const j=parseBelegJSON(out);
-        if(j&&Array.isArray(j.positionen)&&j.positionen.length){j.positionen.forEach(function(p){const n=normBuch(p,files[i].name);if(n)found.push(n);});}
-        else fehler.push(files[i].name);
-      }catch(e){fehler.push(files[i].name+' ('+(e.message||e)+')');}
-    }
-    if(text.length>=20){
-      status.innerHTML='<div style="color:var(--fog);font-size:.85rem;padding:10px 0">⏳ Text wird ausgelesen …</div>';
-      try{
-        const out=await aiCall(prompt+'\n\nHier ist der Text:\n'+text.substring(0,12000),3000);
-        const j=parseBelegJSON(out);
-        if(j&&Array.isArray(j.positionen)&&j.positionen.length){j.positionen.forEach(function(p){const n=normBuch(p,'Eingefügter Text');if(n)found.push(n);});}
-        else fehler.push('Eingefügter Text');
-      }catch(e){fehler.push('Text ('+(e.message||e)+')');}
-    }
-  }finally{
-    btn.disabled=false;btn.textContent='Auslesen';
-  }
-  status.innerHTML='';
-  if(!found.length){
-    status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Es konnte keine Buchung erkannt werden.'+(fehler.length?' ('+esc(fehler.join('; '))+')':'')+' Bitte erfasse sie von Hand.</div>';
-    return;
-  }
-  _buchItems=found;
-  renderBuchResult(fehler);
-}
-function renderBuchResult(fehler){
-  const box=document.getElementById('buch-result');
-  let html='<div style="font-size:.8rem;color:var(--reef);font-weight:600;margin-bottom:10px">✓ '+_buchItems.length+(_buchItems.length===1?' Position':' Positionen')+' erkannt – bitte prüfen und anpassen:</div>';
-  if(fehler&&fehler.length)html+='<div class="buch-warn">Nicht auslesbar: '+esc(fehler.join('; '))+'</div>';
-  _buchItems.forEach(function(it,i){
-    const dup=buchIstDoppelt(it);
-    it.dup=dup;
-    const catOpts=BUCH_CATS.map(function(c){return '<option value="'+c+'"'+(it.cat===c?' selected':'')+'>'+(CAT_EMOJI[c]||'')+' '+c+'</option>';}).join('');
-    const curOpts=BUCH_CURS.map(function(c){return '<option value="'+c+'"'+(it.cur===c?' selected':'')+'>'+c+'</option>';}).join('');
-    const meta=[it.time,it.pax,it.ref?('Ref. '+it.ref):''].filter(Boolean).join(' · ');
-    html+='<div class="buch-card'+(dup?' buch-dup':'')+'" id="bu-card-'+i+'">'
-      +'<label class="buch-use"><input type="checkbox" id="bu-use-'+i+'"'+(dup?'':' checked')+'><span>'+esc((CAT_EMOJI[it.cat]||'')+' '+it.label)+'<br><span class="buch-src">'+esc(it.quelle)+'</span></span></label>'
-      +(dup?'<div class="buch-warn">Diese Position gibt es schon. Sie ist abgewählt, damit sie nicht doppelt angelegt wird.</div>':'')
-      +(it.amount<=0?'<div class="buch-warn">Kein Betrag erkannt – bitte ergänzen, sonst bleibt er bei 0.</div>':'')
-      +'<div class="field"><label>Kategorie</label><select id="bu-cat-'+i+'" onchange="document.getElementById(\'bu-bis-wrap-'+i+'\').style.display=(this.value===\'Unterkunft\')?\'block\':\'none\'">'+catOpts+'</select></div>'
-      +'<div class="field"><label>Bezeichnung</label><input id="bu-label-'+i+'" type="text" value="'+escAttr(it.label)+'"></div>'
-      +'<div class="field-row"><div class="field"><label>Datum</label><input id="bu-datum-'+i+'" type="date" value="'+escAttr(it.datum)+'"></div>'
-      +'<div class="field"><label>Betrag</label><input id="bu-amount-'+i+'" type="number" step="0.01" value="'+escAttr(it.amount||'')+'"></div></div>'
-      +'<div class="field" id="bu-bis-wrap-'+i+'" style="'+(it.cat==='Unterkunft'?'':'display:none')+'"><label>Abreise <span class="opt">(Nächte werden berechnet)</span></label><input id="bu-bis-'+i+'" type="date" value="'+escAttr(it.bis)+'"></div>'
-      +'<div class="field-row"><div class="field"><label>Währung</label><select id="bu-cur-'+i+'">'+curOpts+'</select></div>'
-      +'<div class="field"><label>Ort / Details</label><input id="bu-info-'+i+'" type="text" value="'+escAttr(it.cat==='Unterkunft'?(it.ort||it.details):(it.details||it.ort))+'"></div></div>'
-      +(meta?'<div class="buch-meta">Übernommen wird außerdem: '+esc(meta)+'</div>':'')
-      +(it.tiText?('<div class="buch-day" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">'
-        +'<label class="buch-use" style="font-weight:500"><input type="checkbox" id="bu-day-'+i+'"'+(dup?'':' checked')+'><span>Auch als Eintrag in „Tag für Tag“ anlegen</span></label>'
-        +'<div class="field"><label>Titel</label><input id="bu-dtitel-'+i+'" type="text" value="'+escAttr(it.tiTitel||it.label)+'"></div>'
-        +'<div class="field"><label>Text</label><textarea id="bu-dtext-'+i+'" style="min-height:64px">'+esc(it.tiText)+'</textarea></div></div>'):'')
-      +'</div>';
-  });
-  html+='<button class="save" style="width:100%" onclick="applyBuchungen()">✓ Ausgewählte übernehmen</button>';
-  box.innerHTML=html;
-  box.style.display='block';
-}
-async function applyBuchungen(){
-  let ok=0,leer=0,tage=0;
-  for(let i=0;i<_buchItems.length;i++){
-    const chk=document.getElementById('bu-use-'+i);
-    if(!chk||!chk.checked)continue;
-    const it=_buchItems[i];
-    const cat=val('bu-cat-'+i);
-    const label=val('bu-label-'+i).trim();
-    if(!label){leer++;continue;}
-    const datum=val('bu-datum-'+i)||'';
-    const amt=parseFloat((val('bu-amount-'+i)||'').replace(',','.'))||0;
-    const cur=val('bu-cur-'+i)||'EUR';
-    const bisEl=document.getElementById('bu-bis-'+i);
-    const bis=(cat==='Unterkunft'&&bisEl)?(bisEl.value||''):'';
-    const infoText=val('bu-info-'+i).trim();
-    const info=buildInfo(infoText,it.time,it.pax,it.ref,bis);
-    const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
-    const id=await sbSaveCost(draft);
-    if(id!==null){costs.push(Object.assign({id:id},draft));ok++;}
-    // Optional: Eintrag in „Tag für Tag“ (ein vorhandener Eintrag wird ergänzt, nicht überschrieben)
-    const dchk=document.getElementById('bu-day-'+i);
-    if(dchk&&dchk.checked&&datum){
-      const dtext=val('bu-dtext-'+i).trim();
-      if(dtext){
-        const dtitel=val('bu-dtitel-'+i).trim();
-        const ex=entries[datum];
-        const newText=ex&&ex.text?(ex.text+'\n\n'+dtext):dtext;
-        const kat=(ex&&ex.kat)?ex.kat:(cat==='Ausflug'?'Ausflug':'Sonstiges');
-        await sbSaveEntry(datum,dtitel||(ex?ex.titel:''),kat,(ex&&ex.ort)?ex.ort:(it.ort||''),newText);
-        tage++;
-      }
-    }
-  }
-  closeBuchModal();
-  renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();
-  try{renderJournal();}catch(e){}
-  const teile=[];
-  if(ok)teile.push(ok+(ok===1?' Position':' Positionen'));
-  if(tage)teile.push(tage+(tage===1?' Tageseintrag':' Tageseinträge'));
-  toast(teile.length?('✓ '+teile.join(' & ')+' angelegt!'):(leer?'Bitte eine Bezeichnung eintragen.':'Nichts ausgewählt.'));
-}
+
+
+
+
 
 function parseBelegJSON(txt){
   if(!txt)return null;
@@ -2939,6 +2837,231 @@ function toggleAusflugFields(){
     else{_cl.innerHTML='Details <span class="opt">(optional)</span>';_ci.placeholder='z.B. 3 Nächte · Ref. XY';}
   }
 }
+/* ---------- Buchungen einlesen: Dateiliste mit Status, keine Doppelten ---------- */
+var _buchFiles=[],_buchBusy=false,_buchApplying=false;
+function buchFp(f){return [f.name,f.size,f.lastModified||0].join('|');}
+function buchDoneKey(){return 'tv_buch_done_'+(typeof REISE!=='undefined'?REISE:'x');}
+function buchDoneList(){try{return JSON.parse(localStorage.getItem(buchDoneKey())||'[]');}catch(e){return [];}}
+function buchDoneAdd(fps){try{var l=buchDoneList();fps.forEach(function(x){if(l.indexOf(x)<0)l.push(x);});localStorage.setItem(buchDoneKey(),JSON.stringify(l.slice(-200)));}catch(e){}}
+function buchSize(n){return n>1048576?(n/1048576).toFixed(1).replace('.',',')+' MB':Math.max(1,Math.round(n/1024))+' KB';}
+function buchFilesChanged(ev){
+  if(_buchBusy){ev.target.value='';return;}
+  const f=Array.from(ev.target.files||[]);
+  let dup=0,over=0;
+  f.forEach(function(file){
+    const fp=buchFp(file);
+    if(_buchFiles.some(function(x){return x.fp===fp;})){dup++;return;}
+    if(_buchFiles.length>=6){over++;return;}
+    const done=buchDoneList().indexOf(fp)>=0;
+    let url='';try{if(/^image\//.test(file.type))url=URL.createObjectURL(file);}catch(e){}
+    _buchFiles.push({file:file,fp:fp,name:file.name,size:file.size,status:done?'skip':'wait',n:0,err:'',url:url});
+  });
+  ev.target.value='';
+  renderBuchFiles();
+  if(dup)toast(dup===1?'Diese Datei ist schon in der Liste.':dup+' Dateien waren schon in der Liste.');
+  if(over)toast('Höchstens 6 Dateien auf einmal.');
+}
+function renderBuchFiles(){
+  const box=document.getElementById('buch-files-list');
+  if(!box)return;
+  if(!_buchFiles.length){box.innerHTML='';return;}
+  const label={wait:'Bereit zum Auslesen',busy:'Wird ausgelesen …',skip:'Schon übernommen'};
+  box.innerHTML='<div class="bf-head">'+_buchFiles.length+(_buchFiles.length===1?' Datei ausgewählt':' Dateien ausgewählt')+'</div>'
+    +_buchFiles.map(function(x,i){
+      const thumb=x.url?'<img class="bf-th" src="'+x.url+'" alt="">':'<div class="bf-th bf-pdf">PDF</div>';
+      let st=label[x.status]||'';
+      if(x.status==='done')st='Fertig · '+x.n+(x.n===1?' Position':' Positionen');
+      if(x.status==='err')st='Nicht auslesbar';
+      return '<div class="bf-row bf-'+x.status+'">'+thumb
+        +'<div class="bf-tx"><b>'+esc(x.name)+'</b><small>'+buchSize(x.size)+' · <span class="bf-st">'+esc(st)+'</span></small>'
+        +(x.status==='skip'?'<button type="button" class="bf-again" onclick="buchAgain('+i+')">Trotzdem noch einmal einlesen</button>':'')
+        +(x.status==='err'&&x.err?'<small class="bf-err">'+esc(x.err)+'</small>':'')+'</div>'
+        +(_buchBusy?'':'<button type="button" class="bf-x" aria-label="Datei entfernen" onclick="buchRemove('+i+')">✕</button>')+'</div>';
+    }).join('');
+}
+function buchRemove(i){
+  if(_buchBusy)return;
+  const x=_buchFiles[i];if(x&&x.url){try{URL.revokeObjectURL(x.url);}catch(e){}}
+  _buchFiles.splice(i,1);renderBuchFiles();
+}
+function buchAgain(i){const x=_buchFiles[i];if(x){x.status='wait';renderBuchFiles();}}
+function buchNorm(t){return String(t||'').toLowerCase().replace(/[^a-z0-9äöüß]+/g,'');}
+function buchSim(a,b){const x=buchNorm(a),y=buchNorm(b);return !!x&&!!y&&(x===y||(x.length>=6&&y.indexOf(x)>=0)||(y.length>=6&&x.indexOf(y)>=0));}
+function buchGleich(a,b){
+  if(a.cat!==b.cat)return false;
+  if((a.datum||'')!==(b.datum||''))return false;
+  if(buchSim(a.label,b.label))return true;
+  const am=parseFloat(a.amount)||0,bm=parseFloat(b.amount)||0;
+  return am>0&&bm>0&&Math.abs(am-bm)<0.005&&(a.cur||'EUR')===(b.cur||'EUR');
+}
+function buchIstDoppelt(it){return costs.some(function(c){return buchGleich(c,it);});}
+function buchCount(){
+  const b=document.getElementById('buch-apply-btn');if(!b||_buchApplying)return;
+  let n=0;for(let i=0;i<_buchItems.length;i++){const c=document.getElementById('bu-use-'+i);if(c&&c.checked)n++;}
+  b.disabled=n===0;
+  b.textContent=n?('✓ '+n+(n===1?' Position übernehmen':' Positionen übernehmen')):'Nichts ausgewählt';
+}
+function openBuch(){
+  if(!ensureApiKey()){toast('Bitte zuerst anmelden.');return;}
+  _buchItems=[];
+  _buchFiles.forEach(function(x){if(x.url){try{URL.revokeObjectURL(x.url);}catch(e){}}});
+  _buchFiles=[];_buchBusy=false;_buchApplying=false;
+  document.getElementById('buch-status').innerHTML='';
+  const res=document.getElementById('buch-result');res.style.display='none';res.innerHTML='';
+  document.getElementById('buch-files').value='';
+  renderBuchFiles();
+  document.getElementById('buch-text').value='';
+  const b=document.getElementById('buch-read-btn');if(b){b.disabled=false;b.textContent='Auslesen';}
+  document.getElementById('buch-modal').classList.add('open');
+}
+async function readBuchungen(){
+  if(_buchBusy||_buchApplying)return;
+  const files=_buchFiles.filter(function(x){return x.status==='wait'||x.status==='err';});
+  const text=val('buch-text').trim();
+  if(!files.length&&text.length<20){
+    toast(_buchFiles.length?'Alles schon übernommen. Mit „Trotzdem noch einmal einlesen“ liest du eine Datei erneut.':'Bitte Dateien wählen oder Text einfügen.');
+    return;
+  }
+  const btn=document.getElementById('buch-read-btn');
+  const status=document.getElementById('buch-status');
+  document.getElementById('buch-result').style.display='none';
+  _buchBusy=true;btn.disabled=true;btn.textContent='Liest aus …';
+  files.forEach(function(x){x.status='wait';x.n=0;x.err='';});
+  renderBuchFiles();
+  const prompt=buchPrompt();
+  const found=[],fehler=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      const x=files[i];
+      x.status='busy';renderBuchFiles();
+      status.innerHTML='<div class="buch-prog">Datei '+(i+1)+' von '+files.length+' wird ausgelesen … (kann 10–20 Sek. dauern)</div>';
+      try{
+        const out=await aiCallWithFile(prompt,x.file,3000);
+        const j=parseBelegJSON(out);
+        if(j&&Array.isArray(j.positionen)&&j.positionen.length){
+          j.positionen.forEach(function(p){const n=normBuch(p,x.name);if(n){n.fp=x.fp;found.push(n);x.n++;}});
+        }
+        if(x.n){x.status='done';}
+        else{x.status='err';x.err='Keine Buchung erkannt.';fehler.push(x.name);}
+      }catch(e){x.status='err';x.err=String(e.message||e);fehler.push(x.name+' ('+x.err+')');}
+      renderBuchFiles();
+    }
+    if(text.length>=20){
+      status.innerHTML='<div class="buch-prog">Text wird ausgelesen …</div>';
+      try{
+        const out=await aiCall(prompt+'\n\nHier ist der Text:\n'+text.substring(0,12000),3000);
+        const j=parseBelegJSON(out);
+        if(j&&Array.isArray(j.positionen)&&j.positionen.length){j.positionen.forEach(function(p){const n=normBuch(p,'Eingefügter Text');if(n)found.push(n);});}
+        else fehler.push('Eingefügter Text');
+      }catch(e){fehler.push('Text ('+(e.message||e)+')');}
+    }
+  }finally{
+    _buchBusy=false;btn.disabled=false;btn.textContent='Auslesen';renderBuchFiles();
+  }
+  status.innerHTML='';
+  if(!found.length){
+    status.innerHTML='<div style="color:#dc2626;font-size:.85rem;padding:10px 0">Es konnte keine Buchung erkannt werden.'+(fehler.length?' ('+esc(fehler.join('; '))+')':'')+' Bitte erfasse sie von Hand.</div>';
+    return;
+  }
+  _buchItems=found;
+  renderBuchResult(fehler);
+}
+function renderBuchResult(fehler){
+  const box=document.getElementById('buch-result');
+  let nDup=0;
+  _buchItems.forEach(function(it,i){
+    const vorhanden=buchIstDoppelt(it);
+    const imStapel=_buchItems.slice(0,i).some(function(o){return buchGleich(o,it);});
+    it.dup=vorhanden||imStapel;it.dupWo=vorhanden?'vorhanden':(imStapel?'stapel':'');
+    if(it.dup)nDup++;
+  });
+  let html='<div style="font-size:.8rem;color:var(--reef);font-weight:600;margin-bottom:10px">✓ '+_buchItems.length+(_buchItems.length===1?' Position':' Positionen')+' erkannt'+(nDup?' · '+nDup+' davon schon vorhanden (abgewählt)':'')+' – bitte prüfen und anpassen:</div>';
+  if(fehler&&fehler.length)html+='<div class="buch-warn">Nicht auslesbar: '+esc(fehler.join('; '))+'</div>';
+  _buchItems.forEach(function(it,i){
+    const dup=it.dup;
+    const catOpts=BUCH_CATS.map(function(c){return '<option value="'+c+'"'+(it.cat===c?' selected':'')+'>'+(CAT_EMOJI[c]||'')+' '+c+'</option>';}).join('');
+    const curOpts=BUCH_CURS.map(function(c){return '<option value="'+c+'"'+(it.cur===c?' selected':'')+'>'+c+'</option>';}).join('');
+    const meta=[it.time,it.pax,it.ref?('Ref. '+it.ref):''].filter(Boolean).join(' · ');
+    html+='<div class="buch-card'+(dup?' buch-dup':'')+'" id="bu-card-'+i+'">'
+      +'<label class="buch-use"><input type="checkbox" id="bu-use-'+i+'"'+(dup?'':' checked')+' onchange="buchCount()"><span>'+esc((CAT_EMOJI[it.cat]||'')+' '+it.label)+'<br><span class="buch-src">'+esc(it.quelle)+'</span></span></label>'
+      +(dup?'<div class="buch-warn">'+(it.dupWo==='stapel'?'Diese Position kommt in den ausgewählten Dateien mehrfach vor. Sie ist abgewählt, damit sie nicht doppelt angelegt wird.':'Diese Position gibt es schon. Sie ist abgewählt, damit sie nicht doppelt angelegt wird.')+'</div>':'')
+      +(it.amount<=0?'<div class="buch-warn">Kein Betrag erkannt – bitte ergänzen, sonst bleibt er bei 0.</div>':'')
+      +'<div class="field"><label>Kategorie</label><select id="bu-cat-'+i+'" onchange="document.getElementById(\'bu-bis-wrap-'+i+'\').style.display=(this.value===\'Unterkunft\')?\'block\':\'none\'">'+catOpts+'</select></div>'
+      +'<div class="field"><label>Bezeichnung</label><input id="bu-label-'+i+'" type="text" value="'+escAttr(it.label)+'"></div>'
+      +'<div class="field-row"><div class="field"><label>Datum</label><input id="bu-datum-'+i+'" type="date" value="'+escAttr(it.datum)+'"></div>'
+      +'<div class="field"><label>Betrag</label><input id="bu-amount-'+i+'" type="number" step="0.01" value="'+escAttr(it.amount||'')+'"></div></div>'
+      +'<div class="field" id="bu-bis-wrap-'+i+'" style="'+(it.cat==='Unterkunft'?'':'display:none')+'"><label>Abreise <span class="opt">(Nächte werden berechnet)</span></label><input id="bu-bis-'+i+'" type="date" value="'+escAttr(it.bis)+'"></div>'
+      +'<div class="field-row"><div class="field"><label>Währung</label><select id="bu-cur-'+i+'">'+curOpts+'</select></div>'
+      +'<div class="field"><label>Ort / Details</label><input id="bu-info-'+i+'" type="text" value="'+escAttr(it.cat==='Unterkunft'?(it.ort||it.details):(it.details||it.ort))+'"></div></div>'
+      +(meta?'<div class="buch-meta">Übernommen wird außerdem: '+esc(meta)+'</div>':'')
+      +(it.tiText?('<div class="buch-day" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">'
+        +'<label class="buch-use" style="font-weight:500"><input type="checkbox" id="bu-day-'+i+'"'+(dup?'':' checked')+'><span>Auch als Eintrag in „Tag für Tag“ anlegen</span></label>'
+        +'<div class="field"><label>Titel</label><input id="bu-dtitel-'+i+'" type="text" value="'+escAttr(it.tiTitel||it.label)+'"></div>'
+        +'<div class="field"><label>Text</label><textarea id="bu-dtext-'+i+'" style="min-height:64px">'+esc(it.tiText)+'</textarea></div></div>'):'')
+      +'</div>';
+  });
+  html+='<div class="buch-applybar"><button type="button" class="buch-apply" id="buch-apply-btn" onclick="applyBuchungen()"></button></div>';
+  box.innerHTML=html;
+  box.style.display='block';
+  buchCount();
+  try{box.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}
+}
+async function applyBuchungen(){
+  if(_buchApplying)return;
+  _buchApplying=true;
+  const ab=document.getElementById('buch-apply-btn');
+  if(ab){ab.disabled=true;ab.textContent='Speichert … bitte einen Moment';}
+  let ok=0,leer=0,tage=0;const fps=[];
+  try{
+    for(let i=0;i<_buchItems.length;i++){
+      const chk=document.getElementById('bu-use-'+i);
+      if(!chk||!chk.checked)continue;
+      const it=_buchItems[i];
+      const cat=val('bu-cat-'+i);
+      const label=val('bu-label-'+i).trim();
+      if(!label){leer++;continue;}
+      const datum=val('bu-datum-'+i)||'';
+      const amt=parseFloat((val('bu-amount-'+i)||'').replace(',','.'))||0;
+      const cur=val('bu-cur-'+i)||'EUR';
+      const bisEl=document.getElementById('bu-bis-'+i);
+      const bis=(cat==='Unterkunft'&&bisEl)?(bisEl.value||''):'';
+      const infoText=val('bu-info-'+i).trim();
+      const info=buildInfo(infoText,it.time,it.pax,it.ref,bis);
+      const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
+      const id=await sbSaveCost(draft);
+      if(id!==null){costs.push(Object.assign({id:id},draft));ok++;if(it.fp&&fps.indexOf(it.fp)<0)fps.push(it.fp);}
+      const dchk=document.getElementById('bu-day-'+i);
+      if(dchk&&dchk.checked&&datum){
+        const dtext=val('bu-dtext-'+i).trim();
+        if(dtext){
+          const dtitel=val('bu-dtitel-'+i).trim();
+          const ex=entries[datum];
+          const newText=ex&&ex.text?(ex.text+'\n\n'+dtext):dtext;
+          const kat=(ex&&ex.kat)?ex.kat:(cat==='Ausflug'?'Ausflug':'Sonstiges');
+          await sbSaveEntry(datum,dtitel||(ex?ex.titel:''),kat,(ex&&ex.ort)?ex.ort:(it.ort||''),newText);
+          tage++;
+        }
+      }
+    }
+  }finally{_buchApplying=false;}
+  if(!ok&&!tage){
+    buchCount();
+    toast(leer?'Bitte eine Bezeichnung eintragen.':'Nichts ausgewählt.');
+    return;
+  }
+  _buchItems.forEach(function(it){if(it.dup&&it.fp&&fps.indexOf(it.fp)<0)fps.push(it.fp);});
+  buchDoneAdd(fps);
+  _buchFiles.forEach(function(x){if(x.url){try{URL.revokeObjectURL(x.url);}catch(e){}}});
+  _buchFiles=[];_buchItems=[];renderBuchFiles();
+  closeBuchModal();
+  renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();
+  try{renderJournal();}catch(e){}
+  const teile=[];
+  if(ok)teile.push(ok+(ok===1?' Position':' Positionen'));
+  if(tage)teile.push(tage+(tage===1?' Tageseintrag':' Tageseinträge'));
+  toast('✓ '+teile.join(' & ')+' angelegt!');
+}
+
 // Extras in info kodiert: "sichtbarerText‖time‖pax‖ref‖bis"
 function parseInfo(raw){
   const p=String(raw||'').split('‖');
