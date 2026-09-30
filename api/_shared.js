@@ -75,8 +75,8 @@ function fmtRange(from, to) {
 
 // Schöne Adresse einer Reise (oder die alte, falls noch kein Land/Adressname gesetzt ist)
 function tripPath(row) {
-  if (row.land_slug && row.slug) return '/reisetagebuch/' + row.land_slug + '/' + row.slug;
   if (has(SPECIAL_PAGES, row.id)) return '/' + SPECIAL_PAGES[row.id];
+  if (row.land_slug && row.slug) return '/reisetagebuch/' + row.land_slug + '/' + row.slug;
   return '/reisevorlage.html?reise=' + enc(row.id);
 }
 
@@ -157,7 +157,7 @@ h1{font-family:'Playfair Display',Georgia,serif;font-weight:400;font-size:clamp(
 .note{font-size:14px;line-height:1.7;color:var(--fog);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 .empty{padding:70px 20px;text-align:center;color:var(--fog);background:var(--ground);grid-column:1/-1;}
 footer{max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);}
-footer a{margin:0 12px;}
+footer a{margin:0 12px;white-space:nowrap;line-height:2.2;}
 @media(max-width:720px){.hi{padding:14px 18px;}.hero{padding:52px 20px 32px;}.wrap{padding:40px 18px 60px;}}
 `;
 
@@ -192,7 +192,7 @@ function listPage({ title, desc, path, robots, crumbs, h1, lead, inner, script }
     '<a class="btn" href="/meine-reisen.html">Anmelden</a></div></header>\n' +
     '<section class="hero"><div class="crumbs">' + crumbs + '</div><h1>' + esc(h1) + '</h1><p class="lead">' + esc(lead) + '</p></section>\n' +
     '<main class="wrap">' + inner + '</main>\n' +
-    '<footer><a href="/index.html">Community</a> · <a href="/reisetagebuch">Reiseziele</a> · <a href="/vorteile.html">Eigenes Tagebuch starten</a> · <a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a></footer>\n' +
+    '<footer><a href="/index.html">Startseite</a> · ' + (path === '/reisetagebuch' ? '' : '<a href="/reisetagebuch">Alle Reiseziele</a> · ') + '<a href="/vorteile.html">Eigenes Tagebuch</a> · <a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a></footer>\n' +
     (script || '') + '</body>\n</html>\n';
 }
 
