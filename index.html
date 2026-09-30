@@ -304,6 +304,9 @@ async function initNav(){
 
 initNav();
 loadCommunity();
+if(/[?&]konto=geloescht/.test(location.search)){
+  try{toast('Dein Konto und alle Daten wurden gelöscht.');history.replaceState(null,'','/index.html');}catch(e){}
+}
 </script>
 </body>
 </html>

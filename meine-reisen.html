@@ -36,6 +36,7 @@ header{background:var(--surface2);border-bottom:1px solid var(--line);position:s
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:500;cursor:pointer;border:none;transition:all .18s;}
 .btn-ghost{background:transparent;color:var(--fog);border:1px solid var(--rule);}
 .btn-ghost:hover{background:var(--paper);color:var(--ink);border-color:var(--ink);}
+.btn-danger{background:#b3261e;color:#fff;}.btn-danger:hover{background:#8f1d17;}.btn-danger:disabled{opacity:.6;cursor:default;}
 .btn-primary{background:var(--sunset);color:var(--white);}.btn-primary:hover{background:#c96a30;}
 .btn-sm{padding:6px 12px;font-size:.76rem;}
 
@@ -206,7 +207,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
       <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:42px;width:auto;max-width:58vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:10px;box-shadow:0 0 14px rgba(108,92,231,.35);">
     </a>
     <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
-      <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">Community</a>
+      <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">Startseite</a>
       <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">Bearbeiten</button>
       <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none;">Abmelden</button>
     </div>
@@ -240,6 +241,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
 
 <footer>
   <a href="impressum.html" style="color:inherit;text-decoration:none;">Impressum</a> · <a href="datenschutz.html" style="color:inherit;text-decoration:none;">Datenschutz</a> · Mit Liebe gemacht für unsere Abenteuer
+  <span id="del-link" style="display:none"> · <a href="#" onclick="openDeleteAccount();return false;" style="color:inherit;text-decoration:underline;">Konto löschen</a></span>
 </footer>
 
 <!-- PIN OVERLAY -->
@@ -317,6 +319,27 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
   </div>
 </div>
 
+<!-- KONTO LÖSCHEN -->
+<div class="overlay" id="del-modal" onclick="if(event.target===this)closeDeleteAccount()">
+  <div class="modal-box" style="max-width:440px">
+    <div class="mb-body" style="padding:24px">
+      <div style="font-family:'Playfair Display',serif;font-size:1.5rem;margin-bottom:10px">Konto löschen</div>
+      <div style="font-size:.86rem;line-height:1.6;color:var(--fog)">
+        Dein Konto und <b style="color:var(--ink)">alle deine Daten</b> werden endgültig gelöscht:
+        alle Reisen, Tagebucheinträge, Kosten, Bewertungen, Gästebuch-Einträge und alle hochgeladenen Fotos.
+        <b style="color:#b3261e">Das kann nicht rückgängig gemacht werden.</b>
+      </div>
+      <div class="field" style="margin-top:16px"><label>Zur Bestätigung LÖSCHEN eintippen</label><input id="del-confirm" type="text" autocomplete="off" autocapitalize="characters" placeholder="LÖSCHEN"></div>
+      <div class="field"><label>Dein Passwort</label><input id="del-pass" type="password" autocomplete="current-password"></div>
+      <div id="del-msg" style="font-size:.8rem;min-height:18px;margin:4px 0 12px;line-height:1.5"></div>
+      <div class="modal-actions" style="margin-top:8px">
+        <button class="btn-cancel" id="del-cancel" onclick="closeDeleteAccount()">Abbrechen</button>
+        <button class="btn-save btn-danger" id="del-go" onclick="deleteAccount()" style="background:#b3261e">Endgültig löschen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -387,11 +410,13 @@ function onLoggedIn(user){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('logout-btn').style.display='inline-flex';
   document.getElementById('edit-btn').style.display='inline-flex';
+  var dl=document.getElementById('del-link');if(dl)dl.style.display='inline';
   loadTripsFromDB();
 }
 function showAuthScreen(){
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('logout-btn').style.display='none';
+  var dl2=document.getElementById('del-link');if(dl2)dl2.style.display='none';
   document.getElementById('user-email').textContent='';
 }
 
@@ -837,6 +862,109 @@ buildCountrySelects();
   var land=document.getElementById('t-land'); if(land) land.addEventListener('change',updateSlugPreview);
   var add=document.getElementById('t-weitere-add'); if(add) add.addEventListener('change',addWeitere);
 })();
+
+// ── KONTO LÖSCHEN ────────────────────────────────────────────────────
+var _delBusy=false;
+function openDeleteAccount(){
+  if(!currentUser)return;
+  document.getElementById('del-confirm').value='';
+  document.getElementById('del-pass').value='';
+  delStatus('');
+  document.getElementById('del-modal').classList.add('open');
+}
+function closeDeleteAccount(){
+  if(_delBusy)return;
+  document.getElementById('del-modal').classList.remove('open');
+}
+function delStatus(t,err){
+  var m=document.getElementById('del-msg');if(!m)return;
+  m.textContent=t||'';m.style.color=err?'#b3261e':'var(--fog)';
+}
+// Alle Einträge eines Ordners im Foto-Speicher (mehrere Seiten)
+async function stListAll(prefix,search){
+  var out=[],offset=0;
+  for(var k=0;k<50;k++){
+    var opts={limit:100,offset:offset};if(search)opts.search=search;
+    var r=await sb.storage.from('Reisefotos').list(prefix,opts);
+    if(r.error||!r.data||!r.data.length)break;
+    out=out.concat(r.data);
+    if(r.data.length<100)break;
+    offset+=100;
+  }
+  return out;
+}
+// Alle Dateien unterhalb eines Ordners einsammeln (Unterordner werden durchlaufen)
+async function stCollect(prefix,acc,depth){
+  if((depth||0)>4)return;
+  var items=await stListAll(prefix);
+  for(var i=0;i<items.length;i++){
+    var it=items[i];
+    if(!it.id)await stCollect(prefix+'/'+it.name,acc,(depth||0)+1);   // Ordner
+    else acc.push(prefix+'/'+it.name);                               // Datei
+  }
+}
+// Fotos einer Reise: Tagesfotos, Hotelfotos und Titelbilder
+async function tripFiles(id){
+  var acc=[];
+  await stCollect(id,acc,0);                                           // <reise>/<datum>/<datei>
+  var hs=await stListAll('hotels',id+'_');                             // hotels/<reise>_<nr>/<datei>
+  for(var i=0;i<hs.length;i++){
+    if(!hs[i].id&&hs[i].name.indexOf(id+'_')===0)await stCollect('hotels/'+hs[i].name,acc,1);
+  }
+  var ts=await stListAll('titelbilder',id+'_');                        // titelbilder/<reise>_<zeit>.<endung>
+  ts.forEach(function(t){if(t.id&&t.name.indexOf(id+'_')===0)acc.push('titelbilder/'+t.name);});
+  return acc;
+}
+async function deleteAccount(){
+  if(_delBusy||!currentUser)return;
+  var conf=(document.getElementById('del-confirm').value||'').trim().toUpperCase();
+  if(conf!=='LÖSCHEN'&&conf!=='LOESCHEN'){delStatus('Bitte zur Bestätigung LÖSCHEN eintippen.',true);return;}
+  var pw=document.getElementById('del-pass').value;
+  if(!pw){delStatus('Bitte dein Passwort eingeben.',true);return;}
+  _delBusy=true;
+  var go=document.getElementById('del-go'),cn=document.getElementById('del-cancel');
+  go.disabled=true;cn.disabled=true;
+  var fail=function(msg){delStatus(msg,true);_delBusy=false;go.disabled=false;cn.disabled=false;};
+  try{
+    // 1) Passwort prüfen
+    delStatus('Passwort wird geprüft …');
+    var chk=await sb.auth.signInWithPassword({email:currentUser.email,password:pw});
+    if(chk.error){fail('Das Passwort stimmt nicht.');return;}
+    // 2) Ist die Löschfunktion in Supabase eingerichtet? (es wird noch nichts gelöscht)
+    delStatus('Löschung wird vorbereitet …');
+    var pr=await sb.rpc('delete_my_account',{p_pruefen:true});
+    if(pr.error){fail('Die Löschfunktion ist noch nicht eingerichtet. Es wurde nichts gelöscht. ('+(pr.error.message||'Fehler')+')');return;}
+    // 3) Fotos der eigenen Reisen einsammeln (noch angemeldet)
+    delStatus('Fotos werden gesucht …');
+    var tr=await sb.from('trips').select('id').eq('owner',currentUser.id);
+    var ids=(tr.data||[]).map(function(x){return x.id;}).filter(function(id){return !Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id);});
+    var files=[];
+    for(var i=0;i<ids.length;i++){try{files=files.concat(await tripFiles(ids[i]));}catch(e){console.error(e);}}
+    // 4) Konto und Daten in der Datenbank löschen
+    delStatus('Konto und Daten werden gelöscht …');
+    var rp=await sb.rpc('delete_my_account',{p_pruefen:false});
+    if(rp.error){fail('Löschen fehlgeschlagen: '+(rp.error.message||'Fehler')+'. Es wurde nichts gelöscht.');return;}
+    // 5) Fotos entfernen (Anmeldedaten sind noch kurz gültig)
+    var bad=0;
+    for(var j=0;j<files.length;j+=100){
+      delStatus('Fotos werden gelöscht … '+Math.min(j+100,files.length)+' von '+files.length);
+      try{
+        var rm=await sb.storage.from('Reisefotos').remove(files.slice(j,j+100));
+        if(rm.error)bad+=Math.min(100,files.length-j);
+      }catch(e){bad+=Math.min(100,files.length-j);}
+    }
+    if(bad)console.warn(bad+' Fotos konnten nicht entfernt werden');
+    // 6) Abmelden, lokale Daten entfernen, zur Startseite
+    try{await sb.auth.signOut();}catch(e){}
+    try{
+      Object.keys(localStorage).forEach(function(k){if(/^(sb-|tv_|au26_|travona_)/.test(k))localStorage.removeItem(k);});
+    }catch(e){}
+    location.replace('/index.html?konto=geloescht');
+  }catch(e){
+    console.error(e);
+    fail('Unerwarteter Fehler: '+(e&&e.message?e.message:e));
+  }
+}
 
 // ── INIT ─────────────────────────────────────────────────────────────────
 async function initApp(){
