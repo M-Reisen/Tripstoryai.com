@@ -40,6 +40,11 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
 .header-inner{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;}
 .brand-full{height:36px;width:auto;max-width:60vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);}
 .nav-actions{display:flex;gap:12px;align-items:center;}
+.nav-link{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);padding:10px 8px;transition:color .2s;}
+.nav-link:hover{color:var(--ink);}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px 24px;flex-wrap:wrap;}
+.sec-link{font-size:13px;color:var(--terra);text-decoration:underline;text-underline-offset:4px;text-decoration-color:rgba(181,113,74,.4);white-space:nowrap;}
+.sec-link:hover{text-decoration-color:var(--terra);}
 .btn{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:10px 18px;border-radius:4px;cursor:pointer;transition:all .2s;border:1px solid transparent;display:inline-flex;align-items:center;gap:6px;}
 .btn-ghost{background:transparent;color:var(--fog);border:1px solid var(--rule);}
 .btn-ghost:hover{color:var(--ink);border-color:var(--ink);}
@@ -90,6 +95,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
   .hero{padding:70px 20px 56px;}
   .wrap{padding:48px 18px 60px;}
   .nav-actions .btn{padding:8px 12px;font-size:11px;}
+  .nav-link{display:none;}
 }
 /* FEATURES */
 .features{border-bottom:1px solid var(--rule);background:var(--paper);}
@@ -121,6 +127,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
       <img class="brand-full" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember.">
     </a>
     <div class="nav-actions">
+      <a class="nav-link" href="/reisetagebuch">Reiseziele</a>
       <a class="btn btn-ghost" id="nav-mine" href="meine-reisen.html">Meine Reisen</a>
       <a class="btn btn-violet" id="nav-login" href="meine-reisen.html">Anmelden</a>
     </div>
@@ -148,6 +155,7 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
       <div class="sec-title">Öffentliche Reisen</div>
       <div class="sec-sub" id="count-sub">Wird geladen …</div>
     </div>
+    <a class="sec-link" href="/reisetagebuch">Nach Reiseziel ansehen →</a>
   </div>
   <div id="grid" class="grid"></div>
   <div id="loading" class="loading"><div class="spinner"></div>Reisen werden geladen …</div>
@@ -241,6 +249,7 @@ function tripPage(id){
 }
 function tripHref(t){
   // Schöne Adresse, sobald Reiseland und Adressname gesetzt sind
+  if(Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,t.id))return '/'+SPECIAL_PAGES[t.id];
   if(t.land_slug&&t.slug)return '/reisetagebuch/'+t.land_slug+'/'+t.slug;
   return tripPage(t.id);
 }

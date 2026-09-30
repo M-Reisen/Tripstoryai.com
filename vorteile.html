@@ -42,6 +42,8 @@ header{border-bottom:1px solid var(--rule);}
 .btn-ghost:hover{color:var(--ink);border-color:var(--ink);}
 .btn-main{background:var(--terra);color:#fff;}
 .btn-main:hover{background:#9c5f3c;}
+.nav-link{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);padding:10px 8px;transition:color .2s;}
+.nav-link:hover{color:var(--ink);}
 .btn:focus-visible,a:focus-visible{outline:2px solid var(--terra);outline-offset:3px;}
 .eyebrow{display:inline-block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:22px;}
 /* HERO */
@@ -102,7 +104,10 @@ header{border-bottom:1px solid var(--rule);}
     <a href="index.html" aria-label="Zur Startseite">
       <img class="brand-full" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember.">
     </a>
-    <a class="btn btn-ghost" href="meine-reisen.html">Anmelden</a>
+    <div style="display:flex;align-items:center;gap:8px">
+      <a class="nav-link" href="/reisetagebuch">Reiseziele</a>
+      <a class="btn btn-ghost" href="meine-reisen.html">Anmelden</a>
+    </div>
   </div>
 </header>
 
