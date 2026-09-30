@@ -3262,13 +3262,41 @@ function pbProgress(text){
   }
   p.textContent=text;
 }
-// nur die Ansicht entfernen (die vorbereiteten Fotos bleiben erhalten)
+// ── Darstellung im selben Dokument (Shadow-DOM), ohne Rahmen und ohne Umweg über Blob-Adressen in einem Fremdrahmen ──
+function pbSplitDoc(html){
+  const css=[];
+  String(html).replace(/<style[^>]*>([\s\S]*?)<\/style>/gi,function(_,c){css.push(c);return _;});
+  const m=String(html).match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  return {css:css.join('\n'),body:m?m[1]:String(html)};
+}
+// body-Regeln des Fotobuchs auf den Container umlenken, @page entfernen (steht separat im Dokument)
+function pbScopeCss(css){
+  return String(css).replace(/@page\s*\{[^}]*\}/g,'').replace(/(^|\})\s*body\s*\{/g,'$1.pb-root{');
+}
+// Lange Texte so lange verkleinern, bis sie in den Rahmen der Textseite passen
+function pbFitTexts(root){
+  root.querySelectorAll('.tp-frame').forEach(function(fr){
+    const tx=fr.querySelector('.tp-text');if(!tx||!fr.children.length)return;
+    const cs=getComputedStyle(fr);
+    const inner=fr.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0);
+    const extent=function(){
+      const f=fr.children[0].getBoundingClientRect(),l=fr.children[fr.children.length-1].getBoundingClientRect();
+      return l.bottom-f.top;
+    };
+    let fs=13,lh=1.95,guard=0;
+    while(extent()>inner+1&&fs>8.5&&guard++<40){
+      fs-=0.5;lh=Math.max(1.35,lh-0.03);
+      tx.style.fontSize=fs+'px';tx.style.lineHeight=String(lh);
+    }
+  });
+}
 function pbRemoveViewer(){
   const v=document.getElementById('pb-viewer');
   if(v)v.remove();
+  const s=document.getElementById('pb-print-style');
+  if(s)s.remove();
   window.removeEventListener('popstate',pbCloseViewer);
 }
-// Ansicht schließen und die vorbereiteten Fotos freigeben
 function pbCloseViewer(){
   pbRemoveViewer();
   document.documentElement.style.overflow='';
@@ -3282,7 +3310,7 @@ async function pbShowViewer(html,title){
   _pbCancel=false;_pbBlobsRevoke();
   const ovEl=function(){return document.getElementById('pb-loading-overlay');};
   try{
-    // 1) Fotos vorbereiten (verkleinern), höchstens 4 gleichzeitig
+    // 1) Fotos vorbereiten (verkleinern), höchstens 5 gleichzeitig
     const urls=pbCollectImages(html);
     const map={};
     let done=0,next=0;
@@ -3290,44 +3318,59 @@ async function pbShowViewer(html,title){
     async function worker(){
       while(!_pbCancel&&next<urls.length){
         const orig=urls[next++];
-        const blob=await pbShrink(pbUnesc(orig),1600);
+        const blob=await pbShrink(pbUnesc(orig),1400);
         if(blob){map[orig]=blob;_pbBlobs.push(blob);}
         done++;pbProgress('Fotos werden vorbereitet … '+done+' von '+urls.length);
       }
     }
-    await Promise.all([worker(),worker(),worker(),worker()]);
+    await Promise.all([worker(),worker(),worker(),worker(),worker()]);
     if(_pbCancel){_pbBlobsRevoke();const o=ovEl();if(o)o.remove();toast('Abgebrochen.');return;}
     html=pbApplyBlobs(html,map);
-    // 2) Bildschirm-Darstellung: Seiten untereinander, auf Handybreite verkleinert (beim Drucken ohne Wirkung)
-    html=html.replace('</head>','<style>@media screen{html{background:#cfc9c0}body{zoom:var(--pbz,1)}.pb-page{margin:0 auto 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style></head>');
-    // 3) Fenster mit Schließen- und Drucken-Knopf
+    // 2) Ansicht aufbauen
     pbRemoveViewer();
+    const doc=pbSplitDoc(html);
     const v=document.createElement('div');
     v.id='pb-viewer';
     v.style.cssText='position:fixed;inset:0;z-index:10000;background:#cfc9c0;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif;';
     const bar=document.createElement('div');
+    bar.className='pb-bar';
     bar.style.cssText='flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 14px 10px;background:#F4EFE8;border-bottom:1px solid #D8D0C4;';
     const btn=function(label,fn,solid){
       const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;
       b.style.cssText='min-height:42px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid '+(solid?'#1A1714':'#D8D0C4')+';background:'+(solid?'#1A1714':'transparent')+';color:'+(solid?'#F4EFE8':'#1A1714')+';white-space:nowrap;';
       return b;
     };
-    const iframe=document.createElement('iframe');
-    iframe.style.cssText='flex:1 1 auto;width:100%;border:0;background:#cfc9c0;';
     const ttl=document.createElement('div');
     ttl.textContent=title||'Fotobuch';ttl.style.cssText='flex:1;min-width:0;font-size:13px;color:#6B6560;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
     bar.appendChild(btn('← Schließen',pbBackOrClose,false));
     bar.appendChild(ttl);
-    bar.appendChild(btn('Drucken / PDF',function(){try{iframe.contentWindow.focus();iframe.contentWindow.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},true));
+    bar.appendChild(btn('Drucken / PDF',function(){toast('Für den Druck: Papier A4 und Querformat wählen.');setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},400);},true));
     bar.appendChild(btn('Neuer Tab',function(){
       const u=URL.createObjectURL(new Blob([html],{type:'text/html'}));_pbBlobs.push(u);window.open(u,'_blank');
     },false));
-    v.appendChild(bar);v.appendChild(iframe);
+    const scroll=document.createElement('div');
+    scroll.id='pb-scroll';
+    scroll.style.cssText='flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;';
+    const zwrap=document.createElement('div');
+    zwrap.id='pb-zwrap';
+    zwrap.style.cssText='width:297mm;';
+    const host=document.createElement('div');
+    zwrap.appendChild(host);scroll.appendChild(zwrap);
+    v.appendChild(bar);v.appendChild(scroll);
+    // Druck: nur das Fotobuch, A4 quer, ohne Ränder
+    const ps=document.createElement('style');
+    ps.id='pb-print-style';
+    ps.textContent='@page{size:A4 landscape;margin:0}@media print{html,body{background:#fff !important;height:auto !important;overflow:visible !important}body>*:not(#pb-viewer){display:none !important}#pb-viewer{position:static !important;display:block !important;background:#fff !important;height:auto !important;overflow:visible !important}#pb-viewer .pb-bar{display:none !important}#pb-scroll{overflow:visible !important;height:auto !important}#pb-zwrap{zoom:1 !important;width:auto !important}}';
+    document.head.appendChild(ps);
     document.body.appendChild(v);
     document.documentElement.style.overflow='hidden';
-    const fit=function(){try{const d=iframe.contentDocument;if(d&&d.documentElement)d.documentElement.style.setProperty('--pbz',Math.min(1,iframe.clientWidth/1125).toFixed(3));}catch(e){}};
-    iframe.onload=fit;window.addEventListener('resize',fit);
-    iframe.srcdoc=html;
+    const root=host.attachShadow({mode:'open'});
+    root.innerHTML='<style>:host{all:initial;display:block}'+pbScopeCss(doc.css)
+      +'.pb-root{width:297mm;}@media screen{.pb-page{margin:0 0 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style><div class="pb-root">'+doc.body+'</div>';
+    const fit=function(){zwrap.style.zoom=String(Math.min(1,scroll.clientWidth/1125));};
+    fit();window.addEventListener('resize',fit);
+    pbFitTexts(root);
+    try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){pbFitTexts(root);});}catch(e){}
     // Zurück-Geste des Handys schließt das Fotobuch statt die Seite zu verlassen
     try{history.pushState({pb:1},'');}catch(e){}
     window.addEventListener('popstate',pbCloseViewer);
