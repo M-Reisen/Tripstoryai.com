@@ -759,6 +759,13 @@ html.app-guestview body{padding-top:48px;}
 .fj-none{color:var(--a-fog) !important;font-style:italic;}
 .fj-write{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;margin-top:12px;border:0;border-radius:24px;background:var(--a-acc);color:#fff;font:700 15px 'DM Sans',sans-serif;cursor:pointer;}
 .fig-journal-entry.fj-empty .fj-text{padding-bottom:22px;}
+
+/* Leere Tage: schlank */
+.fig-journal-entry.fj-empty .fj-loc{font-size:21px !important;line-height:1.2 !important;margin:2px 0 0;}
+.fig-journal-entry.fj-empty .fj-date{margin:4px 0 0;}
+.fig-journal-entry.fj-empty .fj-body.fj-none{font-size:14px !important;margin:8px 0 0 !important;line-height:1.4;}
+.fig-journal-entry.fj-empty .fj-write{min-height:42px;padding:0 18px;margin-top:10px;font-size:14px;}
+.fig-journal-entry.fj-empty{opacity:.97;}
 </style>
 </head>
 <body>
@@ -2346,14 +2353,13 @@ function buchPrompt(){
   return ctx+'Du liest Buchungsbestätigungen, Tickets und E-Mails für ein Reisetagebuch aus. Finde ALLE gebuchten Leistungen im beigefügten Material '
     +'(Unterkünfte, Flüge, Mietwagen und Transfers, Ausflüge und Touren, sonstige Buchungen) und gib für jede Leistung genau einen Eintrag zurück. '
     +'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Erklärung, keine Code-Fences) in genau diesem Format:\n'
-    +'{"positionen":[{"kategorie":"eine von: '+BUCH_CATS.join(', ')+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","bis":"YYYY-MM-DD, nur bei Unterkunft (Check-out), sonst leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","ort":"Ort bzw. Stadt oder leer","uhrzeit":"HH:MM oder leer","personen":"z.B. 2 Personen oder leer","referenz":"Buchungsnummer oder leer","details":"kurze Zusatzinfo oder leer","tageseintrag":{"titel":"kurzer Titel","text":"1-2 sachliche Sätze, was an dem Tag stattfindet"}}]}\n'
+    +'{"positionen":[{"kategorie":"eine von: '+BUCH_CATS.join(', ')+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","bis":"YYYY-MM-DD, nur bei Unterkunft (Check-out), sonst leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","ort":"Ort bzw. Stadt oder leer","uhrzeit":"HH:MM oder leer","personen":"z.B. 2 Personen oder leer","referenz":"Buchungsnummer oder leer","details":"kurze Zusatzinfo oder leer"}]}\n'
     +'Regeln: Erfinde nichts. Ist ein Feld nicht erkennbar, nimm einen leeren String bzw. 0. Beträge als reine Zahl ohne Währungssymbol; nimm den Gesamtpreis der jeweiligen Leistung. '
     +'Wird nur ein Gesamtpreis für mehrere Leistungen genannt, trage ihn beim ersten Eintrag ein und 0 bei den übrigen. '
     +'Unterkunft: label=Name der Unterkunft, datum=Check-in, bis=Check-out, ort=Stadt oder Region. '
     +'Flug: je Flugstrecke ein Eintrag (Hin- und Rückflug getrennt), label z.B. "Flug München → Florenz", datum und uhrzeit=Abflug, details=Airline und Flugnummer. '
     +'Mietwagen/Transfer: kategorie Transport, datum=Abholung bzw. Fahrt. Ausflug/Tour: kategorie Ausflug mit datum, uhrzeit und personen. '
     +'Datumsformate wie 12.03.2026 oder 12 Mar 2026 in YYYY-MM-DD umwandeln; fehlt das Jahr, nimm das Jahr des Reisezeitraums. Uhrzeiten im 24-Stunden-Format. '
-    +'"tageseintrag" nur bei einem konkreten Erlebnis (Ausflug, Tour, Restaurantbesuch, Veranstaltung), sonst weglassen oder leer lassen; schreibe ihn sachlich aus Sicht der Buchung ohne Schwärmerei und ohne Ausrufezeichen, nichts dazuerfinden. '
     +'Ignoriere Werbung, Bedingungen und Zahlungshinweise, die keine gebuchte Leistung sind.';
 }
 
@@ -2999,10 +3005,6 @@ function renderBuchResult(fehler){
       +'<div class="field-row"><div class="field"><label>Währung</label><select id="bu-cur-'+i+'">'+curOpts+'</select></div>'
       +'<div class="field"><label>Ort / Details</label><input id="bu-info-'+i+'" type="text" value="'+escAttr(it.cat==='Unterkunft'?(it.ort||it.details):(it.details||it.ort))+'"></div></div>'
       +(meta?'<div class="buch-meta">Übernommen wird außerdem: '+esc(meta)+'</div>':'')
-      +(it.tiText?('<div class="buch-day" style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">'
-        +'<label class="buch-use" style="font-weight:500"><input type="checkbox" id="bu-day-'+i+'"'+(dup?'':' checked')+'><span>Auch als Eintrag in „Tag für Tag“ anlegen</span></label>'
-        +'<div class="field"><label>Titel</label><input id="bu-dtitel-'+i+'" type="text" value="'+escAttr(it.tiTitel||it.label)+'"></div>'
-        +'<div class="field"><label>Text</label><textarea id="bu-dtext-'+i+'" style="min-height:64px">'+esc(it.tiText)+'</textarea></div></div>'):'')
       +'</div>';
   });
   html+='<div class="buch-applybar"><button type="button" class="buch-apply" id="buch-apply-btn" onclick="applyBuchungen()"></button></div>';
@@ -3016,7 +3018,7 @@ async function applyBuchungen(){
   _buchApplying=true;
   const ab=document.getElementById('buch-apply-btn');
   if(ab){ab.disabled=true;ab.textContent='Speichert … bitte einen Moment';}
-  let ok=0,leer=0,tage=0;const fps=[];
+  let ok=0,leer=0;const fps=[];
   try{
     for(let i=0;i<_buchItems.length;i++){
       const chk=document.getElementById('bu-use-'+i);
@@ -3035,21 +3037,9 @@ async function applyBuchungen(){
       const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
       const id=await sbSaveCost(draft);
       if(id!==null){costs.push(Object.assign({id:id},draft));ok++;if(it.fp&&fps.indexOf(it.fp)<0)fps.push(it.fp);}
-      const dchk=document.getElementById('bu-day-'+i);
-      if(dchk&&dchk.checked&&datum){
-        const dtext=val('bu-dtext-'+i).trim();
-        if(dtext){
-          const dtitel=val('bu-dtitel-'+i).trim();
-          const ex=entries[datum];
-          const newText=ex&&ex.text?(ex.text+'\n\n'+dtext):dtext;
-          const kat=(ex&&ex.kat)?ex.kat:(cat==='Ausflug'?'Ausflug':'Sonstiges');
-          await sbSaveEntry(datum,dtitel||(ex?ex.titel:''),kat,(ex&&ex.ort)?ex.ort:(it.ort||''),newText);
-          tage++;
-        }
-      }
     }
   }finally{_buchApplying=false;}
-  if(!ok&&!tage){
+  if(!ok){
     buchCount();
     toast(leer?'Bitte eine Bezeichnung eintragen.':'Nichts ausgewählt.');
     return;
@@ -3061,10 +3051,7 @@ async function applyBuchungen(){
   closeBuchModal();
   renderCosts();renderHead();buildDaySlides();renderRoute();if(typeof renderKarte==='function')renderKarte();
   try{renderJournal();}catch(e){}
-  const teile=[];
-  if(ok)teile.push(ok+(ok===1?' Position':' Positionen'));
-  if(tage)teile.push(tage+(tage===1?' Tageseintrag':' Tageseinträge'));
-  toast('✓ '+teile.join(' & ')+' angelegt!');
+  toast('✓ '+ok+(ok===1?' Position':' Positionen')+' angelegt!');
 }
 
 // Extras in info kodiert: "sichtbarerText‖time‖pax‖ref‖bis"
@@ -3447,7 +3434,7 @@ async function renderJournal(){
   var run=++_journalRun;
   var days=buildDays();
   var _heuteIso=qxTodayISO();
-  var withText=days.filter(function(iso){var e=entries[iso];return (e&&e.text&&e.text.trim())||(editMode&&iso<=_heuteIso);});
+  var withText=days.filter(function(iso){var e=entries[iso];return (e&&e.text&&e.text.trim())||editMode;});
   if(!withText.length){
     updateJournalInfo([]);
     c.innerHTML='<div class="empty"><div class="lbl">Noch keine Tagebucheinträge</div><div class="sub">Schreibe bei den Tagen einen Eintrag (mit Foto) – die schönsten Momente erscheinen hier im Magazin-Layout.</div></div>';
@@ -3473,7 +3460,7 @@ async function renderJournal(){
     var e=entries[iso];
     var ph=visiblePhotos(iso);
     var _hat=e&&e.text&&e.text.trim();
-    if(_hat||(editMode&&iso<=_heuteIso)){
+    if(_hat||editMode){
       items.push({iso:iso,at:e?e.at:'',titel:e?(e.titel||''):'',ort:e?(e.ort||''):'',text:_hat?e.text.trim():'',leer:!_hat,tag:i+1,fotos:ph.slice(),wait:loading&&photos[iso]===undefined});
     }
   }
