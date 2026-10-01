@@ -801,6 +801,21 @@ html.app-guestview body{padding-top:48px;}
 .fig-journal-entry .fj-slide img{height:auto !important;max-height:78vh;object-fit:contain !important;}
 .fig-journal-entry .fj-img:hover img{transform:none !important;}
 
+/* KI-Vorschläge für Bildkommentare */
+.cap-ai{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 14px;}
+.cap-ai-btn{min-height:44px;padding:0 16px;border:0;border-radius:22px;background:var(--a-sand);color:var(--a-ink);font:700 14px 'DM Sans',sans-serif;cursor:pointer;}
+.cap-ai-btn:disabled{opacity:.55;}
+.cap-ai-note{font-size:12.5px;color:var(--a-fog);line-height:1.4;flex:1 1 160px;}
+.cb-sheet{max-height:90vh;max-height:90dvh;overflow-y:auto;}
+.cb-list{margin:6px 0 14px;}
+.cb-row{display:flex;gap:12px;align-items:flex-start;background:#fff;border-radius:16px;box-shadow:var(--a-sh);padding:10px;margin-bottom:10px;}
+.cb-th{flex:0 0 64px;width:64px;height:64px;border-radius:12px;object-fit:cover;background:var(--a-sand);}
+.cb-main{flex:1;min-width:0;}
+.cb-ta{width:100%;box-sizing:border-box;border:0;border-radius:12px;background:var(--a-sand);padding:10px 12px;font:500 15px/1.4 'DM Sans',sans-serif;color:#1A1714;resize:vertical;min-height:56px;}
+.cb-ta:disabled{opacity:.7;}
+.cb-use{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:var(--a-fog);cursor:pointer;}
+.cb-use input{width:20px;height:20px;}
+
 /* Australien: Anpassungen an die bisherige Seite */
 .figma-stats{display:none !important;}
 #au-karte-wrap{border:0 !important;border-radius:26px !important;box-shadow:var(--a-sh);}
@@ -1583,7 +1598,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -2018,7 +2033,7 @@ function closeLightbox(){document.getElementById('lightbox').classList.remove('o
 function openLBCaption(){if(!editMode||!_lbIso)return;_captionKey=_lbIso+'_'+_lbIdx;document.getElementById('caption-input').value=photoComments[_captionKey]||'';document.getElementById('caption-modal').style.display='flex';setTimeout(()=>document.getElementById('caption-input').focus(),200);}
 
 function openCaptionModal(btn){_captionKey=btn.getAttribute('data-iso')+'_'+btn.getAttribute('data-idx');document.getElementById('caption-input').value=photoComments[_captionKey]||'';document.getElementById('caption-modal').style.display='flex';setTimeout(()=>document.getElementById('caption-input').focus(),200);}
-function saveCaption(){const v=document.getElementById('caption-input').value.trim();if(_captionKey)photoComments[_captionKey]=v;document.getElementById('caption-modal').style.display='none';if(document.getElementById('lightbox').classList.contains('open'))document.getElementById('lb-caption').textContent=v;buildDaySlides();toast('Kommentar gespeichert!');}
+function saveCaption(){const v=document.getElementById('caption-input').value.trim();if(_captionKey){photoComments[_captionKey]=v;if(window.auCapPersist)auCapPersist(_captionKey,v);}document.getElementById('caption-modal').style.display='none';if(document.getElementById('lightbox').classList.contains('open'))document.getElementById('lb-caption').textContent=v;buildDaySlides();toast('Kommentar gespeichert!');}
 function closeCaptionModal(){document.getElementById('caption-modal').style.display='none';}
 
 // ── KI-STIL ──────────────────────────────────────────────────────────────
@@ -3815,6 +3830,56 @@ initApp();
   W._photoHidden={};W._hidLoaded=false;
   W.hiddenList=function(iso){return W._photoHidden[iso]||[];};
   W.isHiddenPhoto=function(iso,url){return W.hiddenList(iso).indexOf(url)>=0;};
+
+  /* ---------- Bildkommentare dauerhaft speichern (pro Tag eine Zeile, Zuordnung über die Foto-Adresse) ---------- */
+  var CAPK='bildtexte_';
+  W._capMap={};W._capLoaded=false;
+  W.applyCaps=function(iso,list){
+    var m=W._capMap[iso];if(!m)return;
+    (list||(typeof photos!=='undefined'&&photos[iso])||[]).forEach(function(u,i){
+      var k=iso+'_'+i;
+      if(m[u]!==undefined&&(photoComments[k]===undefined||photoComments[k]===''))photoComments[k]=m[u];
+    });
+  };
+  W.loadCaps=async function(){
+    try{
+      var r=await sb.from('kommentare').select('ort,nachricht').like('ort',CAPK+'%');
+      if(r&&r.error)throw r.error;
+      var m={};
+      (r.data||[]).forEach(function(row){
+        var iso=String(row.ort).substring(CAPK.length);
+        try{var o=JSON.parse(row.nachricht||'{}');if(o&&typeof o==='object')m[iso]=o;}catch(e){}
+      });
+      W._capMap=m;W._capLoaded=true;
+      Object.keys(photos).forEach(function(iso){W.applyCaps(iso);});
+      try{buildDaySlides();}catch(e){}
+    }catch(e){}
+  };
+  W.auSaveCaps=async function(iso){
+    var key=CAPK+iso,payload=JSON.stringify(W._capMap[iso]||{});
+    var ex=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+    var res;
+    if(ex&&ex.data&&ex.data.length)res=await sb.from('kommentare').update({nachricht:payload}).eq('id',ex.data[0].id);
+    else res=await sb.from('kommentare').insert({ort:key,name:'bildtexte',nachricht:payload,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
+    if(res&&res.error)throw res.error;
+  };
+  W.auCapSave=async function(iso,url,text){
+    var idx=((typeof photos!=='undefined'&&photos[iso])||[]).indexOf(url);
+    if(idx>=0){if(text)photoComments[iso+'_'+idx]=text;else delete photoComments[iso+'_'+idx];}
+    var m=W._capMap[iso]=W._capMap[iso]||{};
+    if(text)m[url]=text;else delete m[url];
+    await W.auSaveCaps(iso);
+  };
+  W.auCapPersist=function(key,text){
+    var m=String(key).match(/^(\d{4}-\d{2}-\d{2})_(\d+)$/);if(!m)return;
+    var url=((typeof photos!=='undefined'&&photos[m[1]])||[])[parseInt(m[2],10)];if(!url)return;
+    var mm=W._capMap[m[1]]=W._capMap[m[1]]||{};
+    if(text)mm[url]=text;else delete mm[url];
+    W.auSaveCaps(m[1]).catch(function(e){console.error('Bildkommentar speichern:',e);try{toast('Bildkommentar konnte nicht gespeichert werden.');}catch(x){}});
+  };
+  var _lpo=W.loadPhotoOrder;
+  if(typeof _lpo==='function')W.loadPhotoOrder=function(iso,loaded){var r=_lpo(iso,loaded);try{W.applyCaps(iso,r);}catch(e){}return r;};
+  W.loadCaps();
   W.visiblePhotos=function(iso){
     var all=(typeof photos!=='undefined'&&photos[iso])||[];
     if(editMode)return all.slice();
@@ -4161,6 +4226,7 @@ initApp();
     if(owner){
       h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
+      h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
       h+=grp('Konto',row('abmelden','abmelden','Abmelden',true));
       var did='';try{did=localStorage.getItem('travona_dev')||'';}catch(e){}
@@ -4177,6 +4243,7 @@ initApp();
     else if(a==='teilen')shareTrip();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
+    else if(a==='aicap')aiCapToggle();
     else if(a==='gast')toggleGuestView();
     else if(a==='ziele')location.href='/reisetagebuch';
     else if(a==='meine')location.href='/meine-reisen.html';
@@ -4690,6 +4757,217 @@ initApp();
     if(t.closest('[data-cv-close]')){covClose();return;}
   });
   /* ---------- (CV-ENDE) ---------- */
+  /* ---------- KI-Vorschläge für Bildkommentare (AICAP-BEGIN) ---------- */
+  function aiCapOn(){try{return localStorage.getItem('tv_ai_cap')==='1';}catch(e){return false;}}
+  function aiCapSet(on){try{localStorage.setItem('tv_ai_cap',on?'1':'0');}catch(e){}}
+  var AICAP={run:0},CB={rows:[],iso:null,run:0};
+  async function capImageB64(url){
+    var r=await fetch(url);
+    if(!r.ok)throw new Error('Foto konnte nicht geladen werden.');
+    var blob=await r.blob(),bmp=null;
+    try{bmp=await createImageBitmap(blob,{imageOrientation:'from-image'});}
+    catch(e){
+      bmp=await new Promise(function(res,rej){
+        var im=new Image(),u=URL.createObjectURL(blob);
+        im.onload=function(){URL.revokeObjectURL(u);res(im);};
+        im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('Foto nicht lesbar.'));};
+        im.src=u;
+      });
+    }
+    var w0=bmp.width||bmp.naturalWidth,h0=bmp.height||bmp.naturalHeight;
+    var sc=Math.min(1,1024/Math.max(w0,h0)),w=Math.round(w0*sc),h=Math.round(h0*sc);
+    var cv=document.createElement('canvas');cv.width=w;cv.height=h;
+    var ctx=cv.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(bmp,0,0,w,h);
+    if(bmp.close)bmp.close();
+    var out=await new Promise(function(res){cv.toBlob(res,'image/jpeg',0.8);});
+    if(!out)throw new Error('Foto konnte nicht verkleinert werden.');
+    return await new Promise(function(res,rej){
+      var fr=new FileReader();
+      fr.onload=function(){res(String(fr.result).split(',')[1]);};
+      fr.onerror=function(){rej(new Error('Foto nicht lesbar.'));};
+      fr.readAsDataURL(out);
+    });
+  }
+  function capPrompt(iso){
+    var ort='',ttl='';
+    try{ort=ortFuerTag(iso)||'';}catch(e){}
+    try{ttl=tripHead.title||'';}catch(e){}
+    return 'Du schreibst Bildunterschriften für ein privates Reisetagebuch.\n'
+      +'Beschreibe das Foto in einem kurzen, warmen deutschen Satz mit höchstens 12 Wörtern.\n'
+      +'Beschreibe nur, was man sieht. Nenne keine Personen mit Namen und rate keine Orte. Schilder oder Aufschriften darfst du wiedergeben.\n'
+      +(ort?'Der Ort laut Tagebuch ist „'+ort+'“. Nutze ihn nur, wenn er zum Foto passt.\n':'')
+      +(ttl?'Die Reise heißt „'+ttl+'“.\n':'')
+      +'Gib ausschließlich die Bildunterschrift aus, ohne Anführungszeichen, ohne Emojis, ohne Erklärung.';
+  }
+  async function aiCapSuggest(iso,url){
+    var b64=await capImageB64(url);
+    var headers=await aiAuthHeaders();
+    var r=await fetch(AI_PROXY_URL,{method:'POST',headers:headers,body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:120,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},{type:'text',text:capPrompt(iso)}]}]})});
+    var d=await r.json();
+    if(d.error)throw new Error((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');
+    var t=(d.content||[]).map(function(c){return c.text||'';}).join('').trim().replace(/^["„“'‚‘]+|["“”'‘’]+$/g,'').replace(/\s+/g,' ');
+    if(!t)throw new Error('Kein Vorschlag erhalten.');
+    return t.slice(0,160);
+  }
+  async function capStore(iso,url,text){
+    if(typeof auCapSave==='function'){await auCapSave(iso,url,text);return;}
+    if(typeof photoMeta==='undefined')return;
+    if(!photoMeta[iso])photoMeta[iso]={order:[],captions:{}};
+    if(!photoMeta[iso].captions)photoMeta[iso].captions={};
+    if(text)photoMeta[iso].captions[url]=text;else delete photoMeta[iso].captions[url];
+    await sbSavePhotoMeta(iso);
+  }
+  function capRefresh(iso){
+    try{if(typeof renderTage==='function')renderTage();else if(typeof refreshPhotoGrid==='function')refreshPhotoGrid(iso);}catch(e){}
+  }
+  /* --- einzelner Vorschlag im Fenster „Bildunterschrift“ --- */
+  function capCurrent(){
+    try{
+      if(typeof _capUrl!=='undefined'&&_capUrl&&typeof _capIso!=='undefined')return {iso:_capIso,url:_capUrl};
+      if(typeof _captionKey!=='undefined'&&_captionKey){
+        var m=String(_captionKey).match(/^(\d{4}-\d{2}-\d{2})_(\d+)$/);
+        if(m){var u=(photos[m[1]]||[])[parseInt(m[2],10)];if(u)return {iso:m[1],url:u};}
+      }
+    }catch(e){}
+    return null;
+  }
+  function capAiEnsureUI(){
+    var modal=document.getElementById('caption-modal');if(!modal)return null;
+    var box=document.getElementById('cap-ai');
+    if(!box){
+      box=document.createElement('div');box.id='cap-ai';box.className='cap-ai';
+      box.innerHTML='<button type="button" class="cap-ai-btn" data-cap-ai="1">Neuer KI-Vorschlag</button><span class="cap-ai-note" id="cap-ai-note"></span>';
+      var inp=document.getElementById('caption-input'),f=(inp&&inp.closest)?inp.closest('.field'):null;
+      if(f&&f.parentNode)f.parentNode.insertBefore(box,f.nextSibling);else modal.appendChild(box);
+    }
+    return box;
+  }
+  async function capAiRun(manual){
+    var box=capAiEnsureUI();if(!box)return;
+    var cur=capCurrent(),note=document.getElementById('cap-ai-note'),inp=document.getElementById('caption-input'),btn=box.querySelector('button');
+    if(!cur||!inp)return;
+    var run=++AICAP.run;
+    if(note)note.textContent='KI schaut sich das Foto an …';
+    if(btn)btn.disabled=true;
+    try{
+      var t=await aiCapSuggest(cur.iso,cur.url);
+      if(run!==AICAP.run)return;
+      if(manual||!String(inp.value||'').trim())inp.value=t;
+      if(note)note.textContent='Vorschlag der KI – bitte prüfen und anpassen.';
+    }catch(e){
+      if(run!==AICAP.run)return;
+      if(note)note.textContent='Kein Vorschlag möglich: '+String((e&&e.message)||e).slice(0,90);
+    }
+    if(btn)btn.disabled=false;
+  }
+  function capAiOnOpen(){
+    var box=capAiEnsureUI();if(!box)return;
+    var on=aiCapOn()&&isOwner();
+    box.style.display=on?'flex':'none';
+    var note=document.getElementById('cap-ai-note');if(note)note.textContent='';
+    var inp=document.getElementById('caption-input');
+    if(on&&inp&&!String(inp.value||'').trim())capAiRun(false);
+  }
+  ['openCaption','openCaptionModal','openLBCaption'].forEach(function(n){
+    var f=window[n];
+    if(typeof f==='function')window[n]=function(){var r=f.apply(this,arguments);try{capAiOnOpen();}catch(e){}return r;};
+  });
+  /* --- Vorschläge für neu hochgeladene Fotos prüfen --- */
+  function cbClose(){waRemove('cb-ov');CB.run++;CB.rows=[];}
+  function capBatchOpen(iso,urls){
+    cbClose();
+    var run=++CB.run;CB.iso=iso;
+    var more=urls.length>8;urls=urls.slice(0,8);
+    var ov=document.createElement('div');ov.id='cb-ov';ov.className='ao-ov';
+    var sh=document.createElement('div');sh.className='ao-sheet cb-sheet';
+    var head=document.createElement('div');
+    head.innerHTML='<div class="ao-grip"></div><div class="ao-title">KI-Vorschläge für die neuen Fotos</div><div class="ao-sub">Prüfe und ändere die Texte. Mit dem Haken legst du fest, was gespeichert wird.'+(more?' Für weitere Fotos nutzt du den KI-Vorschlag im Bildkommentar.':'')+'</div>';
+    sh.appendChild(head);
+    var list=document.createElement('div');list.className='cb-list';sh.appendChild(list);
+    CB.rows=urls.map(function(u){
+      var row=document.createElement('div');row.className='cb-row';
+      var im=document.createElement('img');im.className='cb-th';im.src=u;im.alt='';
+      var main=document.createElement('div');main.className='cb-main';
+      var ta=document.createElement('textarea');ta.className='cb-ta';ta.rows=2;ta.placeholder='Vorschlag wird erstellt …';ta.disabled=true;
+      var lb=document.createElement('label');lb.className='cb-use';
+      var cb=document.createElement('input');cb.type='checkbox';cb.disabled=true;
+      var sp=document.createElement('span');sp.textContent=' übernehmen';
+      ta.addEventListener('input',function(){if(!ta.disabled&&String(ta.value||'').trim())cb.checked=true;});
+      lb.appendChild(cb);lb.appendChild(sp);
+      main.appendChild(ta);main.appendChild(lb);row.appendChild(im);row.appendChild(main);list.appendChild(row);
+      return {url:u,ta:ta,cb:cb,sp:sp};
+    });
+    var ap=document.createElement('button');ap.type='button';ap.className='ao-btn';ap.id='cb-apply';ap.setAttribute('data-cb-apply','1');ap.textContent='Ausgewählte übernehmen';ap.disabled=true;
+    var cl=document.createElement('button');cl.type='button';cl.className='ao-cancel';cl.setAttribute('data-cb-close','1');cl.textContent='Später';
+    sh.appendChild(ap);sh.appendChild(cl);ov.appendChild(sh);
+    ov.addEventListener('click',function(e){if(e.target===ov)cbClose();});
+    document.body.appendChild(ov);
+    (async function(){
+      for(var i=0;i<CB.rows.length;i++){
+        if(run!==CB.run)return;
+        var r=CB.rows[i];
+        try{
+          var t=await aiCapSuggest(iso,r.url);
+          if(run!==CB.run)return;
+          r.ta.value=t;r.ta.disabled=false;r.cb.disabled=false;r.cb.checked=true;
+        }catch(e){
+          if(run!==CB.run)return;
+          r.ta.placeholder='Kein Vorschlag möglich. Du kannst selbst etwas schreiben.';r.ta.disabled=false;r.cb.disabled=false;
+        }
+        ap.disabled=false;
+      }
+    })();
+  }
+  async function cbApply(){
+    var iso=CB.iso,n=0,btn=document.getElementById('cb-apply');
+    if(btn){btn.disabled=true;btn.textContent='Speichert …';}
+    for(var i=0;i<CB.rows.length;i++){
+      var r=CB.rows[i],t=String(r.ta.value||'').trim();
+      if(!r.cb.checked||!t)continue;
+      try{await capStore(iso,r.url,t);n++;}catch(e){console.error('Bildtext speichern:',e);}
+    }
+    cbClose();
+    capRefresh(iso);
+    try{toast(n?(n+(n===1?' Bildkommentar':' Bildkommentare')+' gespeichert.'):'Nichts übernommen.');}catch(e){}
+  }
+  (function(){
+    var f=window.handlePhotos;
+    if(typeof f!=='function')return;
+    window.handlePhotos=async function(ev,iso){
+      var before=((typeof photos!=='undefined'&&photos[iso])||[]).slice();
+      var r=await f.apply(this,arguments);
+      try{
+        if(aiCapOn()&&isOwner()){
+          var added=((photos[iso])||[]).filter(function(u){return before.indexOf(u)<0;});
+          if(added.length)capBatchOpen(iso,added);
+        }
+      }catch(e){}
+      return r;
+    };
+  })();
+  /* --- Ein- und Ausschalten --- */
+  function aiCapAsk(){
+    waRemove('ac-ov');
+    var ov=document.createElement('div');ov.id='ac-ov';ov.className='ao-ov';
+    ov.innerHTML='<div class="ao-sheet" role="dialog" aria-modal="true"><div class="ao-grip"></div><div class="ao-title">KI-Vorschläge einschalten?</div>'
+      +'<div class="ao-sub">Die KI schlägt dir Texte für Bildkommentare vor. Dafür wird das jeweilige Foto verkleinert an den KI-Dienst Anthropic (USA) gesendet. Das passiert nur, wenn du die Funktion eingeschaltet hast. Gespeichert wird nur, was du übernimmst.</div>'
+      +'<button type="button" class="ao-btn" data-ac-on="1">Einschalten</button><button type="button" class="ao-cancel" data-ac-close="1">Abbrechen</button></div>';
+    ov.addEventListener('click',function(e){if(e.target===ov)waRemove('ac-ov');});
+    document.body.appendChild(ov);
+  }
+  function aiCapToggle(){
+    if(aiCapOn()){aiCapSet(false);try{toast('KI-Vorschläge sind aus.');}catch(e){}renderMehr();}
+    else aiCapAsk();
+  }
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target:null,b;if(!t)return;
+    if(t.closest('[data-cap-ai]')){capAiRun(true);return;}
+    if(t.closest('[data-cb-apply]')){cbApply();return;}
+    if(t.closest('[data-cb-close]')){cbClose();return;}
+    if(t.closest('[data-ac-on]')){aiCapSet(true);waRemove('ac-ov');try{toast('KI-Vorschläge sind an.');}catch(e){}renderMehr();return;}
+    if(t.closest('[data-ac-close]')){waRemove('ac-ov');return;}
+  });
+  /* ---------- (AICAP-ENDE) ---------- */
   /* ---------- WhatsApp: Freunde über neue Einträge informieren (WA-BEGIN) ---------- */
   var WA={iso:null,blob:null,url:'',run:0,failed:false,busy:false};
   function waAsk(){try{return localStorage.getItem('tv_wa_ask')!=='0';}catch(e){return true;}}
