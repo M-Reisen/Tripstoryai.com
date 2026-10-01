@@ -816,6 +816,17 @@ html.app-guestview body{padding-top:48px;}
 .cb-use{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:13px;color:var(--a-fog);cursor:pointer;}
 .cb-use input{width:20px;height:20px;}
 
+/* Als Nächstes: mehrere Einträge mit Uhrzeit */
+.ah-next.nx-card{display:block;padding:14px 16px 6px;}
+.nx-head{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--a-acc);margin:0 0 8px;}
+.nx-row{display:flex;align-items:flex-start;gap:14px;padding:10px 0;border-top:1px solid var(--a-line);}
+.nx-row:first-of-type{border-top:0;padding-top:4px;}
+.nx-row>i{flex:0 0 44px;width:44px;height:44px;border-radius:16px;background:var(--a-sand);display:flex;align-items:center;justify-content:center;color:var(--a-acc);}
+.nx-tx{flex:1;min-width:0;}
+.nx-tx b{display:block;font-size:16px;line-height:1.3;margin:0;}
+.ah-next .nx-when{color:var(--a-acc);font-weight:700;margin-top:2px;}
+.ah-next .nx-extra{color:var(--a-fog);font-weight:500;font-size:13px;margin-top:2px;}
+
 /* Australien: Anpassungen an die bisherige Seite */
 .figma-stats{display:none !important;}
 #au-karte-wrap{border:0 !important;border-radius:26px !important;box-shadow:var(--a-sh);}
@@ -3659,7 +3670,10 @@ initApp();
     C.push({id:'s'+b.id,cat:'Unterkunft',label:b.name,info:(b.loc||'')+'‖‖‖‖'+addDays(b.datum,b.nights),datum:b.datum,amount:b.price||0,cur:'EUR',_bid:b.id});
   });
   TIMELINE.forEach(function(t,i){
-    if(t.type==='transport')C.push({id:'t'+i,cat:t.cls==='flight'?'Flug':'Transport',label:t.name,info:t.info||'',datum:t.datum,amount:0,cur:'EUR'});
+    if(t.type==='transport'){
+      var tmm=String(t.info||'').match(/(\d{1,2}):(\d{2})/);
+      C.push({id:'t'+i,cat:t.cls==='flight'?'Flug':'Transport',kind:t.cls,label:t.name,info:(t.info||'')+'‖'+(tmm?('0'+tmm[1]).slice(-2)+':'+tmm[2]:''),datum:t.datum,amount:0,cur:'EUR'});
+    }
     else if(t.type==='tour'){
       var a=ACTIVITIES.find(function(x){return x.id===t.ref;});
       if(a)C.push({id:'a'+a.id,cat:'Ausflug',label:a.name,info:a.info||a.dateStr||'',datum:t.datum,amount:0,cur:'EUR'});
@@ -4079,6 +4093,43 @@ initApp();
     stays.forEach(function(c){if(!seen[c.label]){seen[c.label]=1;uniq.push(c);}});
     return uniq;
   }
+  /* ---------- „Als Nächstes“: Flüge, Fahrten, Ausflüge und Unterkünfte mit Uhrzeit ---------- */
+  function nxTime(c){
+    var p=parseInfo(c.info||''),t=String(p.time||'');
+    var m=t.match(/(\d{1,2}):(\d{2})/)||String(p.text||'').match(/(\d{1,2}):(\d{2})/);
+    return m?('0'+m[1]).slice(-2)+':'+m[2]:'';
+  }
+  function nxClean(text){
+    var t=String(text||'').trim();
+    if(t.indexOf(' · ')>=0){
+      var parts=t.split(' · ');
+      if(/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/.test(parts[0]))t=parts.slice(1).join(' · ');
+    }
+    if(/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i.test(t))return '';
+    return t.length>90?t.slice(0,88)+' …':t;
+  }
+  function nxIcon(c){
+    if(c.cat==='Unterkunft')return 'bett';
+    if(c.cat==='Flug')return 'flug';
+    if(c.cat==='Ausflug')return 'ticket';
+    return /ferry|fähre|boot|schiff/i.test((c.kind||'')+' '+(c.label||''))?'boot':'auto';
+  }
+  function nxDate(iso,today){
+    if(iso===today)return 'Heute';
+    if(iso===addIso(today,1))return 'Morgen';
+    return shortDate(iso);
+  }
+  function nextItems(today,max){
+    var now=new Date(),hhmm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
+    var rank={Flug:0,Transport:1,Ausflug:2,Unterkunft:3};
+    return costs.filter(function(c){
+      if(!c.datum||c.cat==='Sonstiges'||c.datum<today)return false;
+      if(c.datum===today){var t=nxTime(c);if(t&&t<hhmm)return false;}
+      return true;
+    }).map(function(c,i){return {c:c,i:i,k:c.datum+'|'+(nxTime(c)||'99:99')+'|'+(rank[c.cat]!==undefined?rank[c.cat]:5)};})
+      .sort(function(a,b){return a.k<b.k?-1:(a.k>b.k?1:a.i-b.i);})
+      .slice(0,max).map(function(x){return x.c;});
+  }
   function heroHTML(days){
     var owner=isOwner(),ph=phase(days),ti=qxDefaultDate(days);
     var sl0=stationList(),total=sl0.length;
@@ -4130,16 +4181,21 @@ initApp();
       +'<button type="button" class="ah-tile" data-plus-act="foto"><i>'+ic('foto',20,1.9)+'</i>Foto</button>'
       +'<button type="button" class="ah-tile" data-plus-act="notiz"><i>'+ic('notiz',20,1.9)+'</i>Notiz</button>'
       +'<button type="button" class="ah-tile" data-plus-act="ausgabe"><i>'+ic('kosten',20,1.9)+'</i>Ausgabe</button></div>';
-    var today=ph.today;
-    var nxt=costs.filter(function(c){return c.datum&&c.datum>today&&c.cat!=='Sonstiges';}).sort(function(a,b){return a.datum<b.datum?-1:(a.datum>b.datum?1:0);})[0];
-    if(nxt){
-      var icn={Unterkunft:'bett',Flug:'flug',Transport:'auto',Ausflug:'ticket'}[nxt.cat]||'ticket';
-      html+='<div class="ah-next"><i>'+ic(icn,24,1.8)+'</i><div><small>Als Nächstes · '+E(shortDate(nxt.datum))+'</small><b>'+E(stripEmoji(nxt.label))+'</b></div></div>';
+    var nx=nextItems(ph.today,4);
+    if(nx.length){
+      html+='<div class="ah-next nx-card"><small class="nx-head">Als Nächstes</small>'+nx.map(function(c){
+        var tm=nxTime(c),p=parseInfo(c.info||''),extra='';
+        if(c.cat==='Unterkunft'){var pl=String(p.text||'').split('·')[0].trim();extra='Check-in'+(pl?' · '+pl:'');}
+        else extra=nxClean(p.text);
+        return '<div class="nx-row"><i>'+ic(nxIcon(c),22,1.8)+'</i><div class="nx-tx"><b>'+E(stripEmoji(c.label))+'</b>'
+          +'<small class="nx-when">'+E(nxDate(c.datum,ph.today)+(tm?' · '+tm+' Uhr':''))+'</small>'
+          +(extra?'<small class="nx-extra">'+E(extra)+'</small>':'')+'</div></div>';
+      }).join('')+'</div>';
     }
     return html;
   }
   function heroSignature(days){
-    return [cur,isOwner()?1:0,tripHead.title,tripHead.from,tripHead.to,tripHead.sub,tripHead.emoji,(typeof _statKm!=='undefined'?_statKm:''),qxTodayISO(),
+    return [cur,isOwner()?1:0,tripHead.title,tripHead.from,tripHead.to,tripHead.sub,tripHead.emoji,(typeof _statKm!=='undefined'?_statKm:''),qxTodayISO(),new Date().getHours(),
       costs.map(function(c){return c.cat+c.datum+c.label+(c.info||'');}).join('|'),photoSig()].join('#');
   }
   function renderHero(){
