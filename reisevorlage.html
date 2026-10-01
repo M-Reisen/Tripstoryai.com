@@ -817,6 +817,20 @@ html.app-guestview body{padding-top:48px;}
 
 /* Tageskarte: Ausgaben werden über das € erfasst, kein zweiter Knopf */
 .exp-add,.day-cost-add{display:none !important;}
+
+/* Stationsbild wählen */
+.ss-acts{flex-wrap:wrap;}
+.ss-acts .ao-btn{flex:1 1 150px;}
+.ss-acts .ss-go{flex:1 1 100%;}
+.cv-sheet{max-height:90vh;max-height:90dvh;overflow-y:auto;}
+.cv-body{margin:0 0 12px;}
+.cv-day{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--a-fog);margin:12px 2px 8px;}
+.cv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.cv-th{position:relative;aspect-ratio:1;border:0;padding:0;border-radius:14px;overflow:hidden;background:var(--a-sand);cursor:pointer;box-shadow:var(--a-sh);}
+.cv-th img{width:100%;height:100%;object-fit:cover;display:block;}
+.cv-th.on{outline:3px solid var(--a-acc);outline-offset:-3px;}
+.cv-th.hid img{opacity:.3;filter:grayscale(.7);}
+.cv-th.hid span{position:absolute;left:4px;right:4px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#1A1714;background:rgba(244,239,232,.92);border-radius:6px;padding:3px 4px;}
 </style>
 </head>
 <body>
@@ -4803,7 +4817,9 @@ init();
     return s[0]||null;
   }
   function ownPhotoFor(iso){
-    var st=stationAt(iso),list=st?buildDays().filter(function(d){return inStay(st,d);}):[iso];
+    var st=stationAt(iso),ch=st?covChosen(st):null;
+    if(ch)return ch;
+    var list=st?buildDays().filter(function(d){return inStay(st,d);}):[iso];
     for(var i=0;i<list.length;i++){var v=visiblePhotos(list[i]);if(v&&v.length)return v[0];}
     return null;
   }
@@ -4941,7 +4957,7 @@ init();
         +'<div class="st-tx"><b>'+E(st.name)+'</b><small>'+E(when)+(st.nights>0?' · '+st.nights+(st.nights===1?' Nacht':' Nächte'):'')+'</small><small>'+E(info)+'</small></div></div>'
         +'<div class="ss-acts">'
         +'<button type="button" class="ao-btn ss-go" data-ss-go="'+E(st.iso)+'|'+st.nights+'"'+((!cnt&&!owner)?' disabled':'')+'>'+(cnt?'Zum Tagebuch':(owner?'Eintrag schreiben':'Kein Eintrag vorhanden'))+'</button>'
-        +(owner?'<button type="button" class="ao-btn alt ss-edit" data-ort-iso="'+E(st.iso)+'" data-ort-n="'+st.nights+'">Ort ändern</button>':'')
+        +(owner?'<button type="button" class="ao-btn alt ss-edit" data-ort-iso="'+E(st.iso)+'" data-ort-n="'+st.nights+'">Ort ändern</button><button type="button" class="ao-btn alt ss-edit" data-st-cover="'+E(st.iso)+'|'+st.nights+'">Titelbild wählen</button>':'')
         +'</div></div>';
     });
     h+='<button type="button" class="ao-cancel" data-ss-close="1">Schließen</button></div>';
@@ -5103,6 +5119,90 @@ init();
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
+  /* ---------- Stationsbild selbst wählen (CV-BEGIN) ---------- */
+  var COV={};
+  function covKey(){return (typeof PFX!=='undefined'?PFX:'')+'stationsbilder';}
+  function covTrip(){return (typeof REISE!=='undefined')?REISE:((typeof REISE_ID!=='undefined')?REISE_ID:null);}
+  async function covLoad(){
+    try{
+      var r=await sb.from('kommentare').select('nachricht').eq('ort',covKey()).limit(1);
+      if(r&&r.data&&r.data[0]){try{COV=JSON.parse(r.data[0].nachricht||'{}')||{};}catch(e){COV={};}}
+    }catch(e){}
+    photosSoon();
+  }
+  async function covSave(){
+    var payload=JSON.stringify(COV),key=covKey();
+    var ex=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+    var res;
+    if(ex&&ex.data&&ex.data.length)res=await sb.from('kommentare').update({nachricht:payload}).eq('id',ex.data[0].id);
+    else res=await sb.from('kommentare').insert({ort:key,name:'stationsbilder',nachricht:payload,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:covTrip()});
+    if(res&&res.error)throw res.error;
+  }
+  function covChosen(st){
+    var c=COV[st.iso];
+    if(!c||!c.u)return null;
+    if(!isOwner()){var vis=visiblePhotos(c.d||st.iso)||[];if(vis.indexOf(c.u)<0)return null;}
+    return c.u;
+  }
+  function covClose(){waRemove('cv-ov');}
+  async function covOpen(iso,n){
+    if(!isOwner())return;
+    closeSt();covClose();
+    n=Math.max(1,n||1);
+    var days=buildDays().filter(function(d){return d>=iso&&d<addIso(iso,n);});
+    var st=stationAt(iso),name=st?st.name:'Station';
+    var ov=document.createElement('div');ov.id='cv-ov';ov.className='ao-ov';
+    ov.innerHTML='<div class="ao-sheet cv-sheet" role="dialog" aria-modal="true" aria-label="Titelbild wählen">'
+      +'<div class="ao-grip"></div><div class="ao-title">Titelbild wählen</div>'
+      +'<div class="ao-sub">'+E(name)+' · Tippe auf das Foto, das auf Karte und Liste erscheinen soll.</div>'
+      +'<div id="cv-body" class="cv-body"><div class="wa-prev"><span>Fotos werden geladen …</span></div></div>'
+      +'<button type="button" class="ao-btn alt" data-cv-auto="'+E(iso)+'">Automatisch: erstes Foto verwenden</button>'
+      +'<button type="button" class="ao-cancel" data-cv-close="1">Schließen</button></div>';
+    ov.addEventListener('click',function(e){if(e.target===ov)covClose();});
+    document.body.appendChild(ov);
+    await Promise.all(days.filter(function(d){return photos[d]===undefined;}).map(async function(d){
+      try{photos[d]=orderedPhotos(d,await sbLoadPhotos(d));}catch(e){photos[d]=[];}
+    }));
+    var body=document.getElementById('cv-body');if(!body)return;
+    var cur=COV[iso]&&COV[iso].u,h='',total=0;
+    days.forEach(function(d){
+      var list=photos[d]||[];if(!list.length)return;
+      total+=list.length;
+      h+='<div class="cv-day">Tag '+waDayNo(d)+' · '+E(shortDate(d))+'</div><div class="cv-grid">';
+      list.forEach(function(u,i){
+        var hid=(typeof isHiddenPhoto==='function')&&isHiddenPhoto(d,u);
+        h+='<button type="button" class="cv-th'+(u===cur?' on':'')+(hid?' hid':'')+'" '+(hid?'data-cv-hid="1"':'data-cv-pick="'+E(iso)+'|'+E(d)+'|'+i+'"')+' aria-label="Foto '+(i+1)+(hid?' (für Gäste ausgeblendet)':'')+'"><img src="'+esc(u)+'" alt="" loading="lazy">'+(hid?'<span>ausgeblendet</span>':'')+'</button>';
+      });
+      h+='</div>';
+    });
+    body.innerHTML=total?h:'<div class="wa-prev"><span>Für diese Station gibt es noch keine Fotos.</span></div>';
+  }
+  async function covPick(iso,d,idx){
+    var u=(photos[d]||[])[idx];if(!u)return;
+    var before=JSON.stringify(COV);
+    COV[iso]={u:u,d:d};
+    try{await covSave();}
+    catch(e){COV=JSON.parse(before);try{toast('Konnte nicht speichern – bitte noch einmal versuchen.');}catch(x){}return;}
+    covClose();try{toast('Titelbild gespeichert.');}catch(x){}
+    try{window.appRefresh();}catch(x){}
+  }
+  async function covAuto(iso){
+    var before=JSON.stringify(COV);
+    delete COV[iso];
+    try{await covSave();}
+    catch(e){COV=JSON.parse(before);try{toast('Konnte nicht speichern – bitte noch einmal versuchen.');}catch(x){}return;}
+    covClose();try{toast('Automatisch: das erste Foto wird verwendet.');}catch(x){}
+    try{window.appRefresh();}catch(x){}
+  }
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target:null,b;if(!t)return;
+    if((b=t.closest('[data-st-cover]'))){var p=b.getAttribute('data-st-cover').split('|');covOpen(p[0],parseInt(p[1],10)||1);return;}
+    if((b=t.closest('[data-cv-pick]'))){var q=b.getAttribute('data-cv-pick').split('|');covPick(q[0],q[1],parseInt(q[2],10)||0);return;}
+    if(t.closest('[data-cv-hid]')){try{toast('Dieses Foto ist für Gäste ausgeblendet. Blende es zuerst mit dem Auge ein.');}catch(e){}return;}
+    if((b=t.closest('[data-cv-auto]'))){covAuto(b.getAttribute('data-cv-auto'));return;}
+    if(t.closest('[data-cv-close]')){covClose();return;}
+  });
+  /* ---------- (CV-ENDE) ---------- */
   /* ---------- WhatsApp: Freunde über neue Einträge informieren (WA-BEGIN) ---------- */
   var WA={iso:null,blob:null,url:'',run:0,failed:false,busy:false};
   function waAsk(){try{return localStorage.getItem('tv_wa_ask')!=='0';}catch(e){return true;}}
@@ -5514,6 +5614,7 @@ init();
   window.appRefresh=function(){heroSig='';renderHero();renderStations();decorateRouteMap();};
   show(cur,true);
   try{refreshLogin();refreshStations();}catch(e){}
+  try{covLoad();}catch(e){}
 })();
 
 </script>
