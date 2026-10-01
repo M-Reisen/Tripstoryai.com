@@ -1516,8 +1516,8 @@ const TIMELINE = [
   { type:'tour', ref:'a4', datum:'2026-09-28' },
   { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Airlie Beach → Whitsunday Islands', info:'Ende Sept.', dot:'ferry', datum:'2026-09-29' },
   { type:'stay', id:'b7', emoji:'🐠', name:'Whitsunday Apartments', loc:'Whitsunday Islands, QLD', dateStr:'29. Sept.–2. Okt.', datum:'2026-09-29', nights:3, price:973.76, color:'reef', badge:'badge-island', note:'Whitehaven Beach & Great Barrier Reef', dot:'reef' },
-  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Whitsunday Islands → Airlie Beach', info:'Fr. 2. Okt. · ca. 11:00', dot:'ferry', datum:'2026-10-02' },
-  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 2 · ab Cape Hillsborough', info:'Ab 2. Okt. · Cape Hillsborough → Eungella → Flughafen Mackay', dot:'car', datum:'2026-10-02' },
+  { type:'transport', cls:'ferry', icon:'⛴️', name:'Fähre · Whitsunday Islands → Airlie Beach', info:'Fr. 2. Okt. · ab 08:50', dot:'ferry', datum:'2026-10-02' },
+  { type:'transport', cls:'car', icon:'🚗', name:'Mietwagen 2 · Abholung Airlie Beach', info:'Fr. 2. Okt. · ab 11:40 · Airlie Beach → Cape Hillsborough → Eungella → Flughafen Mackay', dot:'car', datum:'2026-10-02' },
   { type:'stay', id:'b8', emoji:'🦘', name:'Cape Hillsborough Nature Tourist Park', loc:'Cape Hillsborough, QLD', dateStr:'2.–5. Okt.', datum:'2026-10-02', nights:3, price:364.00, color:'bush', badge:'badge-nature', note:'Kängurus beim Sonnenaufgang am Strand!', dot:'bush' },
   { type:'transport', cls:'flight', icon:'✈️', name:'QF 1825 · Mackay → Brisbane', info:'Mo. 05.10. · ab 13:05 → an 14:35', dot:'flight', datum:'2026-10-05' },
   { type:'stay', id:'b10', emoji:'🌆', name:'Oaks Brisbane on Charlotte Suites', loc:'Brisbane, QLD', dateStr:'5.–6. Okt.', datum:'2026-10-05', nights:1, price:168.41, color:'sunset', badge:'badge-city', note:'City-Night Brisbane', dot:'sunset' },
@@ -2765,7 +2765,7 @@ const PLAN_SEED=[
   {cat:'Transport', label:'SR Coaches · Cairns ↔ Port Douglas', info:'14.09. & 19.09. · Ref. BW5283642', amount:153.25, cur:'EUR'},
   {cat:'Transport', label:'Mietwagen 1 · Avis Toyota Corolla', info:'19.–22. Sept. · Cairns → Townsville', amount:321, cur:'EUR'},
   {cat:'Transport', label:'FlixBus · Townsville → Airlie Beach', info:'So. 27.09. · 13:50–17:50 Uhr', amount:60, cur:'EUR'},
-  {cat:'Transport', label:'Mietwagen 2 · ab Cape Hillsborough', info:'2.–5. Okt.', amount:153, cur:'EUR'},
+  {cat:'Transport', label:'Mietwagen 2 · ab Airlie Beach', info:'2.–5. Okt. · Abholung 11:40', amount:153, cur:'EUR'},
   {cat:'Transport', label:'Fähre · Townsville ↔ Magnetic Island', info:'23.09. & 27.09. · Ref. GYG7VKWWBAAG', amount:55.70, cur:'EUR'},
   {cat:'Transport', label:'Fähre · Airlie Beach → Hamilton Island', info:'29.09. · Ref. 5635629', amount:94.50, cur:'EUR'},
   {cat:'Transport', label:'Fähre · Hamilton Island → Airlie Beach', info:'02.10. · Ref. 5635630', amount:94.50, cur:'EUR'},
@@ -4101,9 +4101,10 @@ initApp();
   }
   function nxClean(text){
     var t=String(text||'').trim();
-    if(t.indexOf(' · ')>=0){
+    var dateRx=/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/,timeRx=/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i;
+    for(var k=0;k<2;k++){
       var parts=t.split(' · ');
-      if(/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/.test(parts[0]))t=parts.slice(1).join(' · ');
+      if(parts.length>1&&(dateRx.test(parts[0])||timeRx.test(parts[0])))t=parts.slice(1).join(' · ');
     }
     if(/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i.test(t))return '';
     return t.length>90?t.slice(0,88)+' …':t;

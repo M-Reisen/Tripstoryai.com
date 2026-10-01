@@ -4567,9 +4567,10 @@ init();
   }
   function nxClean(text){
     var t=String(text||'').trim();
-    if(t.indexOf(' · ')>=0){
+    var dateRx=/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/,timeRx=/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i;
+    for(var k=0;k<2;k++){
       var parts=t.split(' · ');
-      if(/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/.test(parts[0]))t=parts.slice(1).join(' · ');
+      if(parts.length>1&&(dateRx.test(parts[0])||timeRx.test(parts[0])))t=parts.slice(1).join(' · ');
     }
     if(/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i.test(t))return '';
     return t.length>90?t.slice(0,88)+' …':t;
