@@ -3974,10 +3974,15 @@ initApp();
   }
   function pkNorm(s){return String(s||'').toLowerCase().replace(/[^a-zäöüß0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
   function pkToks(s){return pkNorm(s).split(' ').filter(function(x){return x.length>2;});}
-  function pkOverlap(a,b){
-    var tb=pkToks(b),common=pkToks(a).filter(function(x){return tb.indexOf(x)>=0;});
-    if(common.some(function(x){return /^\d{3,}$/.test(x);}))return 5;
-    return common.length;
+  function pkType(s){return pkNorm(s).split(' ')[0]||'';}
+  function pkNum(s){var m=pkNorm(s).match(/(?:^| )(\d)(?: |$)/);return m?m[1]:'';}
+  function pkScore(e,p){
+    /* Nur gleiche Art (z. B. Mietwagen mit Mietwagen, Fähre mit Fähre) und gleiches Datum können zusammengehören */
+    if(pkType(e.label)!==pkType(p.label))return 0;
+    var ne=pkNum(e.label),np=pkNum(p.label);
+    if(ne&&np&&ne!==np)return 0;
+    var tb=pkToks(p.label),common=pkToks(e.label).filter(function(x){return tb.indexOf(x)>=0;}).length;
+    return 5+(ne&&np&&ne===np?3:0)+common;
   }
   W.previewCosts=function(){
     var plan=(typeof planCosts!=='undefined'&&planCosts)||[],used={},out=[];
@@ -3991,8 +3996,7 @@ initApp();
           n=(bk&&pkNorm(p.label).indexOf(pkNorm(bk.name))>=0)?10:0;
         }else{
           if(pkDates(p).indexOf(e.datum)<0)return;
-          n=pkOverlap(e.label,p.label);
-          if(n<2)return;
+          n=pkScore(e,p);
         }
         if(n>bestN){bestN=n;best=p;}
       });
@@ -4002,9 +4006,11 @@ initApp();
       if(!(pp.time||pp.time2||pp.bis)){out.push(e);return;}
       out.push(Object.assign({},e,{info:(pe.text||'')+'‖'+(pp.time||pe.time||'')+'‖‖‖'+(pp.bis||pe.bis||'')+'‖'+(pp.time2||pe.time2||'')}));
     });
+    /* Eigene Positionen mit Datum ersetzen gleichartige Einträge des festen Plans am selben Tag (keine Doppelanzeige) */
     plan.forEach(function(p){
       if(used[p.id]||!/^\d{4}-\d{2}-\d{2}$/.test(p.datum||''))return;
-      if(p.cat==='Sonstiges')return;
+      if(p.cat==='Sonstiges'||p.cat==='Unterkunft')return;
+      out=out.filter(function(e){return !(e.cat===p.cat&&e.datum===p.datum&&pkType(e.label)===pkType(p.label)&&!/^pk/.test(String(e.id)));});
       out.push({id:'pk'+p.id,cat:p.cat,label:p.label,info:p.info||'',datum:p.datum,amount:0,cur:'EUR'});
     });
     return out;
@@ -4252,9 +4258,9 @@ initApp();
       out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'Abholung',extra:tx,times:'',r:1});
       if(t2||p.bis)out.push({c:c,iso:p.bis||c.datum,time:t2,title:lab,tag:'Rückgabe',extra:'',times:'',r:1.5});
     }else if(c.cat==='Flug'||c.cat==='Transport'){
-      var ex=[];
-      if(t1)ex.push((c.cat==='Flug'?'Abflug ':'Abfahrt ')+t1);
-      if(t2)ex.push('Ankunft '+t2+(p.bis&&p.bis!==c.datum?' ('+shortDate(p.bis)+')':''));
+      var ex=[],fl=(c.cat==='Flug');
+      if(t1||(fl&&p.from))ex.push((fl?'Abflug':'Abfahrt')+(t1?' '+t1:'')+(fl&&p.from?' '+p.from:''));
+      if(t2||(fl&&p.to))ex.push('Ankunft'+(t2?' '+t2:'')+(fl&&p.to?' '+p.to:'')+(p.bis&&p.bis!==c.datum?' ('+shortDate(p.bis)+')':''));
       out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:ex.join(' · '),r:c.cat==='Flug'?0:1});
     }else if(c.cat==='Ausflug'){
       out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:t2?('Ende '+t2):'',r:2});
