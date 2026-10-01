@@ -5346,16 +5346,12 @@ init();
   function fmtTimeDigits(v,final){
     var d=String(v||'').replace(/\D/g,'').slice(0,4);
     if(!d)return '';
+    if(!final)return d.length<4?d:d.slice(0,2)+':'+d.slice(2);
     var h,m;
-    if(d.length<=2){
-      if(!final)return d;
-      h=d;m='00';
-    }else{
-      h=d.slice(0,d.length-2);m=d.slice(-2);
-    }
+    if(d.length<=2){h=d;m='00';}
+    else{h=d.slice(0,d.length-2);m=d.slice(-2);}
     h=Math.min(23,parseInt(h,10)||0);m=Math.min(59,parseInt(m,10)||0);
-    var hh=final?('0'+h).slice(-2):String(h);
-    return hh+':'+('0'+m).slice(-2);
+    return ('0'+h).slice(-2)+':'+('0'+m).slice(-2);
   }
   window.tvFmtTime=fmtTimeDigits;
   function isTimeField(t){return !!(t&&t.id&&/^(c-time2?|pk-time2?|bu-time2?-\d+)$/.test(t.id));}
