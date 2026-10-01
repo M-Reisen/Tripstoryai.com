@@ -792,6 +792,15 @@ html.app-guestview body{padding-top:48px;}
 .cv-th.hid img{opacity:.3;filter:grayscale(.7);}
 .cv-th.hid span{position:absolute;left:4px;right:4px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:#1A1714;background:rgba(244,239,232,.92);border-radius:6px;padding:3px 4px;}
 
+/* Tagebuch: Fotos vollständig zeigen (nicht zuschneiden) */
+.fig-journal-entry .fj-img{aspect-ratio:auto !important;min-height:220px;background:var(--a-sand) !important;}
+.fig-journal-entry .fj-img.fj-loading{aspect-ratio:4/3 !important;}
+.fig-journal-entry .fj-img>img{height:auto !important;max-height:78vh;object-fit:contain !important;}
+.fig-journal-entry .fj-scroll{height:auto !important;align-items:center;}
+.fig-journal-entry .fj-slide{height:auto !important;display:flex;align-items:center;justify-content:center;}
+.fig-journal-entry .fj-slide img{height:auto !important;max-height:78vh;object-fit:contain !important;}
+.fig-journal-entry .fj-img:hover img{transform:none !important;}
+
 /* Australien: Anpassungen an die bisherige Seite */
 .figma-stats{display:none !important;}
 #au-karte-wrap{border:0 !important;border-radius:26px !important;box-shadow:var(--a-sh);}
@@ -2275,6 +2284,7 @@ function initSeen(key){
   }catch(e){_seenPrev=null;}
 }
 function isNewEntry(at){
+  if((typeof canEdit!=='undefined'&&canEdit)||document.documentElement.classList.contains('is-admin'))return false;
   if(!_seenPrev||!at)return false;
   var a=Date.parse(at),b=Date.parse(_seenPrev);
   return !isNaN(a)&&!isNaN(b)&&a>b;
