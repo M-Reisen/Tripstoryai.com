@@ -179,6 +179,17 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
   main{padding:30px 18px 70px;}
   .field-row{grid-template-columns:minmax(0,1fr);}
 }
+
+/* iPhone: Kopf und Knöpfe der Fenster bleiben immer sichtbar, Inhalt scrollt dazwischen */
+.overlay{align-items:flex-end;padding:0;}
+.modal-box{max-height:calc(100vh - 112px);max-height:calc(100dvh - 112px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
+#trip-modal .mb-head{position:sticky;top:0;z-index:3;background:var(--white);padding:16px 22px 12px;border-bottom:1px solid var(--line);align-items:center;}
+#trip-modal .mb-close{min-width:46px;min-height:46px;font-size:1.4rem;}
+#trip-modal .mb-body{padding:16px 22px 0;}
+#trip-modal .modal-actions,#del-modal .modal-actions{position:sticky;bottom:0;z-index:3;background:var(--white);box-shadow:0 -10px 18px rgba(0,0,0,.07);}
+#trip-modal .modal-actions{margin:18px -22px 0;padding:12px 22px calc(16px + env(safe-area-inset-bottom));}
+#del-modal .modal-actions{margin:8px -24px 0;padding:12px 24px calc(16px + env(safe-area-inset-bottom));}
+#del-modal .mb-body{padding-bottom:0 !important;}
 </style>
 </head>
 <body>
