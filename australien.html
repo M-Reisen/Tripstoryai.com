@@ -689,6 +689,76 @@ html.app-guestview body{padding-top:48px;}
 .photo-move svg,.photo-hide-btn svg,.photo-cap-btn svg,.photo-cell-edit svg{width:16px;height:16px;display:block;pointer-events:none;}
 .cost-edit-btn svg{width:15px;height:15px;display:block;pointer-events:none;}
 
+/* Buchungen einlesen: Dateiliste, großer Knopf, Datumsfelder innerhalb der Karte */
+#buch-modal input,#buch-modal select,#buch-modal textarea{width:100%;min-width:0;max-width:100%;box-sizing:border-box;}
+#buch-modal input[type=date]{-webkit-appearance:none;appearance:none;display:block;height:52px;}
+#buch-modal .buch-use input,#buch-modal .buch-day input[type=checkbox]{width:auto;}
+#buch-modal .field-row{display:flex;gap:10px;}
+#buch-modal .field-row>.field{flex:1;min-width:0;}
+#buch-read-btn{display:block;width:100%;min-height:56px;border:0;border-radius:28px;background:#1A1714;color:#F7F1E8;font:700 17px 'DM Sans',sans-serif;cursor:pointer;margin-top:12px;}
+#buch-read-btn:disabled{opacity:.55;}
+.bf-head{font-weight:700;font-size:.82rem;color:var(--a-ink);margin:12px 0 8px;}
+.bf-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:16px;box-shadow:var(--a-sh);padding:8px 10px;margin-bottom:8px;}
+.bf-th{flex:0 0 46px;width:46px;height:46px;border-radius:10px;object-fit:cover;background:var(--a-sand);}
+.bf-pdf{display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.72rem;color:var(--a-fog);}
+.bf-tx{flex:1;min-width:0;}
+.bf-tx b{display:block;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bf-tx small{display:block;font-size:.76rem;color:var(--a-fog);margin-top:2px;}
+.bf-row.bf-busy .bf-st{color:var(--a-acc);font-weight:700;}
+.bf-row.bf-done .bf-st{color:#2f7a4b;font-weight:700;}
+.bf-row.bf-err .bf-st,.bf-tx .bf-err{color:#b3261e;font-weight:700;}
+.bf-row.bf-skip{border:1.5px dashed var(--a-acc);}
+.bf-again{margin-top:6px;border:0;background:none;color:var(--a-acc);font:700 .78rem 'DM Sans',sans-serif;padding:4px 0;cursor:pointer;}
+.bf-x{flex:0 0 42px;width:42px;height:42px;border:0;border-radius:21px;background:var(--a-sand);font-size:1rem;color:var(--a-ink);cursor:pointer;padding:0;}
+.buch-prog{color:var(--a-fog);font-size:.85rem;padding:10px 0;}
+.buch-applybar{position:sticky;bottom:0;margin:12px -18px 0;padding:14px 18px calc(16px + env(safe-area-inset-bottom));background:linear-gradient(to top,#fff 72%,rgba(255,255,255,0));z-index:5;}
+.buch-apply{display:block;width:100%;min-height:58px;border:0;border-radius:29px;background:var(--a-acc);color:#fff;font:700 17px 'DM Sans',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(168,82,47,.35);padding:0 16px;}
+.buch-apply:disabled{opacity:.6;box-shadow:none;}
+
+/* Leere Tage im Tagebuch (nur für die Besitzerin) */
+.fj-none{color:var(--a-fog) !important;font-style:italic;}
+.fj-write{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;margin-top:12px;border:0;border-radius:24px;background:var(--a-acc);color:#fff;font:700 15px 'DM Sans',sans-serif;cursor:pointer;}
+.fig-journal-entry.fj-empty .fj-text{padding-bottom:22px;}
+
+/* Leere Tage: schlank */
+.fig-journal-entry.fj-empty .fj-loc{font-size:21px !important;line-height:1.2 !important;margin:2px 0 0;}
+.fig-journal-entry.fj-empty .fj-date{margin:4px 0 0;}
+.fig-journal-entry.fj-empty .fj-body.fj-none{font-size:14px !important;margin:8px 0 0 !important;line-height:1.4;}
+.fig-journal-entry.fj-empty .fj-write{min-height:42px;padding:0 18px;margin-top:10px;font-size:14px;}
+.fig-journal-entry.fj-empty{opacity:.97;}
+
+/* Tagebuch: Wochen, Einklappen */
+.fig-journal-entry.jr-off{display:none !important;}
+.jr-bar{margin:0 0 16px;}
+.jr-nav{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.jr-arrow{flex:0 0 46px;width:46px;height:46px;border:0;border-radius:23px;background:#fff;box-shadow:var(--a-sh);color:var(--a-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.jr-arrow:disabled{opacity:.35;box-shadow:none;}
+.jr-title{flex:1;text-align:center;min-width:0;}
+.jr-title b{display:block;font-family:'Playfair Display',serif;font-weight:400;font-size:22px;line-height:1.15;}
+.jr-title b span{font-family:'DM Sans',sans-serif;font-size:13px;color:var(--a-fog);}
+.jr-title small{display:block;font-size:12.5px;color:var(--a-fog);margin-top:2px;}
+.jr-chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
+.jr-chips::-webkit-scrollbar{display:none;}
+.jr-chip{position:relative;flex:0 0 auto;min-width:42px;height:42px;padding:0 8px;border:0;border-radius:21px;background:#fff;box-shadow:var(--a-sh);font:700 15px 'DM Sans',sans-serif;color:var(--a-ink);cursor:pointer;}
+.jr-chip.on{background:var(--a-ink);color:#F7F1E8;}
+.jr-chip i{position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:var(--a-acc);box-shadow:0 0 0 2px #fff;}
+.jr-tools{display:flex;gap:10px;flex-wrap:wrap;}
+.jr-all,.jr-new{min-height:44px;padding:0 18px;border:0;border-radius:22px;font:700 14px 'DM Sans',sans-serif;cursor:pointer;}
+.jr-all{background:#fff;box-shadow:var(--a-sh);color:var(--a-ink);}
+.jr-new{background:var(--a-acc);color:#fff;}
+.fig-journal-entry .fj-text{position:relative;}
+.jr-fold{position:absolute;top:10px;right:10px;width:38px;height:38px;border:0;border-radius:19px;background:var(--a-sand);color:var(--a-ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;z-index:2;transition:transform .2s;}
+.fig-journal-entry.jr-collapsed .jr-fold{transform:rotate(-90deg);}
+.fig-journal-entry .fj-day,.fig-journal-entry .fj-loc,.fig-journal-entry .fj-date{cursor:pointer;}
+.fig-journal-entry .fj-loc{padding-right:44px;}
+.fig-journal-entry.jr-collapsed .fj-img{display:none !important;}
+.fig-journal-entry.jr-collapsed .fj-body,.fig-journal-entry.jr-collapsed .fj-write{display:none !important;}
+.fig-journal-entry.jr-collapsed .fj-text{border-radius:22px !important;padding-bottom:14px !important;}
+.fig-journal.jr-in-r{animation:jrinr .28s ease;}
+.fig-journal.jr-in-l{animation:jrinl .28s ease;}
+@keyframes jrinr{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:none;}}
+@keyframes jrinl{from{opacity:0;transform:translateX(-28px);}to{opacity:1;transform:none;}}
+
 /* Australien: Anpassungen an die bisherige Seite */
 .figma-stats{display:none !important;}
 #au-karte-wrap{border:0 !important;border-radius:26px !important;box-shadow:var(--a-sh);}
@@ -712,6 +782,13 @@ html.app-guestview body{padding-top:48px;}
 .ao-btn.alt{background:#fff;color:#1A1714;box-shadow:0 2px 10px rgba(26,23,20,.07);}
 .ao-btn:disabled{opacity:.6;}
 .ao-cancel{display:block;width:100%;min-height:46px;border:0;background:none;color:#5F5953;font:600 15px 'DM Sans',sans-serif;cursor:pointer;}
+
+/* Fotos für Gäste ausblenden */
+.photo-hide-btn{position:absolute;bottom:5px;right:5px;border:none;cursor:pointer;z-index:3;}
+.photo-cell.photo-hidden img{opacity:.35;filter:grayscale(.7);}
+.photo-hidden-tag{position:absolute;left:6px;right:6px;top:50%;transform:translateY(-50%);text-align:center;font-size:.64rem;line-height:1.3;color:#1A1714;background:rgba(244,239,232,.92);border-radius:6px;padding:4px 6px;pointer-events:none;z-index:1;}
+.photo-hide-new{display:block;margin-top:10px;font-size:.78rem;color:var(--fog);line-height:1.5;cursor:pointer;}
+.photo-hide-new input{margin-right:8px;vertical-align:-2px;}
 </style>
 </head>
 <body>
@@ -1456,7 +1533,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates').map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
+    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&!e.ort.startsWith('fotoverborgen_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -1548,7 +1625,8 @@ function buildDayHTML(day,i){
   const dayPhotos=photos[day.iso]||[];
   const photoItems=dayPhotos.map((src,pi)=>{
     const caption=photoComments[day.iso+'_'+pi]||'';
-    return `<div class="photo-cell"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    const hid=isHiddenPhoto(day.iso,src);
+    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(day.iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
@@ -1571,7 +1649,7 @@ function buildDayHTML(day,i){
     const revAct=editMode?`<div class="hotel-review-actions"><button class="btn btn-reef btn-sm" data-bid="${stayItem.id}" data-hotel="${stayItem.name}" data-stars="${rev.stars}" onclick="genReviewEl(this)">✍️ Bewertung</button>${rev.text?`<button class="btn btn-ghost btn-sm" style="color:var(--fog)" data-bid="${stayItem.id}" onclick="clearReviewEl(this)">Löschen</button>`:''}</div>`:'';
     hotelBannerHTML+=`<div class="hotel-review"><div class="hotel-review-stars">${starsHTML}</div>${revTxt}${revAct}</div>`;
   }
-  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
+  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}${editMode?hideNewHTML():''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
     const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const amtStr=e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;return `<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>${amtStr}</b></span></div>`;}).join('');
@@ -1630,17 +1708,18 @@ async function handlePhotos(event,iso){
   if(!f||!f.length)return;
   toast('⏳ Foto wird hochgeladen…');
   if(!photos[iso])photos[iso]=[];
-  let ok=0;
+  let ok=0,_newHid=[];
   for(let i=0;i<f.length;i++){
     const file=await compressImage(f[i]);
     const path=iso+'/'+Date.now()+'_'+i+'.jpg';
     const {data,error}=await sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',cacheControl:'31536000'});
     if(error){alert('Supabase sagt: '+(error.message||error.error||JSON.stringify(error)));continue;}
     const pub=sb.storage.from('Reisefotos').getPublicUrl(path);
-    if(pub&&pub.data&&pub.data.publicUrl){photos[iso].push(pub.data.publicUrl);ok++;}
+    if(pub&&pub.data&&pub.data.publicUrl){photos[iso].push(pub.data.publicUrl);ok++;if(hideNewOn())_newHid.push(pub.data.publicUrl);}
   }
+  if(_newHid.length){try{await hiddenAdd(iso,_newHid);}catch(e){console.error('Ausblenden speichern:',e);}}
   refreshPhotoGrid(iso);
-  if(ok>0)toast('✓ '+ok+' Foto(s) gespeichert!');
+  if(ok>0)toast('✓ '+ok+' Foto(s) gespeichert!'+(_newHid.length?' Sie sind zunächst nur für dich sichtbar.':''));
   else toast('⚠️ Kein Foto gespeichert – siehe Meldung.');
 }
 function refreshPhotoGrid(iso){
@@ -1649,7 +1728,8 @@ function refreshPhotoGrid(iso){
   const dayPhotos=photos[iso]||[];
   const items=dayPhotos.map((src,pi)=>{
     const caption=photoComments[iso+'_'+pi]||'';
-    return `<div class="photo-cell"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    const hid=isHiddenPhoto(iso,src);
+    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
   grid.innerHTML=items+addBtn;
@@ -1658,8 +1738,10 @@ async function delPhotoEl(btn){
   if(!editMode)return;
   if(!confirm('Foto löschen?'))return;
   const iso=btn.getAttribute('data-iso'), idx=parseInt(btn.getAttribute('data-idx'));
-  await sbDeletePhoto(photos[iso][idx]);
+  const _delUrl=photos[iso][idx];
+  await sbDeletePhoto(_delUrl);
   photos[iso].splice(idx,1);
+  try{await hiddenDrop(iso,_delUrl);}catch(e){}
   refreshPhotoGrid(iso);
   toast('Foto gelöscht.');
 }
@@ -2201,7 +2283,7 @@ async function renderJournal(){
     var iso=e.datum;
     var d=iso?new Date(iso+'T12:00:00'):null;
     var dateStr=d?d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';
-    var fotos=(photos[iso]&&photos[iso].length)?photos[iso]:[];
+    var fotos=visiblePhotos(iso);
     var tagNr=DAYS.findIndex(function(x){return x.iso===iso;});
     tagNr=tagNr>=0?(tagNr+1):'';
     var titel=(e.titel||'').replace(/^[^\wÄÖÜäöü]+/,'').trim()||('Tag '+tagNr);
@@ -3591,7 +3673,7 @@ initApp();
     if(W._auUiReady)W.auRefreshUI();
   };
   W.auSaveOverrides=async function(){
-    var row={name:'stationen',nachricht:JSON.stringify(W._auOv),created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null};
+    var row={name:'stationen',nachricht:JSON.stringify(W._auOv),created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID};
     var ex=await sb.from('kommentare').select('id').eq('ort',OVK).limit(1);
     var res;
     if(ex&&ex.data&&ex.data.length)res=await sb.from('kommentare').update(row).eq('id',ex.data[0].id);
@@ -3663,7 +3745,7 @@ initApp();
     if(bid)W.auOrtOpen(bid);
   });
   var _ra=W.renderAll;
-  if(_ra)W.renderAll=function(){var r=_ra.apply(this,arguments);W._auUiReady=true;return r;};
+  if(_ra)W.renderAll=function(){var r=_ra.apply(this,arguments);W._auUiReady=true;if(!W._healed&&typeof canEdit!=='undefined'&&canEdit){W._healed=true;try{W.auHeal();}catch(e){}}return r;};
   /* Titelbild der Übersicht („Meine Reisen“) übernehmen */
   W.loadAuCover=async function(){
     try{
@@ -3675,7 +3757,99 @@ initApp();
   W.loadAuCover();
   W.loadAuOverrides();
 
-  W.visiblePhotos=function(d){return (typeof photos!=='undefined'&&photos[d])||[];};
+  /* ---------- Fotos für Gäste ausblenden (Auge) ----------
+     Gespeichert wird pro Tag eine Zeile (ort = fotoverborgen_<Datum>) mit der Liste der ausgeblendeten Foto-Adressen.
+     Bis die Liste geladen ist, sehen Gäste keine Fotos (lieber kurz leer als ein ausgeblendetes Foto zeigen). */
+  var HK='fotoverborgen_';
+  W._photoHidden={};W._hidLoaded=false;
+  W.hiddenList=function(iso){return W._photoHidden[iso]||[];};
+  W.isHiddenPhoto=function(iso,url){return W.hiddenList(iso).indexOf(url)>=0;};
+  W.visiblePhotos=function(iso){
+    var all=(typeof photos!=='undefined'&&photos[iso])||[];
+    if(editMode)return all.slice();
+    if(!W._hidLoaded)return [];
+    return all.filter(function(u){return !W.isHiddenPhoto(iso,u);});
+  };
+  W.loadHiddenPhotos=async function(tries){
+    tries=tries||0;
+    try{
+      var r=await sb.from('kommentare').select('ort,nachricht').like('ort',HK+'%');
+      if(r&&r.error)throw r.error;
+      var m={};
+      (r.data||[]).forEach(function(row){
+        var iso=String(row.ort).substring(HK.length);
+        try{var a=JSON.parse(row.nachricht||'[]');if(Array.isArray(a))m[iso]=a;}catch(e){}
+      });
+      W._photoHidden=m;W._hidLoaded=true;
+      if(W._auUiReady){
+        try{renderJournal();}catch(e){}
+        try{if(W.appRefresh)W.appRefresh();}catch(e){}
+      }
+    }catch(e){
+      if(tries<3)setTimeout(function(){W.loadHiddenPhotos(tries+1);},1500*(tries+1));
+    }
+  };
+  W.auSaveHidden=async function(iso){
+    var key=HK+iso,payload=JSON.stringify(W.hiddenList(iso));
+    var ex=await sb.from('kommentare').select('id').eq('ort',key).limit(1);
+    var res;
+    if(ex&&ex.data&&ex.data.length)res=await sb.from('kommentare').update({nachricht:payload}).eq('id',ex.data[0].id);
+    else res=await sb.from('kommentare').insert({ort:key,name:'verborgen',nachricht:payload,created_at:new Date().toISOString(),owner:currentUser?currentUser.id:null,trip_id:REISE_ID});
+    if(res&&res.error)throw res.error;
+  };
+  W.photoHideCtl=function(iso,pi,hid){
+    if(!editMode)return '';
+    return '<button class="photo-hide-btn" title="'+(hid?'Für Gäste einblenden':'Für Gäste ausblenden')+'" data-iso="'+iso+'" data-idx="'+pi+'" onclick="toggleHiddenEl(this)">'+(hid?'🚫':'👁')+'</button>'
+      +(hid?'<div class="photo-hidden-tag">Für Gäste ausgeblendet</div>':'');
+  };
+  W.toggleHiddenEl=async function(btn){
+    if(!editMode)return;
+    var iso=btn.getAttribute('data-iso'),idx=parseInt(btn.getAttribute('data-idx'),10);
+    var url=((typeof photos!=='undefined'&&photos[iso])||[])[idx];if(!url)return;
+    var before=W.hiddenList(iso).slice(),h=before.slice(),i=h.indexOf(url),nowHidden;
+    if(i>=0){h.splice(i,1);nowHidden=false;}else{h.push(url);nowHidden=true;}
+    W._photoHidden[iso]=h;
+    try{refreshPhotoGrid(iso);}catch(e){}
+    try{
+      await W.auSaveHidden(iso);
+      toast(nowHidden?'Foto ist für Gäste ausgeblendet.':'Foto ist wieder für Gäste sichtbar.');
+    }catch(e){
+      W._photoHidden[iso]=before;
+      try{refreshPhotoGrid(iso);}catch(e2){}
+      toast('Konnte nicht speichern – bitte noch einmal versuchen.');
+      return;
+    }
+    try{renderJournal();}catch(e){}
+    try{if(W.appRefresh)W.appRefresh();}catch(e){}
+  };
+  W.hiddenAdd=async function(iso,urls){
+    var h=W.hiddenList(iso).slice();
+    urls.forEach(function(u){if(h.indexOf(u)<0)h.push(u);});
+    W._photoHidden[iso]=h;
+    await W.auSaveHidden(iso);
+  };
+  W.hiddenDrop=async function(iso,url){
+    var h=W.hiddenList(iso).slice(),i=h.indexOf(url);
+    if(i<0)return;
+    h.splice(i,1);W._photoHidden[iso]=h;
+    await W.auSaveHidden(iso);
+  };
+  W.hideNewOn=function(){try{return localStorage.getItem('tv_hide_new')==='1';}catch(e){return false;}};
+  W.setHideNew=function(on){
+    try{localStorage.setItem('tv_hide_new',on?'1':'0');}catch(e){}
+    toast(on?'Neue Fotos sind zunächst nur für dich sichtbar.':'Neue Fotos sind sofort für Gäste sichtbar.');
+  };
+  W.hideNewHTML=function(){
+    return '<label class="photo-hide-new"><input type="checkbox" onchange="setHideNew(this.checked)"'+(W.hideNewOn()?' checked':'')+'>Neue Fotos zuerst nur für mich <span>(Gäste sehen sie erst, wenn du sie mit dem Auge freigibst)</span></label>';
+  };
+  /* Die Zeile mit den Stationsorten braucht die Reise-Kennung (wie alle anderen Zeilen), sonst können Gäste sie nicht lesen */
+  W.auHeal=async function(){
+    try{
+      var r=await sb.from('kommentare').select('id,trip_id').eq('ort','tagort_stationen').limit(1);
+      if(r&&r.data&&r.data[0]&&!r.data[0].trip_id)await sb.from('kommentare').update({trip_id:REISE_ID}).eq('id',r.data[0].id);
+    }catch(e){}
+  };
+  W.loadHiddenPhotos();
   W.orderedPhotos=function(d,l){return loadPhotoOrder(d,l);};
   W.openEntry=function(iso){startEntryForDate(iso);};
   /* Eintragsformular (Bereich „neu“) vorbereiten – wie das bisherige showTab('neu') */
@@ -3699,7 +3873,7 @@ initApp();
   var VIEWS={heute:'section-tage',tagebuch:'section-journal',route:'section-route',kosten:'section-kosten',gaestebuch:'section-gaestebuch',mehr:'section-mehr',neu:'section-neu'};
   var OLD={tage:'heute',journal:'tagebuch',route:'route',kosten:'kosten',gaestebuch:'gaestebuch',neu:'neu'};
   var cur=document.documentElement.classList.contains('is-admin')?'heute':'tagebuch';
-  var modeInit=false,lastOwner=null,heroSig='',miniRun=0,miniMap=null;
+  var modeInit=false,lastOwner=null,heroSig='',miniRun=0,miniMap=null,_userDay=false,_jDays=null;
   try{
     if((window.navigator.standalone===true)||window.matchMedia('(display-mode: standalone)').matches)document.documentElement.classList.add('standalone');
   }catch(e){}
@@ -3860,6 +4034,10 @@ initApp();
     var want=(isOwner()&&cur==='heute')||(!isOwner()&&cur==='tagebuch');
     if(!want){el.innerHTML='';heroSig='';return;}
     var days=lyDays();
+    if(isOwner()&&cur==='heute'&&!_userDay&&typeof renderTage==='function'&&days.length){
+      var _ix=days.indexOf(qxDefaultDate(days));
+      if(_ix>=0&&_ix!==currentDay){currentDay=_ix;try{renderTage();}catch(e){}}
+    }
     if(!days.length){
       el.innerHTML='<div class="ah-head"><div><div class="ah-eb">'+(isOwner()?'Neues Reisetagebuch':'Reisetagebuch')+'</div><div class="ah-title">'+E(tripHead.title||'Deine Reise')+'</div></div></div>';
       heroSig='';return;
@@ -4232,8 +4410,12 @@ initApp();
     (function go(){
       var el=document.querySelector('#journal-entries [data-jiso="'+first+'"]');
       if(el){
-        el.scrollIntoView({behavior:'smooth',block:'start'});
-        el.classList.add('fj-flash');setTimeout(function(){el.classList.remove('fj-flash');},1900);
+        try{jrReveal(first);}catch(e){}
+        setTimeout(function(){
+          var e2=document.querySelector('#journal-entries [data-jiso="'+first+'"]')||el;
+          e2.scrollIntoView({behavior:'smooth',block:'start'});
+          e2.classList.add('fj-flash');setTimeout(function(){e2.classList.remove('fj-flash');},1900);
+        },90);
         return;
       }
       if(++tries<10)setTimeout(go,250);
@@ -4350,15 +4532,210 @@ initApp();
   window.renderAll=function(){
     if(_rh)_rh.apply(this,arguments);
     try{renderHero();setHeaders();refreshStations();}catch(e){console.error('Kopfbereich:',e);}
+    try{
+      var _sg=lyDays().join(',');
+      if(_jDays!==null&&_sg!==_jDays&&typeof renderJournal==='function')renderJournal();
+      _jDays=_sg;
+    }catch(e){}
   };
   var _rk=window.renderAuKarte;
   if(_rk)window.renderAuKarte=async function(){var r=await _rk.apply(this,arguments);try{await decorateRouteMap();}catch(e){}return r;};
   var _ahi=window.applyHeroImage;
   if(_ahi)window.applyHeroImage=async function(){var r=await _ahi.apply(this,arguments);photosSoon();return r;};
+  ['slideDay','goToDay'].forEach(function(n){
+    var f=window[n];
+    if(typeof f==='function')window[n]=function(){_userDay=true;return f.apply(this,arguments);};
+  });
   var _jt=window.jumpTo;
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
+  /* ---------- Tagebuch: Wochen, Einklappen, zuletzt gesehen (JR-BEGIN) ---------- */
+  var JR={week:null,fold:{},bar:null,mo:null,restored:false,trackT:0,applyT:0};
+  var JR_ICON_L='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+  var JR_ICON_R='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
+  var JR_ICON_F='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  function jrKey(s){var id=(typeof REISE!=='undefined')?REISE:((typeof REISE_ID!=='undefined')?REISE_ID:'x');return 'tv_jr_'+s+'_'+id;}
+  try{JR.fold=JSON.parse(sessionStorage.getItem(jrKey('fold'))||'{}')||{};}catch(e){JR.fold={};}
+  function jrSaveFold(){try{sessionStorage.setItem(jrKey('fold'),JSON.stringify(JR.fold));}catch(e){}}
+  function jrEntries(){var c=document.getElementById('journal-entries');return c?Array.prototype.slice.call(c.querySelectorAll('.fig-journal-entry[data-jiso]')):[];}
+  function jrWeekOf(iso,days){var i=days.indexOf(iso);return i<0?-1:Math.floor(i/7);}
+  function jrNewList(){return jrEntries().filter(function(el){return !!el.querySelector('.fj-new');});}
+  function jrStartWeek(weeks,wk,days){
+    if(isOwner()){
+      var tw=jrWeekOf(qxTodayISO(),days);
+      return weeks.indexOf(tw)>=0?tw:weeks[weeks.length-1];
+    }
+    try{
+      var l=JSON.parse(localStorage.getItem(jrKey('last'))||'null');
+      if(l&&l.iso){var w=jrWeekOf(l.iso,days);if(weeks.indexOf(w)>=0)return w;}
+    }catch(e){}
+    var nw=null;
+    weeks.forEach(function(w){if(nw===null&&wk[w].some(function(el){return !!el.querySelector('.fj-new');}))nw=w;});
+    return nw!==null?nw:weeks[0];
+  }
+  function jrEnsureBar(){
+    var c=document.getElementById('journal-entries');
+    if(!c||!c.parentNode)return false;
+    if(!JR.bar||!JR.bar.parentNode){
+      var b=document.createElement('div');b.id='jr-bar';b.className='jr-bar';
+      c.parentNode.insertBefore(b,c);JR.bar=b;
+    }
+    return true;
+  }
+  function jrRenderBar(weeks,wk,days){
+    var b=JR.bar;b.style.display='';
+    var pos=weeks.indexOf(JR.week),n=weeks.length,total=Math.ceil(days.length/7);
+    var d0=JR.week*7,d1=Math.min(days.length,d0+7);
+    var inWeek=wk[JR.week]||[];
+    var allFolded=inWeek.length>0&&inWeek.every(function(el){return !!JR.fold[el.getAttribute('data-jiso')];});
+    var news=jrNewList(),h='';
+    if(n>1){
+      h+='<div class="jr-nav"><button type="button" class="jr-arrow" data-jr-nav="-1"'+(pos<=0?' disabled':'')+' aria-label="Vorherige Woche">'+JR_ICON_L+'</button>'
+        +'<div class="jr-title"><b>Woche '+(JR.week+1)+' <span>von '+total+'</span></b><small>'+E(shortDate(days[d0])+' – '+shortDate(days[d1-1]))+' · Tag '+(d0+1)+'–'+d1+'</small></div>'
+        +'<button type="button" class="jr-arrow" data-jr-nav="1"'+(pos>=n-1?' disabled':'')+' aria-label="Nächste Woche">'+JR_ICON_R+'</button></div>';
+      h+='<div class="jr-chips">'+weeks.map(function(w){
+        var hasNew=!isOwner()&&(wk[w]||[]).some(function(el){return !!el.querySelector('.fj-new');});
+        return '<button type="button" class="jr-chip'+(w===JR.week?' on':'')+'" data-jr-wk="'+w+'" aria-label="Woche '+(w+1)+'">'+(w+1)+(hasNew?'<i></i>':'')+'</button>';
+      }).join('')+'</div>';
+    }
+    h+='<div class="jr-tools"><button type="button" class="jr-all" data-jr-all="'+(allFolded?'0':'1')+'">'+(allFolded?'Alle Tage aufklappen':'Alle Tage einklappen')+'</button>'
+      +((news.length&&!isOwner())?'<button type="button" class="jr-new" data-jr-new="1">'+news.length+(news.length===1?' neuer Eintrag':' neue Einträge')+' ansehen</button>':'')+'</div>';
+    b.innerHTML=h;
+  }
+  function jrApply(anim){
+    var c=document.getElementById('journal-entries');if(!c)return;
+    if(JR.mo)JR.mo.disconnect();
+    try{
+      var entries=jrEntries(),days=lyDays(),wk={};
+      entries.forEach(function(el){var w=jrWeekOf(el.getAttribute('data-jiso'),days);el._jw=w;if(w>=0)(wk[w]=wk[w]||[]).push(el);});
+      var weeks=Object.keys(wk).map(Number).sort(function(a,b){return a-b;});
+      if(!jrEnsureBar())return;
+      if(!weeks.length){JR.bar.style.display='none';return;}
+      if(JR.week===null||weeks.indexOf(JR.week)<0)JR.week=jrStartWeek(weeks,wk,days);
+      entries.forEach(function(el){
+        var iso=el.getAttribute('data-jiso');
+        el.classList.toggle('jr-off',el._jw!==JR.week);
+        el.classList.toggle('jr-collapsed',!!JR.fold[iso]);
+        var t=el.querySelector('.fj-text');
+        if(t&&!t.querySelector('.jr-fold')){
+          var f=document.createElement('button');f.type='button';f.className='jr-fold';f.setAttribute('aria-label','Tag ein- oder ausklappen');f.innerHTML=JR_ICON_F;
+          t.appendChild(f);
+        }
+      });
+      jrRenderBar(weeks,wk,days);
+      jrBindSwipe(c);
+      if(anim){
+        var fj=c.querySelector('.fig-journal');
+        if(fj){fj.classList.remove('jr-in-l','jr-in-r');void fj.offsetWidth;fj.classList.add(anim);}
+      }
+    }catch(e){console.error('Tagebuch-Wochen:',e);}
+    finally{if(JR.mo&&c)JR.mo.observe(c,{childList:true,subtree:true});}
+    if(!JR.restored&&!isOwner()&&cur==='tagebuch'&&jrEntries().length){
+      JR.restored=true;
+      var last=null;try{last=JSON.parse(localStorage.getItem(jrKey('last'))||'null');}catch(e){}
+      if(last&&last.iso){[250,800].forEach(function(ms){setTimeout(function(){jrScrollTo(last.iso,false);},ms);});}
+    }
+  }
+  function jrSchedule(){clearTimeout(JR.applyT);JR.applyT=setTimeout(function(){jrApply();},30);}
+  function jrScrollTo(iso,flash){
+    var el=document.querySelector('#journal-entries [data-jiso="'+iso+'"]');
+    if(!el||el.classList.contains('jr-off'))return;
+    try{el.scrollIntoView({behavior:'auto',block:'start'});}catch(e){}
+    if(flash){el.classList.add('fj-flash');setTimeout(function(){el.classList.remove('fj-flash');},1900);}
+  }
+  function jrReveal(iso){
+    var days=lyDays(),w=jrWeekOf(iso,days);
+    if(w<0)return false;
+    if(JR.fold[iso]){delete JR.fold[iso];jrSaveFold();}
+    JR.week=w;jrApply();
+    return true;
+  }
+  window.jrReveal=jrReveal;
+  function jrGo(dir){
+    var i=JR.weeks?0:0;
+    var c=document.getElementById('journal-entries');if(!c)return;
+    var days=lyDays(),set={};
+    jrEntries().forEach(function(el){var w=jrWeekOf(el.getAttribute('data-jiso'),days);if(w>=0)set[w]=1;});
+    var weeks=Object.keys(set).map(Number).sort(function(a,b){return a-b;});
+    var p=weeks.indexOf(JR.week),np=Math.max(0,Math.min(weeks.length-1,p+dir));
+    if(np===p)return;
+    JR.week=weeks[np];
+    jrApply(dir>0?'jr-in-r':'jr-in-l');
+    jrToBar();
+  }
+  function jrSetWeek(w){
+    if(w===JR.week)return;
+    var dir=w>JR.week?'jr-in-r':'jr-in-l';
+    JR.week=w;jrApply(dir);jrToBar();
+  }
+  function jrToBar(){
+    if(!JR.bar)return;
+    try{var r=JR.bar.getBoundingClientRect();window.scrollTo({top:Math.max(0,window.pageYOffset+r.top-16),behavior:'smooth'});}catch(e){}
+  }
+  function jrToggleOne(iso){
+    if(JR.fold[iso])delete JR.fold[iso];else JR.fold[iso]=true;
+    jrSaveFold();jrApply();
+  }
+  function jrAll(fold){
+    if(fold){jrEntries().forEach(function(el){JR.fold[el.getAttribute('data-jiso')]=true;});}
+    else JR.fold={};
+    jrSaveFold();jrApply();
+  }
+  function jrGoNew(){
+    var n=jrNewList();if(!n.length)return;
+    var iso=n[0].getAttribute('data-jiso');
+    if(jrReveal(iso))setTimeout(function(){jrScrollTo(iso,true);},80);
+  }
+  function jrBindSwipe(c){
+    if(c._jrSw)return;c._jrSw=true;
+    var x0=0,y0=0,ok=false;
+    c.addEventListener('touchstart',function(e){
+      var t=e.touches&&e.touches[0];if(!t)return;
+      x0=t.clientX;y0=t.clientY;
+      ok=!(e.target&&e.target.closest&&e.target.closest('.fj-scroll,.fj-gallery,input,textarea,select,.jr-fold'));
+    },{passive:true});
+    c.addEventListener('touchend',function(e){
+      if(!ok)return;
+      var t=e.changedTouches&&e.changedTouches[0];if(!t)return;
+      var dx=t.clientX-x0,dy=t.clientY-y0;
+      if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.6)jrGo(dx<0?1:-1);
+    },{passive:true});
+  }
+  function jrTrack(){
+    if(isOwner()||cur!=='tagebuch')return;
+    var best=null;
+    jrEntries().forEach(function(el){
+      if(el.classList.contains('jr-off'))return;
+      var r=el.getBoundingClientRect();
+      if(r.top<=170&&r.bottom>120)best=el;
+    });
+    if(best){try{localStorage.setItem(jrKey('last'),JSON.stringify({iso:best.getAttribute('data-jiso'),t:Date.now()}));}catch(e){}}
+  }
+  window.addEventListener('scroll',function(){
+    if(isOwner()||cur!=='tagebuch'||JR.trackT)return;
+    JR.trackT=setTimeout(function(){JR.trackT=0;jrTrack();},350);
+  },{passive:true});
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')jrTrack();});
+  window.addEventListener('pagehide',function(){jrTrack();});
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target:null,b;if(!t)return;
+    if((b=t.closest('[data-jr-nav]'))){jrGo(parseInt(b.getAttribute('data-jr-nav'),10)||0);return;}
+    if((b=t.closest('[data-jr-wk]'))){jrSetWeek(parseInt(b.getAttribute('data-jr-wk'),10));return;}
+    if((b=t.closest('[data-jr-all]'))){jrAll(b.getAttribute('data-jr-all')==='1');return;}
+    if(t.closest('[data-jr-new]')){jrGoNew();return;}
+    var en=t.closest('.fig-journal-entry[data-jiso]');
+    if(en&&!t.closest('.fj-write')&&(t.closest('.jr-fold')||t.closest('.fj-day')||t.closest('.fj-loc')||t.closest('.fj-date'))){jrToggleOne(en.getAttribute('data-jiso'));return;}
+  });
+  (function(){
+    var c=document.getElementById('journal-entries');
+    if(c&&typeof MutationObserver!=='undefined'){
+      JR.mo=new MutationObserver(function(){jrSchedule();});
+      JR.mo.observe(c,{childList:true,subtree:true});
+    }
+    jrSchedule();
+  })();
+  /* ---------- (JR-ENDE) ---------- */
   window.appRefresh=function(){heroSig='';renderHero();renderStations();decorateRouteMap();};
   show(cur,true);
   try{refreshLogin();refreshStations();}catch(e){}
