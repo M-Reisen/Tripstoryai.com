@@ -798,6 +798,22 @@ html.app-guestview body{padding-top:48px;}
 .fig-journal.jr-in-l{animation:jrinl .28s ease;}
 @keyframes jrinr{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:none;}}
 @keyframes jrinl{from{opacity:0;transform:translateX(-28px);}to{opacity:1;transform:none;}}
+
+/* WhatsApp: Hinweis nach dem Speichern und Teilen-Fenster */
+.wa-snack{position:fixed;left:16px;right:16px;bottom:calc(170px + env(safe-area-inset-bottom));z-index:420;display:flex;align-items:center;gap:10px;background:#1A1714;color:#F7F1E8;border-radius:22px;padding:10px 10px 10px 18px;box-shadow:0 10px 28px rgba(0,0,0,.35);font:500 14px 'DM Sans',sans-serif;}
+.wa-snack span{flex:1;min-width:0;}
+.wa-snack-go{flex:0 0 auto;min-height:44px;padding:0 16px;border:0;border-radius:22px;background:var(--a-acc);color:#fff;font:700 14px 'DM Sans',sans-serif;cursor:pointer;}
+.wa-snack-x{flex:0 0 40px;width:40px;height:40px;border:0;border-radius:20px;background:rgba(255,255,255,.12);color:#F7F1E8;font-size:1rem;cursor:pointer;padding:0;}
+.wa-sheet{max-height:90vh;max-height:90dvh;overflow-y:auto;}
+.wa-prev{height:230px;border-radius:18px;background:var(--a-sand);margin:0 0 14px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--a-fog);font-size:14px;text-align:center;padding:0 16px;}
+.wa-prev img{height:100%;width:auto;max-width:100%;object-fit:contain;display:block;}
+.wa-warn{background:#FFF1E8;color:#7A3A1B;border-radius:14px;padding:12px 14px;font-size:13.5px;line-height:1.45;margin:0 0 14px;}
+.wa-lbl{display:block;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--a-fog);margin:0 0 6px 2px;}
+.wa-cap{width:100%;box-sizing:border-box;border:0;border-radius:16px;box-shadow:0 2px 10px rgba(26,23,20,.07);padding:12px 14px;font:500 15px/1.45 'DM Sans',sans-serif;background:#fff;color:#1A1714;resize:vertical;min-height:96px;margin-bottom:14px;}
+.wa-hint{font-size:12.5px;color:var(--a-fog);line-height:1.5;margin:2px 4px 8px;}
+.wa-never{font-size:13px !important;}
+
+.wa-share-btn{margin-left:6px;}
 </style>
 </head>
 <body>
@@ -1247,9 +1263,10 @@ async function initAuth(){
     const {data}=await sb.from('trips').select('owner,visibility').eq('id',REISE).limit(1);
     if(data&&data.length){tripOwner=data[0].owner;tripVisibility=data[0].visibility||'private';}
     try{
-      const lr=await sb.from('trips').select('land,weitere,title').eq('id',REISE).limit(1);
+      const lr=await sb.from('trips').select('land,weitere,title,land_slug,slug').eq('id',REISE).limit(1);
       if(lr&&lr.data&&lr.data[0]){
         try{const mm=JSON.parse(lr.data[0].title||'{}');if(mm&&/^https:\/\//i.test(mm.img||''))window.__tripImg=mm.img;}catch(e){}
+        if(lr.data[0].land_slug&&lr.data[0].slug)window.__tripPath='/reisetagebuch/'+lr.data[0].land_slug+'/'+lr.data[0].slug;
         const ls=[lr.data[0].land].concat(Array.isArray(lr.data[0].weitere)?lr.data[0].weitere:[]);
         window.__tripLands=ls.filter(function(l){return l&&String(l).toLowerCase()!=='weltweit';});
       }
@@ -1939,7 +1956,7 @@ function renderDayCard(days){
     const emoji=ENTRY_CAT_EMOJI[entry.kat]||'';
     const titelLine=entry.titel?'<div class="entry-titel">'+(emoji?emoji+' ':'')+esc(entry.titel)+'</div>':(emoji?'<div class="entry-titel">'+emoji+'</div>':'');
     entryHTML=titelLine+'<div class="day-entry-text">'+esc(entry.text)+'</div>'
-      +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18)" onclick="openEntry(\''+iso+'\')">✏️ Bearbeiten</button>':'');
+      +(editMode?'<button class="btn btn-ghost btn-sm" style="color:var(--fog);border-color:rgba(0,0,0,.18)" onclick="openEntry(\''+iso+'\')">✏️ Bearbeiten</button> <button class="btn btn-ghost btn-sm wa-share-btn" style="color:var(--fog);border-color:rgba(0,0,0,.18)" data-wa-open="'+iso+'">Freunde informieren</button>':'');
   }else{
     entryHTML='<div class="day-entry-empty">Noch kein Tagebucheintrag für diesen Tag.</div>'
       +(editMode?'<button class="btn btn-primary btn-sm" onclick="openEntry(\''+iso+'\')">✍️ Eintrag schreiben</button>':'');
@@ -4632,6 +4649,7 @@ init();
     var h='';
     if(owner){
       h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('teilen','teilen','Teilen'));
+      h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('Bearbeiten',row('eckdaten','notiz','Reise-Eckdaten bearbeiten')+row('titelbild','foto','Titelbild ändern'));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
       h+=grp('Konto',row('abmelden','abmelden','Abmelden',true));
@@ -4647,6 +4665,8 @@ init();
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
+    else if(a==='wa')waOpenLatest();
+    else if(a==='waask')waToggleAsk();
     else if(a==='eckdaten')openTripHead();
     else if(a==='titelbild')changeHeroImage();
     else if(a==='gast')toggleGuestView();
@@ -5080,8 +5100,228 @@ init();
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
+  /* ---------- WhatsApp: Freunde über neue Einträge informieren (WA-BEGIN) ---------- */
+  var WA={iso:null,blob:null,url:'',run:0,failed:false,busy:false};
+  function waAsk(){try{return localStorage.getItem('tv_wa_ask')!=='0';}catch(e){return true;}}
+  function waEntry(iso){
+    try{
+      var e=Array.isArray(entries)?entries.find(function(x){return x&&x.datum===iso;}):entries[iso];
+      if(!e||!e.text||!String(e.text).trim())return null;
+      return {titel:e.titel||'',ort:e.ort||'',text:String(e.text).trim()};
+    }catch(x){return null;}
+  }
+  function waSig(iso){var e=waEntry(iso);return e?(e.titel+'|'+e.ort+'|'+e.text):'';}
+  function waEntryIso(){
+    if(typeof _entryIso!=='undefined'&&_entryIso)return _entryIso;
+    var f=document.getElementById('f-datum');return (f&&f.value)||null;
+  }
+  function waLink(iso){
+    var o=location.origin.replace('://www.','://'),base;
+    if(window.__tripPath)base=o+window.__tripPath;
+    else if(typeof REISE!=='undefined')base=o+'/reisevorlage.html?reise='+encodeURIComponent(REISE);
+    else base=o+location.pathname;
+    return base+'#tag='+iso;
+  }
+  function waTitle(){return (typeof tripHead!=='undefined'&&tripHead.title)?tripHead.title:'Reisetagebuch';}
+  function waDayNo(iso){var i=buildDays().indexOf(iso);return i<0?0:i+1;}
+  function waCaption(iso){
+    var e=waEntry(iso)||{titel:'',ort:''},n=waDayNo(iso),where=e.ort||ortFuerTag(iso)||'';
+    return 'Neues aus „'+waTitle()+'“'+(n?' · Tag '+n:'')+(where?' · '+where:'')+'\n'+(e.titel?e.titel+'\n':'')+waLink(iso);
+  }
+  function waLoadImg(url){
+    return new Promise(function(res){
+      if(!url)return res(null);
+      var im=new Image(),done=false;
+      im.crossOrigin='anonymous';
+      var t=setTimeout(function(){if(!done){done=true;res(null);}},9000);
+      im.onload=function(){if(!done){done=true;clearTimeout(t);res(im);}};
+      im.onerror=function(){if(!done){done=true;clearTimeout(t);res(null);}};
+      im.src=url;
+    });
+  }
+  function waWrap(ctx,text,maxW,maxLines){
+    var words=String(text).split(/\s+/).filter(Boolean),lines=[],cur='';
+    words.forEach(function(w){var t=cur?cur+' '+w:w;if(ctx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w;}else cur=t;});
+    if(cur)lines.push(cur);
+    if(lines.length>maxLines){lines=lines.slice(0,maxLines);lines[maxLines-1]=lines[maxLines-1].replace(/\s*\S*$/,'')+' …';}
+    return lines;
+  }
+  function waPhotoUrl(iso){
+    var list=(typeof photos!=='undefined'&&photos[iso])||[];
+    for(var i=0;i<list.length;i++){
+      var hid=(typeof isHiddenPhoto==='function')&&isHiddenPhoto(iso,list[i]);
+      if(!hid)return list[i];
+    }
+    var cv=null;try{cv=coverURL();}catch(e){}
+    return cv;
+  }
+  async function waDraw(iso,withPhoto){
+    var W=1080,H=1920,cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    var ctx=cv.getContext('2d');
+    try{await document.fonts.load('400 80px "Playfair Display"');await document.fonts.load('700 40px "DM Sans"');}catch(e){}
+    if(withPhoto&&typeof photos!=='undefined'&&photos[iso]===undefined){
+      try{photos[iso]=orderedPhotos(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
+    }
+    var g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,'#2A2420');g.addColorStop(1,'#A8522F');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    var im=withPhoto?await waLoadImg(waPhotoUrl(iso)):null;
+    if(im){
+      var sc=Math.max(W/im.width,H/im.height),dw=im.width*sc,dh=im.height*sc;
+      ctx.drawImage(im,(W-dw)/2,(H-dh)/2,dw,dh);
+    }
+    var o=ctx.createLinearGradient(0,0,0,H);
+    o.addColorStop(0,'rgba(20,16,12,.58)');o.addColorStop(.36,'rgba(20,16,12,.08)');o.addColorStop(.6,'rgba(20,16,12,.28)');o.addColorStop(1,'rgba(20,16,12,.9)');
+    ctx.fillStyle=o;ctx.fillRect(0,0,W,H);
+    var e=waEntry(iso)||{titel:'',ort:''},n=waDayNo(iso),M=80,maxW=W-2*M;
+    var dt=new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+    var where=e.ort||ortFuerTag(iso)||'';
+    var title=e.titel||where||('Tag '+n);
+    ctx.fillStyle='#fff';ctx.textBaseline='alphabetic';
+    // oben: Reise
+    ctx.font='700 34px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.85)';
+    try{ctx.letterSpacing='6px';}catch(x){}
+    ctx.fillText('REISETAGEBUCH',M,150);
+    try{ctx.letterSpacing='0px';}catch(x){}
+    ctx.font='400 88px "Playfair Display",serif';ctx.fillStyle='#fff';
+    waWrap(ctx,waTitle(),maxW,2).forEach(function(l,i){ctx.fillText(l,M,262+i*104);});
+    // unten: Tag, Titel, Ort, Link
+    var link=waLink(iso).replace(/^https?:\/\//,'').replace(/#.*$/,'');
+    ctx.font='400 96px "Playfair Display",serif';
+    var tl=waWrap(ctx,title,maxW,3),lh=112;
+    var pillH=80,gap=34,subH=where&&where!==title?54:0;
+    var yFoot=1790,boxH=pillH+gap+tl.length*lh+(subH?18+subH:0);
+    var y0=yFoot-150-boxH;
+    // Pille
+    var pt='Tag '+n+' · '+dt;ctx.font='700 40px "DM Sans",sans-serif';
+    var pw=Math.min(maxW,ctx.measureText(pt).width+64);
+    ctx.fillStyle='rgba(255,255,255,.93)';
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(M,y0,pw,pillH,40);else ctx.rect(M,y0,pw,pillH);
+    ctx.fill();
+    ctx.fillStyle='#1A1714';ctx.fillText(pt,M+32,y0+54);
+    // Titel
+    ctx.fillStyle='#fff';ctx.font='400 96px "Playfair Display",serif';
+    tl.forEach(function(l,i){ctx.fillText(l,M,y0+pillH+gap+84+i*lh);});
+    if(subH){ctx.font='400 46px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillText(where,M,y0+pillH+gap+tl.length*lh+18+40);}
+    // Fuß
+    ctx.fillStyle='#A8522F';
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(M,yFoot-110,maxW,96,48);else ctx.rect(M,yFoot-110,maxW,96);
+    ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='700 40px "DM Sans",sans-serif';ctx.textAlign='center';
+    ctx.fillText('Jetzt im Reisetagebuch lesen',W/2,yFoot-48);
+    ctx.font='400 34px "DM Sans",sans-serif';ctx.fillStyle='rgba(255,255,255,.88)';
+    ctx.fillText(link,W/2,yFoot+36);
+    ctx.textAlign='left';
+    return await new Promise(function(res,rej){cv.toBlob(function(b){b?res(b):rej(new Error('Bild konnte nicht erstellt werden'));},'image/jpeg',0.9);});
+  }
+  async function waPrepare(iso){
+    var run=++WA.run;
+    WA.iso=iso;WA.blob=null;WA.failed=false;WA.busy=true;
+    if(WA.url){try{URL.revokeObjectURL(WA.url);}catch(e){}WA.url='';}
+    var blob=null;
+    try{blob=await waDraw(iso,true);}
+    catch(e){try{blob=await waDraw(iso,false);}catch(e2){blob=null;}}
+    if(run!==WA.run)return null;
+    WA.busy=false;WA.blob=blob;WA.failed=!blob;
+    if(blob){try{WA.url=URL.createObjectURL(blob);}catch(e){}}
+    waRefreshSheet();
+    return blob;
+  }
+  function waRemove(id){var o=document.getElementById(id);if(o&&o.parentNode)o.parentNode.removeChild(o);}
+  function waClose(){waRemove('wa-ov');waRemove('wa-snack');}
+  function waRefreshSheet(){
+    var p=document.getElementById('wa-prev'),g=document.getElementById('wa-go');if(!p)return;
+    if(WA.blob&&WA.url){p.innerHTML='<img src="'+WA.url+'" alt="Vorschau des Bildes">';if(g)g.disabled=false;}
+    else if(WA.failed){p.innerHTML='<span>Das Bild konnte nicht erstellt werden. Du kannst nur den Text teilen.</span>';if(g){g.disabled=false;g.textContent='Text in WhatsApp teilen';}}
+  }
+  function waOpen(iso){
+    waClose();
+    if(WA.iso!==iso||(!WA.blob&&!WA.busy))waPrepare(iso);
+    var priv=(typeof tripVisibility!=='undefined'&&tripVisibility==='private');
+    var ov=document.createElement('div');ov.id='wa-ov';ov.className='ao-ov';
+    ov.innerHTML='<div class="ao-sheet wa-sheet" role="dialog" aria-modal="true" aria-label="Freunde informieren">'
+      +'<div class="ao-grip"></div><div class="ao-title">Freunde informieren</div>'
+      +'<div class="ao-sub">Teile einen Hinweis auf deinen neuen Eintrag in deinem WhatsApp-Status.</div>'
+      +(priv?'<div class="wa-warn">Diese Reise ist privat. Freunde können den Link erst öffnen, wenn du die Sichtbarkeit unter „Meine Reisen“ auf „Per Link“ stellst.</div>':'')
+      +'<div class="wa-prev" id="wa-prev"><span>Bild wird vorbereitet …</span></div>'
+      +'<label class="wa-lbl" for="wa-cap">Text zum Bild</label>'
+      +'<textarea id="wa-cap" class="wa-cap" rows="4">'+E(waCaption(iso))+'</textarea>'
+      +'<button type="button" class="ao-btn" id="wa-go" data-wa-share="'+E(iso)+'" disabled>In WhatsApp teilen</button>'
+      +'<button type="button" class="ao-btn alt" data-wa-copy="1">Text kopieren</button>'
+      +'<div class="wa-hint">Wähle in der Auswahl „WhatsApp“ und dann „Status“. Erscheint der Text nicht als Bildunterschrift, füge ihn mit „Text kopieren“ ein.</div>'
+      +'<button type="button" class="ao-cancel" data-wa-close="1">Schließen</button>'
+      +(waAsk()?'<button type="button" class="ao-cancel wa-never" data-wa-never="1">Nach dem Speichern nicht mehr fragen</button>':'')
+      +'</div>';
+    ov.addEventListener('click',function(e){if(e.target===ov)waClose();});
+    document.body.appendChild(ov);
+    waRefreshSheet();
+  }
+  function waSnack(iso){
+    if(!waAsk()||!isOwner())return;
+    waPrepare(iso);
+    waRemove('wa-snack');
+    var s=document.createElement('div');s.id='wa-snack';s.className='wa-snack';
+    s.innerHTML='<span>Eintrag gespeichert.</span><button type="button" class="wa-snack-go" data-wa-open="'+E(iso)+'">Freunde informieren</button><button type="button" class="wa-snack-x" data-wa-snack-x="1" aria-label="Schließen">✕</button>';
+    document.body.appendChild(s);
+    setTimeout(function(){waRemove('wa-snack');},24000);
+  }
+  function waShare(iso){
+    var capEl=document.getElementById('wa-cap'),cap=capEl?capEl.value:waCaption(iso),file=null;
+    if(WA.blob){try{file=new File([WA.blob],'reisetagebuch-'+iso+'.jpg',{type:'image/jpeg'});}catch(e){}}
+    var p;
+    if(file&&navigator.canShare&&navigator.canShare({files:[file]}))p=navigator.share({files:[file],text:cap});
+    else if(navigator.share)p=navigator.share({text:cap});
+    else{window.open('https://wa.me/?text='+encodeURIComponent(cap),'_blank');return;}
+    p.then(function(){waClose();}).catch(function(e){
+      if(e&&e.name==='AbortError')return;
+      try{toast('Teilen nicht möglich. Kopiere den Text und teile ihn in WhatsApp.');}catch(x){}
+    });
+  }
+  function waOpenLatest(){
+    var days=buildDays(),t=qxTodayISO(),pick=null;
+    if(waEntry(t))pick=t;
+    else for(var i=days.length-1;i>=0;i--){if(waEntry(days[i])){pick=days[i];break;}}
+    if(!pick){try{toast('Noch kein Eintrag vorhanden.');}catch(e){}return;}
+    waOpen(pick);
+  }
+  function waToggleAsk(){
+    try{localStorage.setItem('tv_wa_ask',waAsk()?'0':'1');}catch(e){}
+    renderMehr();
+  }
+  document.addEventListener('click',function(ev){
+    var t=ev.target&&ev.target.closest?ev.target:null,b;if(!t)return;
+    if((b=t.closest('[data-wa-share]'))){waShare(b.getAttribute('data-wa-share'));return;}
+    if((b=t.closest('[data-wa-open]'))){waOpen(b.getAttribute('data-wa-open'));return;}
+    if(t.closest('[data-wa-snack-x]')){waRemove('wa-snack');return;}
+    if(t.closest('[data-wa-close]')){waClose();return;}
+    if(t.closest('[data-wa-copy]')){
+      var c=document.getElementById('wa-cap');
+      try{navigator.clipboard.writeText(c?c.value:'').then(function(){toast('Text kopiert.');});}catch(e){try{c.select();document.execCommand('copy');toast('Text kopiert.');}catch(x){}}
+      return;
+    }
+    if(t.closest('[data-wa-never]')){
+      try{localStorage.setItem('tv_wa_ask','0');}catch(e){}
+      waClose();try{toast('Okay. Du findest die Funktion weiter unter „Mehr“.');}catch(e){}
+      return;
+    }
+  });
+  (function(){
+    var f=window.saveEntry;
+    if(typeof f!=='function')return;
+    window.saveEntry=async function(){
+      var iso=waEntryIso(),te=document.getElementById('entry-text'),typed=te?String(te.value||'').trim():'';
+      if(!typed){var te2=document.getElementById('f-text');typed=te2?String(te2.value||'').trim():'';}
+      var r=await f.apply(this,arguments);
+      try{
+        if(iso&&typed&&isOwner()){var e=waEntry(iso);if(e&&e.text===typed)waSnack(iso);}
+      }catch(x){}
+      return r;
+    };
+  })();
+  /* ---------- (WA-ENDE) ---------- */
   /* ---------- Tagebuch: Wochen, Einklappen, zuletzt gesehen (JR-BEGIN) ---------- */
-  var JR={week:null,fold:{},bar:null,mo:null,restored:false,trackT:0,applyT:0};
+  var JR={week:null,fold:{},bar:null,mo:null,restored:false,trackT:0,applyT:0,deep:((location.hash||'').match(/tag=(\d{4}-\d{2}-\d{2})/)||[])[1]||null};
   var JR_ICON_L='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
   var JR_ICON_R='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>';
   var JR_ICON_F='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
@@ -5096,6 +5336,7 @@ init();
       var tw=jrWeekOf(qxTodayISO(),days);
       return weeks.indexOf(tw)>=0?tw:weeks[weeks.length-1];
     }
+    if(JR.deep){var wd=jrWeekOf(JR.deep,days);if(weeks.indexOf(wd)>=0)return wd;}
     try{
       var l=JSON.parse(localStorage.getItem(jrKey('last'))||'null');
       if(l&&l.iso){var w=jrWeekOf(l.iso,days);if(weeks.indexOf(w)>=0)return w;}
@@ -5164,7 +5405,8 @@ init();
     if(!JR.restored&&!isOwner()&&cur==='tagebuch'&&jrEntries().length){
       JR.restored=true;
       var last=null;try{last=JSON.parse(localStorage.getItem(jrKey('last'))||'null');}catch(e){}
-      if(last&&last.iso){[250,800].forEach(function(ms){setTimeout(function(){jrScrollTo(last.iso,false);},ms);});}
+      var tgt=JR.deep||(last&&last.iso);
+      if(tgt){[250,800].forEach(function(ms){setTimeout(function(){jrScrollTo(tgt,!!JR.deep&&ms===800);},ms);});}
     }
   }
   function jrSchedule(){clearTimeout(JR.applyT);JR.applyT=setTimeout(function(){jrApply();},30);}
