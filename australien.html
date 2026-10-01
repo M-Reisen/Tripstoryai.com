@@ -4211,7 +4211,11 @@ initApp();
     return uniq;
   }
   /* ---------- „Als Nächstes“: Check-in/-out, Abfahrt/Ankunft, Abholung/Rückgabe mit Uhrzeit ---------- */
-  function nxT(v){var m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?('0'+m[1]).slice(-2)+':'+m[2]:'';}
+  function nxT(v){
+    var s=String(v||''),m=s.match(/(\d{1,2}):(\d{2})/);
+    if(!m){var q=s.trim().match(/^(\d{1,2})(\d{2})$/);if(q&&+q[1]<24&&+q[2]<60)m=q;}
+    return m?('0'+m[1]).slice(-2)+':'+m[2]:'';
+  }
   function nxTime(c){var p=parseInfo(c.info||'');return nxT(p.time)||nxT(p.text);}
   function nxRental(c){return /miet|auto|pkw|\bcar\b|avis|sixt|europcar|hertz|camper|wohnmobil/i.test((c.label||'')+' '+(c.kind||''));}
   function nxClean(text){
@@ -4949,6 +4953,45 @@ initApp();
     if(t.closest('[data-cv-close]')){covClose();return;}
   });
   /* ---------- (CV-ENDE) ---------- */
+  /* ---------- Uhrzeit-Felder: auf dem iPhone-Zifferblock gibt es keinen Doppelpunkt, er wird automatisch gesetzt ---------- */
+  function fmtTimeDigits(v,final){
+    var d=String(v||'').replace(/\D/g,'').slice(0,4);
+    if(!d)return '';
+    var h,m;
+    if(d.length<=2){
+      if(!final)return d;
+      h=d;m='00';
+    }else{
+      h=d.slice(0,d.length-2);m=d.slice(-2);
+    }
+    h=Math.min(23,parseInt(h,10)||0);m=Math.min(59,parseInt(m,10)||0);
+    var hh=final?('0'+h).slice(-2):String(h);
+    return hh+':'+('0'+m).slice(-2);
+  }
+  window.tvFmtTime=fmtTimeDigits;
+  function isTimeField(t){return !!(t&&t.id&&/^(c-time2?|pk-time2?|bu-time2?-\d+)$/.test(t.id));}
+  document.addEventListener('input',function(ev){
+    var t=ev.target;if(!isTimeField(t))return;
+    if(String(ev.inputType||'').indexOf('delete')===0)return;
+    var f=fmtTimeDigits(t.value,false);
+    if(f!==t.value)t.value=f;
+  });
+  document.addEventListener('focusout',function(ev){
+    var t=ev.target;if(!isTimeField(t))return;
+    var f=fmtTimeDigits(t.value,true);
+    if(String(t.value||'').trim()!==''&&f!==t.value)t.value=f;
+  });
+  function timeFinalizeAll(){
+    var els=[];
+    ['c-time','c-time2','pk-time','pk-time2'].forEach(function(id){var e=document.getElementById(id);if(e)els.push(e);});
+    try{Array.prototype.forEach.call(document.querySelectorAll('[id^="bu-time"]'),function(e){els.push(e);});}catch(e){}
+    els.forEach(function(e){if(String(e.value||'').trim()!==''){var f=fmtTimeDigits(e.value,true);if(f!==e.value)e.value=f;}});
+  }
+  ['saveCost','savePlanCost','applyBuchungen'].forEach(function(n){
+    var f=window[n];
+    if(typeof f==='function')window[n]=function(){try{timeFinalizeAll();}catch(e){}return f.apply(this,arguments);};
+  });
+  /* ---------- (UHRZEIT-ENDE) ---------- */
   /* ---------- KI-Vorschläge für Bildkommentare (AICAP-BEGIN) ---------- */
   function aiCapOn(){try{return localStorage.getItem('tv_ai_cap')==='1';}catch(e){return false;}}
   function aiCapSet(on){try{localStorage.setItem('tv_ai_cap',on?'1':'0');}catch(e){}}
