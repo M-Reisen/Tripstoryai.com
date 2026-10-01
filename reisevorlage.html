@@ -2871,7 +2871,9 @@ function renderCosts(){
     const items=costs.filter(c=>c.cat===cat.key).slice().sort(function(a,b){
       // chronologisch, älteste zuerst; ohne Datum ans Ende
       var x=a.datum||'9999-12-31', y=b.datum||'9999-12-31';
-      return x<y?-1:x>y?1:0;
+      if(x!==y)return x<y?-1:1;
+      var ta=('0'+(parseInfo(a.info).time||'99:99')).slice(-5), tb=('0'+(parseInfo(b.info).time||'99:99')).slice(-5);
+      return ta<tb?-1:ta>tb?1:0;
     });
     if(!items.length && !editMode) return;
     html+=`<div class="cost-section-title">${esc(cat.label)}</div>`;

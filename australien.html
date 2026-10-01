@@ -2118,13 +2118,14 @@ function useAIText(){document.getElementById('f-text').value=document.getElement
 // Sortierschlüssel für Ausflüge: liest das Datum aus p.datum (ISO) oder
 // aus dem Info-Text (z. B. "16.09. · Port Douglas") und liefert Monat*100+Tag.
 function ausflugSortKey(p){
-  if(p.datum&&isISODate(p.datum)){
-    const parts=p.datum.split('-');
-    return parseInt(parts[1],10)*100+parseInt(parts[2],10);
-  }
-  const m=(p.info||'').match(/(\d{1,2})\.(\d{1,2})\./);
-  if(m)return parseInt(m[2],10)*100+parseInt(m[1],10);
-  return 9999; // kein Datum erkennbar → ans Ende
+  var MON={jan:1,feb:2,mär:3,mar:3,apr:4,mai:5,jun:6,jul:7,aug:8,sep:9,sept:9,okt:10,nov:11,dez:12};
+  var d=9999,parts=String(p.info||'').split('‖'),t=parts[0]||'',m;
+  if(p.datum&&isISODate(p.datum)){var q=p.datum.split('-');d=parseInt(q[1],10)*100+parseInt(q[2],10);}
+  else if((m=t.match(/(\d{1,2})\.\s*(\d{1,2})\./)))d=parseInt(m[2],10)*100+parseInt(m[1],10);
+  else if((m=t.match(/(\d{1,2})\.\s*(?:[–-]\s*\d{1,2}\.\s*)?([A-Za-zäÄ]{3,4})\./))&&MON[m[2].toLowerCase()])d=MON[m[2].toLowerCase()]*100+parseInt(m[1],10);
+  var tt=String(parts[1]||'').match(/(\d{1,2}):(\d{2})/)||t.match(/(\d{1,2}):(\d{2})/);
+  var tk=tt?parseInt(tt[1],10)*60+parseInt(tt[2],10):1440;
+  return d*10000+tk;
 }
 var _openCostDays={};
 // Gespeichert wird nur das Symbol der Kategorie – für die Anzeige den Namen dazusetzen
@@ -2142,7 +2143,7 @@ function renderCosts(){
   // ── Plankosten nach Kategorie (editierbar) ──
   PLAN_CATS.forEach(cat=>{
     const items=planCosts.filter(p=>p.cat===cat.key);
-    if(cat.key==='Ausflug')items.sort((a,b)=>ausflugSortKey(a)-ausflugSortKey(b));
+    items.sort((a,b)=>ausflugSortKey(a)-ausflugSortKey(b));
     // Kategorien ohne Einträge im Nicht-Admin-Modus überspringen; im Admin trotzdem zeigen (zum Hinzufügen)
     if(!items.length && !editMode) return;
     html+=`<div class='cost-section-title'>${cat.emoji} ${cat.label}</div>`;
