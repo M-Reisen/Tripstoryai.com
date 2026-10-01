@@ -1075,12 +1075,12 @@ html.app-guestview body{padding-top:48px;}
       </select>
     </div>
     <div class="field"><label>Datum <span class="opt">(optional · erscheint im Tagesplan)</span></label><input type="date" id="c-datum"></div>
-    <div class="field" id="c-bis-wrap" style="display:none"><label>Abreise <span class="opt">(Unterkunft · Nächte werden berechnet)</span></label><input type="date" id="c-bis"></div>
+    <div class="field" id="c-bis-wrap" style="display:none"><label id="c-bis-lbl">Abreise <span class="opt">(Datum · Nächte werden berechnet)</span></label><input type="date" id="c-bis"></div>
     <div class="field"><label>Bezeichnung</label><input type="text" id="c-label" placeholder="z.B. Hotel Tokio"></div>
     <div class="field"><label>Details <span class="opt">(optional)</span></label><input type="text" id="c-info" placeholder="z.B. 3 Nächte · Ref. XY"></div>
-    <div id="c-ausflug-fields" style="display:none">
+    <div class="field-row" id="c-times-wrap" style="display:none"><div class="field"><label id="c-time-lbl">Uhrzeit</label><input type="text" id="c-time" inputmode="numeric" placeholder="z.B. 15:00"></div><div class="field"><label id="c-time2-lbl">Ende</label><input type="text" id="c-time2" inputmode="numeric" placeholder="z.B. 10:00"></div></div>
+  <div id="c-ausflug-fields" style="display:none">
       <div class="field-row">
-        <div class="field"><label>Uhrzeit <span class="opt">(optional)</span></label><input type="text" id="c-time" placeholder="z.B. 13:15"></div>
         <div class="field"><label>Personen <span class="opt">(optional)</span></label><input type="text" id="c-pax" placeholder="z.B. 2"></div>
       </div>
       <div class="field"><label>Referenz-Nr. <span class="opt">(optional)</span></label><input type="text" id="c-ref" placeholder="z.B. #358349003"></div>
@@ -2457,12 +2457,12 @@ function buchPrompt(){
   return ctx+'Du liest Buchungsbestätigungen, Tickets und E-Mails für ein Reisetagebuch aus. Finde ALLE gebuchten Leistungen im beigefügten Material '
     +'(Unterkünfte, Flüge, Mietwagen und Transfers, Ausflüge und Touren, sonstige Buchungen) und gib für jede Leistung genau einen Eintrag zurück. '
     +'Antworte AUSSCHLIESSLICH mit einem JSON-Objekt (kein Markdown, keine Erklärung, keine Code-Fences) in genau diesem Format:\n'
-    +'{"positionen":[{"kategorie":"eine von: '+BUCH_CATS.join(', ')+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","bis":"YYYY-MM-DD, nur bei Unterkunft (Check-out), sonst leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","ort":"Ort bzw. Stadt oder leer","uhrzeit":"HH:MM oder leer","personen":"z.B. 2 Personen oder leer","referenz":"Buchungsnummer oder leer","details":"kurze Zusatzinfo oder leer"}]}\n'
+    +'{"positionen":[{"kategorie":"eine von: '+BUCH_CATS.join(', ')+'","label":"kurze Bezeichnung","datum":"YYYY-MM-DD oder leer","bis":"YYYY-MM-DD, bei Unterkunft Check-out, bei Mietwagen Rückgabe, bei Flug oder Fahrt Ankunftsdatum nur wenn anderer Tag, sonst leer","betrag":Zahl,"waehrung":"EUR/USD/GBP/CHF/JPY/AUD","ort":"Ort bzw. Stadt oder leer","uhrzeit":"HH:MM oder leer (Check-in, Abflug, Abfahrt, Abholung bzw. Beginn)","uhrzeit2":"HH:MM oder leer (Check-out, Ankunft, Rückgabe bzw. Ende)","personen":"z.B. 2 Personen oder leer","referenz":"Buchungsnummer oder leer","details":"kurze Zusatzinfo oder leer"}]}\n'
     +'Regeln: Erfinde nichts. Ist ein Feld nicht erkennbar, nimm einen leeren String bzw. 0. Beträge als reine Zahl ohne Währungssymbol; nimm den Gesamtpreis der jeweiligen Leistung. '
     +'Wird nur ein Gesamtpreis für mehrere Leistungen genannt, trage ihn beim ersten Eintrag ein und 0 bei den übrigen. '
-    +'Unterkunft: label=Name der Unterkunft, datum=Check-in, bis=Check-out, ort=Stadt oder Region. '
-    +'Flug: je Flugstrecke ein Eintrag (Hin- und Rückflug getrennt), label z.B. "Flug München → Florenz", datum und uhrzeit=Abflug, details=Airline und Flugnummer. '
-    +'Mietwagen/Transfer: kategorie Transport, datum=Abholung bzw. Fahrt. Ausflug/Tour: kategorie Ausflug mit datum, uhrzeit und personen. '
+    +'Unterkunft: label=Name der Unterkunft, datum=Check-in, uhrzeit=Check-in-Zeit, bis=Check-out, uhrzeit2=Check-out-Zeit, ort=Stadt oder Region. '
+    +'Flug: je Flugstrecke ein Eintrag (Hin- und Rückflug getrennt), label z.B. "Flug München → Florenz", datum und uhrzeit=Abflug, uhrzeit2=Ankunft, bis=Ankunftsdatum nur wenn anderer Tag, details=Airline und Flugnummer. '
+    +'Mietwagen: kategorie Transport, datum und uhrzeit=Abholung, bis und uhrzeit2=Rückgabe. Fähre, Bus, Zug und Transfer: kategorie Transport, datum und uhrzeit=Abfahrt, uhrzeit2=Ankunft. Ausflug/Tour: kategorie Ausflug mit datum, uhrzeit (Beginn), uhrzeit2 (Ende, falls genannt) und personen. '
     +'Datumsformate wie 12.03.2026 oder 12 Mar 2026 in YYYY-MM-DD umwandeln; fehlt das Jahr, nimm das Jahr des Reisezeitraums. Uhrzeiten im 24-Stunden-Format. '
     +'Ignoriere Werbung, Bedingungen und Zahlungshinweise, die keine gebuchte Leistung sind.';
 }
@@ -2483,7 +2483,8 @@ function normBuch(p,quelle){
     cat:cat,
     label:String(p.label||'').trim().substring(0,80)||cat,
     datum:isISODate(p.datum)?p.datum:'',
-    bis:(cat==='Unterkunft'&&isISODate(p.bis))?p.bis:'',
+    bis:((cat==='Unterkunft'||cat==='Transport'||cat==='Flug')&&isISODate(p.bis))?p.bis:'',
+    time2:(function(){let t2=/^\d{1,2}:\d{2}$/.test(String(p.uhrzeit2||'').trim())?String(p.uhrzeit2).trim():'';if(/^\d:/.test(t2))t2='0'+t2;return t2;})(),
     amount:isNaN(amount)||amount<0?0:amount,
     cur:cur,
     ort:String(p.ort||'').trim().substring(0,80),
@@ -2945,11 +2946,22 @@ function renderCosts(){
 function toggleAusflugFields(){
   const cat=val('c-cat');
   document.getElementById('c-ausflug-fields').style.display=(cat==='Ausflug')?'block':'none';
-  document.getElementById('c-bis-wrap').style.display=(cat==='Unterkunft')?'block':'none';
-  var _ci=document.getElementById('c-info'),_cl=_ci&&_ci.parentNode?_ci.parentNode.querySelector('label'):null;
-  if(_ci&&_cl){
-    if(cat==='Unterkunft'){_cl.innerHTML='Ort <span class="opt">(für Karte und Tagesplan)</span>';_ci.placeholder='z.B. Florenz · Ref. XY';}
-    else{_cl.innerHTML='Details <span class="opt">(optional)</span>';_ci.placeholder='z.B. 3 Nächte · Ref. XY';}
+  const hasTimes=(cat==='Unterkunft'||cat==='Flug'||cat==='Transport'||cat==='Ausflug');
+  document.getElementById('c-times-wrap').style.display=hasTimes?'flex':'none';
+  const hasBis=(cat==='Unterkunft'||cat==='Flug'||cat==='Transport');
+  document.getElementById('c-bis-wrap').style.display=hasBis?'block':'none';
+  const L={
+    Unterkunft:['Check-in (Uhrzeit)','Check-out (Uhrzeit)','Abreise <span class="opt">(Datum · Nächte werden berechnet)</span>','z.B. 15:00','z.B. 10:00'],
+    Flug:['Abflug (Uhrzeit)','Ankunft (Uhrzeit)','Ankunft am <span class="opt">(Datum, nur wenn anderer Tag)</span>','z.B. 13:05','z.B. 14:35'],
+    Transport:['Abfahrt oder Abholung (Uhrzeit)','Ankunft oder Rückgabe (Uhrzeit)','Ankunft oder Rückgabe am <span class="opt">(Datum, wenn anderer Tag)</span>','z.B. 08:50','z.B. 09:30'],
+    Ausflug:['Beginn (Uhrzeit)','Ende (Uhrzeit)','','z.B. 09:00','z.B. 15:00']
+  }[cat];
+  if(L){
+    document.getElementById('c-time-lbl').innerHTML=L[0];
+    document.getElementById('c-time2-lbl').innerHTML=L[1];
+    document.getElementById('c-time').placeholder=L[3];
+    document.getElementById('c-time2').placeholder=L[4];
+    if(L[2])document.getElementById('c-bis-lbl').innerHTML=L[2];
   }
 }
 /* ---------- Buchungen einlesen: Dateiliste mit Status, keine Doppelten ---------- */
@@ -3096,16 +3108,18 @@ function renderBuchResult(fehler){
     const dup=it.dup;
     const catOpts=BUCH_CATS.map(function(c){return '<option value="'+c+'"'+(it.cat===c?' selected':'')+'>'+(CAT_EMOJI[c]||'')+' '+c+'</option>';}).join('');
     const curOpts=BUCH_CURS.map(function(c){return '<option value="'+c+'"'+(it.cur===c?' selected':'')+'>'+c+'</option>';}).join('');
-    const meta=[it.time,it.pax,it.ref?('Ref. '+it.ref):''].filter(Boolean).join(' · ');
+    const meta=[it.pax,it.ref?('Ref. '+it.ref):''].filter(Boolean).join(' · ');
     html+='<div class="buch-card'+(dup?' buch-dup':'')+'" id="bu-card-'+i+'">'
       +'<label class="buch-use"><input type="checkbox" id="bu-use-'+i+'"'+(dup?'':' checked')+' onchange="buchCount()"><span>'+esc((CAT_EMOJI[it.cat]||'')+' '+it.label)+'<br><span class="buch-src">'+esc(it.quelle)+'</span></span></label>'
       +(dup?'<div class="buch-warn">'+(it.dupWo==='stapel'?'Diese Position kommt in den ausgewählten Dateien mehrfach vor. Sie ist abgewählt, damit sie nicht doppelt angelegt wird.':'Diese Position gibt es schon. Sie ist abgewählt, damit sie nicht doppelt angelegt wird.')+'</div>':'')
       +(it.amount<=0?'<div class="buch-warn">Kein Betrag erkannt – bitte ergänzen, sonst bleibt er bei 0.</div>':'')
-      +'<div class="field"><label>Kategorie</label><select id="bu-cat-'+i+'" onchange="document.getElementById(\'bu-bis-wrap-'+i+'\').style.display=(this.value===\'Unterkunft\')?\'block\':\'none\'">'+catOpts+'</select></div>'
+      +'<div class="field"><label>Kategorie</label><select id="bu-cat-'+i+'" onchange="document.getElementById(\'bu-bis-wrap-'+i+'\').style.display=(this.value===\'Unterkunft\'||this.value===\'Flug\'||this.value===\'Transport\')?\'block\':\'none\'">'+catOpts+'</select></div>'
       +'<div class="field"><label>Bezeichnung</label><input id="bu-label-'+i+'" type="text" value="'+escAttr(it.label)+'"></div>'
       +'<div class="field-row"><div class="field"><label>Datum</label><input id="bu-datum-'+i+'" type="date" value="'+escAttr(it.datum)+'"></div>'
       +'<div class="field"><label>Betrag</label><input id="bu-amount-'+i+'" type="number" step="0.01" value="'+escAttr(it.amount||'')+'"></div></div>'
-      +'<div class="field" id="bu-bis-wrap-'+i+'" style="'+(it.cat==='Unterkunft'?'':'display:none')+'"><label>Abreise <span class="opt">(Nächte werden berechnet)</span></label><input id="bu-bis-'+i+'" type="date" value="'+escAttr(it.bis)+'"></div>'
+      +'<div class="field-row"><div class="field"><label>Uhrzeit 1 <span class="opt">(Check-in, Abflug, Abfahrt, Abholung)</span></label><input id="bu-time-'+i+'" type="text" inputmode="numeric" placeholder="z.B. 15:00" value="'+escAttr(it.time||'')+'"></div>'
+      +'<div class="field"><label>Uhrzeit 2 <span class="opt">(Check-out, Ankunft, Rückgabe)</span></label><input id="bu-time2-'+i+'" type="text" inputmode="numeric" placeholder="z.B. 10:00" value="'+escAttr(it.time2||'')+'"></div></div>'
+      +'<div class="field" id="bu-bis-wrap-'+i+'" style="'+((it.cat==='Unterkunft'||it.cat==='Flug'||it.cat==='Transport')?'':'display:none')+'"><label>Abreise / Rückgabe / Ankunft am <span class="opt">(Datum, Nächte werden berechnet)</span></label><input id="bu-bis-'+i+'" type="date" value="'+escAttr(it.bis)+'"></div>'
       +'<div class="field-row"><div class="field"><label>Währung</label><select id="bu-cur-'+i+'">'+curOpts+'</select></div>'
       +'<div class="field"><label>Ort / Details</label><input id="bu-info-'+i+'" type="text" value="'+escAttr(it.cat==='Unterkunft'?(it.ort||it.details):(it.details||it.ort))+'"></div></div>'
       +(meta?'<div class="buch-meta">Übernommen wird außerdem: '+esc(meta)+'</div>':'')
@@ -3135,9 +3149,10 @@ async function applyBuchungen(){
       const amt=parseFloat((val('bu-amount-'+i)||'').replace(',','.'))||0;
       const cur=val('bu-cur-'+i)||'EUR';
       const bisEl=document.getElementById('bu-bis-'+i);
-      const bis=(cat==='Unterkunft'&&bisEl)?(bisEl.value||''):'';
+      const bis=((cat==='Unterkunft'||cat==='Flug'||cat==='Transport')&&bisEl)?(bisEl.value||''):'';
+      const t1=val('bu-time-'+i).trim(),t2=val('bu-time2-'+i).trim();
       const infoText=val('bu-info-'+i).trim();
-      const info=buildInfo(infoText,it.time,it.pax,it.ref,bis);
+      const info=buildInfo(infoText,t1,it.pax,it.ref,bis,t2);
       const draft={cat:cat,label:label,info:info,datum:datum,amount:amt,cur:cur};
       const id=await sbSaveCost(draft);
       if(id!==null){costs.push(Object.assign({id:id},draft));ok++;if(it.fp&&fps.indexOf(it.fp)<0)fps.push(it.fp);}
@@ -3161,10 +3176,10 @@ async function applyBuchungen(){
 // Extras in info kodiert: "sichtbarerText‖time‖pax‖ref‖bis"
 function parseInfo(raw){
   const p=String(raw||'').split('‖');
-  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||'', bis:p[4]||''};
+  return {text:p[0]||'', time:p[1]||'', pax:p[2]||'', ref:p[3]||'', bis:p[4]||'', time2:p[5]||''};
 }
-function buildInfo(text,time,pax,ref,bis){
-  if(time||pax||ref||bis)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'')+'‖'+(bis||'');
+function buildInfo(text,time,pax,ref,bis,time2){
+  if(time||pax||ref||bis||time2)return (text||'')+'‖'+(time||'')+'‖'+(pax||'')+'‖'+(ref||'')+'‖'+(bis||'')+'‖'+(time2||'');
   return text||'';
 }
 // Nächte zwischen zwei ISO-Daten
@@ -3188,17 +3203,30 @@ function stayForDay(iso){
   return null;
 }
 // Lesbare Info-Anzeige (sichtbarer Text + Ausflug-Extras als Chips-Text)
+function isRental(c){return /miet|auto|pkw|\bcar\b|avis|sixt|europcar|hertz|camper|wohnmobil/i.test((c&&c.label)||'');}
 function infoDisplay(c){
   const pi=parseInfo(c.info);
-  let bits=[];
+  const bits=[];
+  const kurz=function(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});};
   if(pi.text)bits.push(pi.text);
-  if(c.cat==='Unterkunft'&&pi.bis){
-    const n=nightsBetween(c.datum,pi.bis);
-    const bisStr=new Date(pi.bis+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});
-    bits.push('bis '+bisStr+(n>0?' · '+n+' '+(n===1?'Nacht':'Nächte'):''));
+  if(c.cat==='Unterkunft'){
+    if(pi.bis){
+      const n=nightsBetween(c.datum,pi.bis);
+      bits.push('bis '+kurz(pi.bis)+(n>0?' · '+n+' '+(n===1?'Nacht':'Nächte'):''));
+    }
+    if(pi.time)bits.push('Check-in '+pi.time);
+    if(pi.time2)bits.push('Check-out '+pi.time2);
+  }else if(c.cat==='Flug'){
+    if(pi.time)bits.push('Abflug '+pi.time);
+    if(pi.time2)bits.push('Ankunft '+pi.time2+(pi.bis&&pi.bis!==c.datum?' ('+kurz(pi.bis)+')':''));
+  }else if(c.cat==='Transport'){
+    const miet=isRental(c);
+    if(pi.time)bits.push((miet?'Abholung ':'Abfahrt ')+pi.time);
+    if(pi.time2||(miet&&pi.bis))bits.push((miet?'Rückgabe ':'Ankunft ')+(pi.bis&&pi.bis!==c.datum?kurz(pi.bis)+' ':'')+(pi.time2||''));
+  }else{
+    if(pi.time)bits.push(pi.time+(pi.time2?'–'+pi.time2:'')+' Uhr');
   }
-  if(pi.time)bits.push('🕐 '+pi.time);
-  if(pi.pax)bits.push('👥 '+pi.pax);
+  if(pi.pax)bits.push(pi.pax);
   if(pi.ref)bits.push('# '+pi.ref.replace(/^#\s*/,''));
   return bits.join(' · ');
 }
@@ -3208,7 +3236,7 @@ function addCost(catKey){
   document.getElementById('cm-title').textContent='Position hinzufügen';
   setVal('c-cat',catKey||'Sonstiges');setVal('c-datum','');setVal('c-label','');
   setVal('c-info','');setVal('c-amount','');setVal('c-currency','EUR');
-  setVal('c-time','');setVal('c-pax','');setVal('c-ref','');setVal('c-bis','');
+  setVal('c-time','');setVal('c-time2','');setVal('c-pax','');setVal('c-ref','');setVal('c-bis','');
   toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
@@ -3222,7 +3250,7 @@ function editCostEl(btn){
   setVal('c-cat',c.cat);setVal('c-datum',c.datum||'');setVal('c-label',c.label);
   setVal('c-amount',c.amount);setVal('c-currency',c.cur||'EUR');
   const pi=parseInfo(c.info);
-  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);setVal('c-bis',pi.bis);
+  setVal('c-info',pi.text);setVal('c-time',pi.time);setVal('c-time2',pi.time2);setVal('c-pax',pi.pax);setVal('c-ref',pi.ref);setVal('c-bis',pi.bis);
   toggleAusflugFields();
   updateCostPreview();
   document.getElementById('cost-modal').classList.add('open');
@@ -3249,9 +3277,9 @@ async function saveCost(){
   const amt=parseFloat((val('c-amount')||'').replace(',','.'));
   const cur=val('c-currency');
   const info=(cat==='Ausflug')
-    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim(),'')
-    : (cat==='Unterkunft')
-      ? buildInfo(val('c-info').trim(),'','','',val('c-bis')||'')
+    ? buildInfo(val('c-info').trim(),val('c-time').trim(),val('c-pax').trim(),val('c-ref').trim(),'',val('c-time2').trim())
+    : (cat==='Unterkunft'||cat==='Flug'||cat==='Transport')
+      ? buildInfo(val('c-info').trim(),val('c-time').trim(),'','',val('c-bis')||'',val('c-time2').trim())
       : val('c-info').trim();
   if(!label){toast('Bitte eine Bezeichnung eingeben.');return;}
   if(isNaN(amt)||amt<=0){toast('Ungültiger Betrag.');return;}
@@ -4562,12 +4590,10 @@ init();
     stays.forEach(function(c){if(!seen[c.label]){seen[c.label]=1;uniq.push(c);}});
     return uniq;
   }
-  /* ---------- „Als Nächstes“: Flüge, Fahrten, Ausflüge und Unterkünfte mit Uhrzeit ---------- */
-  function nxTime(c){
-    var p=parseInfo(c.info||''),t=String(p.time||'');
-    var m=t.match(/(\d{1,2}):(\d{2})/)||String(p.text||'').match(/(\d{1,2}):(\d{2})/);
-    return m?('0'+m[1]).slice(-2)+':'+m[2]:'';
-  }
+  /* ---------- „Als Nächstes“: Check-in/-out, Abfahrt/Ankunft, Abholung/Rückgabe mit Uhrzeit ---------- */
+  function nxT(v){var m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?('0'+m[1]).slice(-2)+':'+m[2]:'';}
+  function nxTime(c){var p=parseInfo(c.info||'');return nxT(p.time)||nxT(p.text);}
+  function nxRental(c){return /miet|auto|pkw|\bcar\b|avis|sixt|europcar|hertz|camper|wohnmobil/i.test((c.label||'')+' '+(c.kind||''));}
   function nxClean(text){
     var t=String(text||'').trim();
     var dateRx=/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/,timeRx=/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i;
@@ -4575,7 +4601,7 @@ init();
       var parts=t.split(' · ');
       if(parts.length>1&&(dateRx.test(parts[0])||timeRx.test(parts[0])))t=parts.slice(1).join(' · ');
     }
-    if(/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i.test(t))return '';
+    if(timeRx.test(t))return '';
     return t.length>90?t.slice(0,88)+' …':t;
   }
   function nxIcon(c){
@@ -4589,16 +4615,40 @@ init();
     if(iso===addIso(today,1))return 'Morgen';
     return shortDate(iso);
   }
+  function nxEvents(c){
+    var p=parseInfo(c.info||''),t1=nxTime(c),t2=nxT(p.time2),lab=stripEmoji(c.label||''),out=[],tx=nxClean(p.text);
+    if(/\d{1,2}:\d{2}/.test(tx))tx='';
+    if(!c.datum)return out;
+    if(c.cat==='Unterkunft'){
+      var pl=String(p.text||'').split('·')[0].trim();
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'Check-in',extra:pl,times:'',r:3});
+      if(p.bis)out.push({c:c,iso:p.bis,time:t2,title:lab,tag:'Check-out',extra:pl,times:'',r:-1});
+    }else if(c.cat==='Transport'&&nxRental(c)){
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'Abholung',extra:tx,times:'',r:1});
+      if(t2||p.bis)out.push({c:c,iso:p.bis||c.datum,time:t2,title:lab,tag:'Rückgabe',extra:'',times:'',r:1.5});
+    }else if(c.cat==='Flug'||c.cat==='Transport'){
+      var ex=[];
+      if(t1)ex.push((c.cat==='Flug'?'Abflug ':'Abfahrt ')+t1);
+      if(t2)ex.push('Ankunft '+t2+(p.bis&&p.bis!==c.datum?' ('+shortDate(p.bis)+')':''));
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:ex.join(' · '),r:c.cat==='Flug'?0:1});
+    }else if(c.cat==='Ausflug'){
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:t2?('Ende '+t2):'',r:2});
+    }
+    return out;
+  }
   function nextItems(today,max){
     var now=new Date(),hhmm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
-    var rank={Flug:0,Transport:1,Ausflug:2,Unterkunft:3};
-    return costs.filter(function(c){
-      if(!c.datum||c.cat==='Sonstiges'||c.datum<today)return false;
-      if(c.datum===today){var t=nxTime(c);if(t&&t<hhmm)return false;}
+    var src=(typeof previewCosts==='function')?previewCosts():costs,ev=[];
+    src.forEach(function(c){if(c.cat!=='Sonstiges')nxEvents(c).forEach(function(e){ev.push(e);});});
+    return ev.filter(function(e){
+      if(!e.iso||e.iso<today)return false;
+      if(e.iso===today&&e.time&&e.time<hhmm)return false;
       return true;
-    }).map(function(c,i){return {c:c,i:i,k:c.datum+'|'+(nxTime(c)||'99:99')+'|'+(rank[c.cat]!==undefined?rank[c.cat]:5)};})
-      .sort(function(a,b){return a.k<b.k?-1:(a.k>b.k?1:a.i-b.i);})
-      .slice(0,max).map(function(x){return x.c;});
+    }).map(function(e,i){
+      var dflt={'Check-out':'06:00','Abholung':'10:00','Rückgabe':'11:00','Check-in':'15:00'}[e.tag]||(e.c.cat==='Flug'?'08:30':(e.c.cat==='Transport'?'09:00':'09:30'));
+      e.i=i;e.k=e.iso+'|'+(e.time||dflt)+'|'+('0'+Math.round((e.r+1)*10)).slice(-2);return e;
+    })
+      .sort(function(a,b){return a.k<b.k?-1:(a.k>b.k?1:a.i-b.i);}).slice(0,max);
   }
   function heroHTML(days){
     var owner=isOwner(),ph=phase(days),ti=qxDefaultDate(days);
@@ -4651,15 +4701,14 @@ init();
       +'<button type="button" class="ah-tile" data-plus-act="foto"><i>'+ic('foto',20,1.9)+'</i>Foto</button>'
       +'<button type="button" class="ah-tile" data-plus-act="notiz"><i>'+ic('notiz',20,1.9)+'</i>Notiz</button>'
       +'<button type="button" class="ah-tile" data-plus-act="ausgabe"><i>'+ic('kosten',20,1.9)+'</i>Ausgabe</button></div>';
-    var nx=nextItems(ph.today,4);
+    var nx=nextItems(ph.today,5);
     if(nx.length){
-      html+='<div class="ah-next nx-card"><small class="nx-head">Als Nächstes</small>'+nx.map(function(c){
-        var tm=nxTime(c),p=parseInfo(c.info||''),extra='';
-        if(c.cat==='Unterkunft'){var pl=String(p.text||'').split('·')[0].trim();extra='Check-in'+(pl?' · '+pl:'');}
-        else extra=nxClean(p.text);
-        return '<div class="nx-row"><i>'+ic(nxIcon(c),22,1.8)+'</i><div class="nx-tx"><b>'+E(stripEmoji(c.label))+'</b>'
-          +'<small class="nx-when">'+E(nxDate(c.datum,ph.today)+(tm?' · '+tm+' Uhr':''))+'</small>'
-          +(extra?'<small class="nx-extra">'+E(extra)+'</small>':'')+'</div></div>';
+      html+='<div class="ah-next nx-card"><small class="nx-head">Als Nächstes</small>'+nx.map(function(e){
+        var c=e.c;
+        return '<div class="nx-row"><i>'+ic(nxIcon(c),22,1.8)+'</i><div class="nx-tx"><b>'+E(e.title)+'</b>'
+          +'<small class="nx-when">'+E((e.tag?e.tag+' · ':'')+nxDate(e.iso,ph.today)+(e.time?' · '+e.time+' Uhr':''))+'</small>'
+          +(e.times?'<small class="nx-extra">'+E(e.times)+'</small>':'')
+          +(e.extra?'<small class="nx-extra">'+E(e.extra)+'</small>':'')+'</div></div>';
       }).join('')+'</div>';
     }
     return html;

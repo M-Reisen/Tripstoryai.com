@@ -1254,7 +1254,7 @@ html.app-guestview body{padding-top:48px;}
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Kategorie</label>
-      <select id="pk-cat" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);">
+      <select id="pk-cat" onchange="pkToggle()" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);">
         <option value="Unterkunft">🏨 Unterkünfte</option>
         <option value="Flug">✈️ Flüge</option>
         <option value="Transport">🚗 Transport</option>
@@ -1274,6 +1274,8 @@ html.app-guestview body{padding-top:48px;}
       <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Details <span style="text-transform:none;font-weight:400">(optional)</span></label>
       <input id="pk-info" type="text" placeholder="z.B. 5.–6. Okt. · Ref. XY123" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);">
     </div>
+    <div id="pk-times-wrap" style="display:none;margin-bottom:12px;gap:10px;"><div style="flex:1;"><label id="pk-time-lbl" style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Uhrzeit</label><input id="pk-time" type="text" inputmode="numeric" placeholder="z.B. 15:00" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);"></div><div style="flex:1;"><label id="pk-time2-lbl" style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Ende</label><input id="pk-time2" type="text" inputmode="numeric" placeholder="z.B. 10:00" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);"></div></div>
+    <div id="pk-bis-wrap" style="display:none;margin-bottom:12px;"><label id="pk-bis-lbl" style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Abreise</label><input id="pk-bis" type="date" min="2026-09-13" max="2026-10-10" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);"></div>
     <div style="margin-bottom:8px;display:flex;gap:10px;">
       <div style="flex:1.4;">
         <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Betrag</label>
@@ -2150,7 +2152,7 @@ function renderCosts(){
       sum+=eur; total+=eur;
       const amtStr=(p.cur&&p.cur!=='EUR')?`${fmt(p.amount)} ${p.cur} <span style="color:var(--fog);font-weight:400">≈ EUR ${fmt(eur)}</span>`:`EUR ${fmt(eur)}`;
       const editBtns=editMode?`<button class="cost-edit-btn" data-id="${p.id}" onclick="editPlanCostEl(this)" title="Bearbeiten">✏️</button><button class="cost-del-btn" data-id="${p.id}" onclick="delPlanCostEl(this)" title="Löschen">✕</button>`:'';
-      html+=`<div class="cost-row"><div style="flex:1"><div>${p.label}</div>${p.info?`<div style="font-size:.73rem;color:var(--fog)">${p.info}</div>`:''}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${editBtns}</div></div>`;
+      html+=`<div class="cost-row"><div style="flex:1"><div>${p.label}</div>${pkShow(p)?`<div style="font-size:.73rem;color:var(--fog)">${esc(pkShow(p))}</div>`:''}</div><div style="display:flex;align-items:center;gap:8px"><span class="${pc}">${amtStr}</span>${editBtns}</div></div>`;
     });
     if(editMode){
       html+=`<button class="cost-add-btn" onclick="addPlanCost('${cat.key}')">+ ${cat.label.replace(/e$/,'')} hinzufügen</button>`;
@@ -2852,6 +2854,7 @@ function addPlanCost(catKey){
   document.getElementById('pk-amount').value='';
   document.getElementById('pk-currency').value='EUR';
   document.getElementById('pk-datum').value='';
+  pkFill({});
   updatePkPreview();
   document.getElementById('plankost-modal').style.display='flex';
 }
@@ -2864,7 +2867,7 @@ function editPlanCostEl(btn){
   document.getElementById('pk-modal-title').textContent='Position bearbeiten';
   document.getElementById('pk-cat').value=p.cat;
   document.getElementById('pk-label').value=p.label;
-  document.getElementById('pk-info').value=p.info||'';
+  const _pi=pkParse(p.info);document.getElementById('pk-info').value=_pi.text;pkFill(_pi);
   document.getElementById('pk-amount').value=p.amount;
   document.getElementById('pk-currency').value=p.cur||'EUR';
   document.getElementById('pk-datum').value=p.datum||'';
@@ -2893,7 +2896,7 @@ function updatePkPreview(){
 async function savePlanCost(){
   const cat=document.getElementById('pk-cat').value;
   const label=document.getElementById('pk-label').value.trim();
-  const info=document.getElementById('pk-info').value.trim();
+  const info=pkReadInfo(cat,document.getElementById('pk-info').value.trim());
   const amt=parseFloat((document.getElementById('pk-amount').value||'').replace(',','.'));
   const cur=document.getElementById('pk-currency').value;
   const datum=document.getElementById('pk-datum').value||'';
@@ -3652,7 +3655,7 @@ initApp();
   function addDays(s,n){var d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return isoOf(d);}
   W.tripHead={title:'Australien 2026',sub:'Queensland bis Sydney',from:'2026-09-13',to:'2026-10-10',emoji:''};
   W.lyDays=function(){return DAYS.map(function(d){return d.iso;});};
-  W.parseInfo=function(raw){var p=String(raw||'').split('‖');return {text:p[0]||'',time:p[1]||'',pax:p[2]||'',ref:p[3]||'',bis:p[4]||''};};
+  W.parseInfo=function(raw){var p=String(raw||'').split('‖');return {text:p[0]||'',time:p[1]||'',pax:p[2]||'',ref:p[3]||'',bis:p[4]||'',time2:p[5]||''};};
   W.nightsBetween=function(von,bis){
     if(!von||!bis)return 0;
     var n=Math.round((new Date(bis+'T12:00:00')-new Date(von+'T12:00:00'))/86400000);
@@ -3674,8 +3677,9 @@ initApp();
   });
   TIMELINE.forEach(function(t,i){
     if(t.type==='transport'){
-      var tmm=String(t.info||'').match(/(\d{1,2}):(\d{2})/);
-      C.push({id:'t'+i,cat:t.cls==='flight'?'Flug':'Transport',kind:t.cls,label:t.name,info:(t.info||'')+'‖'+(tmm?('0'+tmm[1]).slice(-2)+':'+tmm[2]:''),datum:t.datum,amount:0,cur:'EUR'});
+      var tms=String(t.info||'').match(/\d{1,2}:\d{2}/g)||[];
+      var pad=function(x){return x?('0'+x).slice(-5):'';};
+      C.push({id:'t'+i,cat:t.cls==='flight'?'Flug':'Transport',kind:t.cls,label:t.name,info:(t.info||'')+'‖'+pad(tms[0])+'‖‖‖‖'+pad(tms[1]),datum:t.datum,amount:0,cur:'EUR'});
     }
     else if(t.type==='tour'){
       var a=ACTIVITIES.find(function(x){return x.id===t.ref;});
@@ -3894,6 +3898,116 @@ initApp();
   var _lpo=W.loadPhotoOrder;
   if(typeof _lpo==='function')W.loadPhotoOrder=function(iso,loaded){var r=_lpo(iso,loaded);try{W.applyCaps(iso,r);}catch(e){}return r;};
   W.loadCaps();
+
+  /* ---------- Detailangaben bei den Kosten (Check-in/-out, Abfahrt/Ankunft, Abholung/Rückgabe) ---------- */
+  W.pkParse=function(raw){var p=String(raw||'').split('‖');return {text:p[0]||'',time:p[1]||'',bis:p[4]||'',time2:p[5]||''};};
+  W.pkBuild=function(text,time,bis,time2){
+    if(time||bis||time2)return (text||'')+'‖'+(time||'')+'‖‖‖'+(bis||'')+'‖'+(time2||'');
+    return text||'';
+  };
+  function pkRental(p){return /miet|auto|pkw|\bcar\b|avis|sixt|europcar|hertz|camper|wohnmobil/i.test((p&&p.label)||'');}
+  function pkShort(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'});}
+  W.pkShow=function(p){
+    var pi=W.pkParse(p.info),bits=[];
+    if(pi.text)bits.push(pi.text);
+    if(p.cat==='Unterkunft'){
+      if(pi.time)bits.push('Check-in '+pi.time);
+      if(pi.time2)bits.push('Check-out '+pi.time2);
+    }else if(p.cat==='Flug'){
+      if(pi.time)bits.push('Abflug '+pi.time);
+      if(pi.time2)bits.push('Ankunft '+pi.time2+(pi.bis?' ('+pkShort(pi.bis)+')':''));
+    }else if(p.cat==='Transport'){
+      var miet=pkRental(p);
+      if(pi.time)bits.push((miet?'Abholung ':'Abfahrt ')+pi.time);
+      if(pi.time2||(miet&&pi.bis))bits.push((miet?'Rückgabe ':'Ankunft ')+(pi.bis?pkShort(pi.bis)+' ':'')+(pi.time2||''));
+    }else if(p.cat==='Ausflug'){
+      if(pi.time)bits.push(pi.time+(pi.time2?'–'+pi.time2:'')+' Uhr');
+    }
+    return bits.join(' · ');
+  };
+  W.pkToggle=function(){
+    var cat=document.getElementById('pk-cat').value;
+    var hasT=(cat==='Unterkunft'||cat==='Flug'||cat==='Transport'||cat==='Ausflug');
+    var hasB=(cat==='Unterkunft'||cat==='Flug'||cat==='Transport');
+    document.getElementById('pk-times-wrap').style.display=hasT?'flex':'none';
+    document.getElementById('pk-bis-wrap').style.display=hasB?'block':'none';
+    var L={
+      Unterkunft:['Check-in (Uhrzeit)','Check-out (Uhrzeit)','Abreise (Datum)','z.B. 15:00','z.B. 10:00'],
+      Flug:['Abflug (Uhrzeit)','Ankunft (Uhrzeit)','Ankunft am (Datum, nur wenn anderer Tag)','z.B. 13:05','z.B. 14:35'],
+      Transport:['Abfahrt oder Abholung (Uhrzeit)','Ankunft oder Rückgabe (Uhrzeit)','Ankunft oder Rückgabe am (Datum)','z.B. 08:50','z.B. 09:30'],
+      Ausflug:['Beginn (Uhrzeit)','Ende (Uhrzeit)','','z.B. 09:00','z.B. 15:00']
+    }[cat];
+    if(L){
+      document.getElementById('pk-time-lbl').textContent=L[0];
+      document.getElementById('pk-time2-lbl').textContent=L[1];
+      document.getElementById('pk-time').placeholder=L[3];
+      document.getElementById('pk-time2').placeholder=L[4];
+      if(L[2])document.getElementById('pk-bis-lbl').textContent=L[2];
+    }
+  };
+  W.pkFill=function(pi){
+    document.getElementById('pk-time').value=pi.time||'';
+    document.getElementById('pk-time2').value=pi.time2||'';
+    document.getElementById('pk-bis').value=pi.bis||'';
+    W.pkToggle();
+  };
+  W.pkReadInfo=function(cat,text){
+    var t1=document.getElementById('pk-time').value.trim(),t2=document.getElementById('pk-time2').value.trim();
+    var bis=(cat==='Unterkunft'||cat==='Flug'||cat==='Transport')?(document.getElementById('pk-bis').value||''):'';
+    if(cat==='Sonstiges'){t1='';t2='';}
+    return W.pkBuild(text,t1,bis,t2);
+  };
+
+  /* Vorschau („Als Nächstes“): feste Reisedaten, überlagert mit den Angaben aus den Kosten; neue Positionen mit Datum kommen dazu */
+  var MON={jan:1,feb:2,mär:3,mar:3,apr:4,mai:5,jun:6,jul:7,aug:8,sep:9,sept:9,okt:10,nov:11,dez:12};
+  function iso2026(d,m){return '2026-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2);}
+  function pkDates(p){
+    if(/^\d{4}-\d{2}-\d{2}$/.test(p.datum||''))return [p.datum];
+    var t=W.pkParse(p.info).text,out=[],m;
+    var re1=/(\d{1,2})\.\s*(\d{2})\./g;
+    while((m=re1.exec(t)))out.push(iso2026(+m[1],+m[2]));
+    var re2=/(\d{1,2})\.\s*(?:[–-]\s*\d{1,2}\.\s*)?([A-Za-zäÄ]{3,4})\./;
+    m=t.match(re2);
+    if(m&&MON[m[2].toLowerCase()])out.push(iso2026(+m[1],MON[m[2].toLowerCase()]));
+    return out;
+  }
+  function pkNorm(s){return String(s||'').toLowerCase().replace(/[^a-zäöüß0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+  function pkToks(s){return pkNorm(s).split(' ').filter(function(x){return x.length>2;});}
+  function pkOverlap(a,b){
+    var tb=pkToks(b),common=pkToks(a).filter(function(x){return tb.indexOf(x)>=0;});
+    if(common.some(function(x){return /^\d{3,}$/.test(x);}))return 5;
+    return common.length;
+  }
+  W.previewCosts=function(){
+    var plan=(typeof planCosts!=='undefined'&&planCosts)||[],used={},out=[];
+    W.costs.forEach(function(e){
+      var pe=W.parseInfo(e.info),best=null,bestN=0;
+      plan.forEach(function(p){
+        if(p.cat!==e.cat)return;
+        var n;
+        if(e.cat==='Unterkunft'){
+          var bk=BOOKINGS.find(function(b){return b.id===e._bid;});
+          n=(bk&&pkNorm(p.label).indexOf(pkNorm(bk.name))>=0)?10:0;
+        }else{
+          if(pkDates(p).indexOf(e.datum)<0)return;
+          n=pkOverlap(e.label,p.label);
+          if(n<2)return;
+        }
+        if(n>bestN){bestN=n;best=p;}
+      });
+      if(!best){out.push(e);return;}
+      used[best.id]=1;
+      var pp=W.pkParse(best.info);
+      if(!(pp.time||pp.time2||pp.bis)){out.push(e);return;}
+      out.push(Object.assign({},e,{info:(pe.text||'')+'‖'+(pp.time||pe.time||'')+'‖‖‖'+(pp.bis||pe.bis||'')+'‖'+(pp.time2||pe.time2||'')}));
+    });
+    plan.forEach(function(p){
+      if(used[p.id]||!/^\d{4}-\d{2}-\d{2}$/.test(p.datum||''))return;
+      if(p.cat==='Sonstiges')return;
+      out.push({id:'pk'+p.id,cat:p.cat,label:p.label,info:p.info||'',datum:p.datum,amount:0,cur:'EUR'});
+    });
+    return out;
+  };
   W.visiblePhotos=function(iso){
     var all=(typeof photos!=='undefined'&&photos[iso])||[];
     if(editMode)return all.slice();
@@ -4096,12 +4210,10 @@ initApp();
     stays.forEach(function(c){if(!seen[c.label]){seen[c.label]=1;uniq.push(c);}});
     return uniq;
   }
-  /* ---------- „Als Nächstes“: Flüge, Fahrten, Ausflüge und Unterkünfte mit Uhrzeit ---------- */
-  function nxTime(c){
-    var p=parseInfo(c.info||''),t=String(p.time||'');
-    var m=t.match(/(\d{1,2}):(\d{2})/)||String(p.text||'').match(/(\d{1,2}):(\d{2})/);
-    return m?('0'+m[1]).slice(-2)+':'+m[2]:'';
-  }
+  /* ---------- „Als Nächstes“: Check-in/-out, Abfahrt/Ankunft, Abholung/Rückgabe mit Uhrzeit ---------- */
+  function nxT(v){var m=String(v||'').match(/(\d{1,2}):(\d{2})/);return m?('0'+m[1]).slice(-2)+':'+m[2]:'';}
+  function nxTime(c){var p=parseInfo(c.info||'');return nxT(p.time)||nxT(p.text);}
+  function nxRental(c){return /miet|auto|pkw|\bcar\b|avis|sixt|europcar|hertz|camper|wohnmobil/i.test((c.label||'')+' '+(c.kind||''));}
   function nxClean(text){
     var t=String(text||'').trim();
     var dateRx=/^(Ab\s+)?((Mo|Di|Mi|Do|Fr|Sa|So)\.?\s*)?\d{1,2}\.\s*(\d{1,2}\.?|[A-Za-zäöüÄÖÜ]+\.?)\s*$/,timeRx=/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i;
@@ -4109,7 +4221,7 @@ initApp();
       var parts=t.split(' · ');
       if(parts.length>1&&(dateRx.test(parts[0])||timeRx.test(parts[0])))t=parts.slice(1).join(' · ');
     }
-    if(/^(ca\.|um|ab)?\s*\d{1,2}:\d{2}(\s*Uhr)?$/i.test(t))return '';
+    if(timeRx.test(t))return '';
     return t.length>90?t.slice(0,88)+' …':t;
   }
   function nxIcon(c){
@@ -4123,16 +4235,40 @@ initApp();
     if(iso===addIso(today,1))return 'Morgen';
     return shortDate(iso);
   }
+  function nxEvents(c){
+    var p=parseInfo(c.info||''),t1=nxTime(c),t2=nxT(p.time2),lab=stripEmoji(c.label||''),out=[],tx=nxClean(p.text);
+    if(/\d{1,2}:\d{2}/.test(tx))tx='';
+    if(!c.datum)return out;
+    if(c.cat==='Unterkunft'){
+      var pl=String(p.text||'').split('·')[0].trim();
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'Check-in',extra:pl,times:'',r:3});
+      if(p.bis)out.push({c:c,iso:p.bis,time:t2,title:lab,tag:'Check-out',extra:pl,times:'',r:-1});
+    }else if(c.cat==='Transport'&&nxRental(c)){
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'Abholung',extra:tx,times:'',r:1});
+      if(t2||p.bis)out.push({c:c,iso:p.bis||c.datum,time:t2,title:lab,tag:'Rückgabe',extra:'',times:'',r:1.5});
+    }else if(c.cat==='Flug'||c.cat==='Transport'){
+      var ex=[];
+      if(t1)ex.push((c.cat==='Flug'?'Abflug ':'Abfahrt ')+t1);
+      if(t2)ex.push('Ankunft '+t2+(p.bis&&p.bis!==c.datum?' ('+shortDate(p.bis)+')':''));
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:ex.join(' · '),r:c.cat==='Flug'?0:1});
+    }else if(c.cat==='Ausflug'){
+      out.push({c:c,iso:c.datum,time:t1,title:lab,tag:'',extra:tx,times:t2?('Ende '+t2):'',r:2});
+    }
+    return out;
+  }
   function nextItems(today,max){
     var now=new Date(),hhmm=('0'+now.getHours()).slice(-2)+':'+('0'+now.getMinutes()).slice(-2);
-    var rank={Flug:0,Transport:1,Ausflug:2,Unterkunft:3};
-    return costs.filter(function(c){
-      if(!c.datum||c.cat==='Sonstiges'||c.datum<today)return false;
-      if(c.datum===today){var t=nxTime(c);if(t&&t<hhmm)return false;}
+    var src=(typeof previewCosts==='function')?previewCosts():costs,ev=[];
+    src.forEach(function(c){if(c.cat!=='Sonstiges')nxEvents(c).forEach(function(e){ev.push(e);});});
+    return ev.filter(function(e){
+      if(!e.iso||e.iso<today)return false;
+      if(e.iso===today&&e.time&&e.time<hhmm)return false;
       return true;
-    }).map(function(c,i){return {c:c,i:i,k:c.datum+'|'+(nxTime(c)||'99:99')+'|'+(rank[c.cat]!==undefined?rank[c.cat]:5)};})
-      .sort(function(a,b){return a.k<b.k?-1:(a.k>b.k?1:a.i-b.i);})
-      .slice(0,max).map(function(x){return x.c;});
+    }).map(function(e,i){
+      var dflt={'Check-out':'06:00','Abholung':'10:00','Rückgabe':'11:00','Check-in':'15:00'}[e.tag]||(e.c.cat==='Flug'?'08:30':(e.c.cat==='Transport'?'09:00':'09:30'));
+      e.i=i;e.k=e.iso+'|'+(e.time||dflt)+'|'+('0'+Math.round((e.r+1)*10)).slice(-2);return e;
+    })
+      .sort(function(a,b){return a.k<b.k?-1:(a.k>b.k?1:a.i-b.i);}).slice(0,max);
   }
   function heroHTML(days){
     var owner=isOwner(),ph=phase(days),ti=qxDefaultDate(days);
@@ -4185,15 +4321,14 @@ initApp();
       +'<button type="button" class="ah-tile" data-plus-act="foto"><i>'+ic('foto',20,1.9)+'</i>Foto</button>'
       +'<button type="button" class="ah-tile" data-plus-act="notiz"><i>'+ic('notiz',20,1.9)+'</i>Notiz</button>'
       +'<button type="button" class="ah-tile" data-plus-act="ausgabe"><i>'+ic('kosten',20,1.9)+'</i>Ausgabe</button></div>';
-    var nx=nextItems(ph.today,4);
+    var nx=nextItems(ph.today,5);
     if(nx.length){
-      html+='<div class="ah-next nx-card"><small class="nx-head">Als Nächstes</small>'+nx.map(function(c){
-        var tm=nxTime(c),p=parseInfo(c.info||''),extra='';
-        if(c.cat==='Unterkunft'){var pl=String(p.text||'').split('·')[0].trim();extra='Check-in'+(pl?' · '+pl:'');}
-        else extra=nxClean(p.text);
-        return '<div class="nx-row"><i>'+ic(nxIcon(c),22,1.8)+'</i><div class="nx-tx"><b>'+E(stripEmoji(c.label))+'</b>'
-          +'<small class="nx-when">'+E(nxDate(c.datum,ph.today)+(tm?' · '+tm+' Uhr':''))+'</small>'
-          +(extra?'<small class="nx-extra">'+E(extra)+'</small>':'')+'</div></div>';
+      html+='<div class="ah-next nx-card"><small class="nx-head">Als Nächstes</small>'+nx.map(function(e){
+        var c=e.c;
+        return '<div class="nx-row"><i>'+ic(nxIcon(c),22,1.8)+'</i><div class="nx-tx"><b>'+E(e.title)+'</b>'
+          +'<small class="nx-when">'+E((e.tag?e.tag+' · ':'')+nxDate(e.iso,ph.today)+(e.time?' · '+e.time+' Uhr':''))+'</small>'
+          +(e.times?'<small class="nx-extra">'+E(e.times)+'</small>':'')
+          +(e.extra?'<small class="nx-extra">'+E(e.extra)+'</small>':'')+'</div></div>';
       }).join('')+'</div>';
     }
     return html;
