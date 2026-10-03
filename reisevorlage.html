@@ -3761,9 +3761,13 @@ async function createPhotobook(){
       const k=o.toLowerCase().replace(/[^a-zäöüß]/g,'');if(seen[k])return;
       seen[k]=1;stations.push(o);
     });
-    const heroEl=document.getElementById('hero-bg-img');
+    // Deckblatt = Startbild der Reise (wie oben in der Übersicht), sonst erstes Foto der Reise
+    let cover='';
+    try{cover=window.tvCoverURL?(window.tvCoverURL()||''):'';}catch(e){}
+    if(!cover){const heroEl=document.getElementById('hero-bg-img');if(heroEl&&heroEl.src.indexOf('/titelbilder/')>=0)cover=heroEl.src;}
+    if(!cover){const d=items.find(it=>it.type==='day'&&it.photos.length);if(d)cover=d.photos[0].url;}
     await TvFotobuch.open({title:tripHead.title||'Unsere Reise',sub:tripHead.sub||'',dates:dates,stations:stations,
-      cover:heroEl&&heroEl.src?heroEl.src:'',items:items});
+      cover:cover,items:items});
   }catch(e){
     console.error('Fotobuch:',e);TvFotobuch.unbusy();toast('Das Fotobuch konnte nicht erstellt werden.');
   }
@@ -4650,6 +4654,7 @@ init();
     for(var i=0;i<sts.length;i++){var u=photoFor(sts[i].iso);if(u)return u;}
     return null;
   }
+  window.tvCoverURL=coverURL; // Startbild der Reise, auch fürs Fotobuch-Deckblatt
   async function loadOwnPhotos(){
     var days=buildDays(),todo=[];
     stationList().forEach(function(st){days.forEach(function(d){if(inStay(st,d)&&photos[d]===undefined&&todo.indexOf(d)<0&&todo.length<40)todo.push(d);});});
