@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="/fehler.js"></script>
+<script src="/fotobuch.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Reisetagebuch · Travona</title>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -3702,402 +3703,70 @@ function toggleGuestView(){
   toast(guestView?'Gästeansicht: So sehen Besucher die Seite.':'Bearbeiten wieder aktiv.');
 }
 
-// ── PDF-FOTOBUCH ──────────────────────────────────────────────────────────────
-// ── FOTOBUCH-ANSICHT: Fotos vorbereiten und in einem Fenster mit „Schließen“ anzeigen ──
-var _pbBlobs=[],_pbCancel=false;
+// ── FOTOBUCH ──────────────────────────────────────────────────────────────────
+// Layout, Vorschau und Druck stecken in /fotobuch.js; hier werden nur die Reisedaten zusammengestellt.
 function tvT(u,w){return window.tvThumb?window.tvThumb(u,w):u;}
-function pbUnesc(s){return String(s).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
-// alle Bild-Adressen aus dem Fotobuch-HTML (so, wie sie dort stehen)
-function pbCollectImages(html){
-  const out=[],seen={};
-  String(html).replace(/<img[^>]*\ssrc="([^"]+)"/g,function(_,u){
-    if(u.indexOf('data:')===0||u.indexOf('blob:')===0||seen[u])return _;
-    seen[u]=1;out.push(u);return _;
-  });
-  return out;
-}
-function pbApplyBlobs(html,map){
-  Object.keys(map).forEach(function(orig){
-    if(map[orig])html=html.split('src="'+orig+'"').join('src="'+map[orig]+'" data-o="'+orig+'" onerror="this.onerror=null;this.src=this.getAttribute(\'data-o\')"');
-  });
-  return html;
-}
-// Foto laden und auf höchstens maxDim Pixel verkleinern (spart Speicher am Handy); bei Problemen null
-function pbShrink(url,maxDim){
-  return new Promise(function(resolve){
-    const im=new Image();
-    im.crossOrigin='anonymous';
-    const t=setTimeout(function(){im.src='';resolve(null);},25000);
-    im.onload=function(){
-      clearTimeout(t);
-      try{
-        const sc=Math.min(1,maxDim/Math.max(im.naturalWidth,im.naturalHeight));
-        const c=document.createElement('canvas');
-        c.width=Math.max(1,Math.round(im.naturalWidth*sc));c.height=Math.max(1,Math.round(im.naturalHeight*sc));
-        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-        c.toBlob(function(b){resolve(b?URL.createObjectURL(b):null);},'image/jpeg',0.82);
-      }catch(e){resolve(null);}
-    };
-    im.onerror=function(){clearTimeout(t);resolve(null);};
-    im.src=url;
-  });
-}
-function pbProgress(text){
-  const ov=document.getElementById('pb-loading-overlay');
-  if(!ov)return;
-  let p=document.getElementById('pb-progress');
-  if(!p){
-    p=document.createElement('div');p.id='pb-progress';p.style.cssText='font-size:13px;opacity:.9;margin-top:10px;text-align:center;padding:0 24px';
-    ov.appendChild(p);
-    const c=document.createElement('button');c.textContent='Abbrechen';c.style.cssText='margin-top:18px;padding:10px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;cursor:pointer';
-    c.onclick=function(){_pbCancel=true;};ov.appendChild(c);
-  }
-  p.textContent=text;
-}
-// ── Darstellung im selben Dokument (Shadow-DOM), ohne Rahmen und ohne Umweg über Blob-Adressen in einem Fremdrahmen ──
-function pbSplitDoc(html){
-  const css=[];
-  String(html).replace(/<style[^>]*>([\s\S]*?)<\/style>/gi,function(_,c){css.push(c);return _;});
-  const m=String(html).match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  return {css:css.join('\n'),body:m?m[1]:String(html)};
-}
-// body-Regeln des Fotobuchs auf den Container umlenken, @page entfernen (steht separat im Dokument)
-function pbScopeCss(css){
-  return String(css).replace(/@page\s*\{[^}]*\}/g,'').replace(/(^|\})\s*body\s*\{/g,'$1.pb-root{');
-}
-// Lange Texte so lange verkleinern, bis sie in den Rahmen der Textseite passen
-function pbFitTexts(root){
-  root.querySelectorAll('.tp-frame').forEach(function(fr){
-    const tx=fr.querySelector('.tp-text');if(!tx||!fr.children.length)return;
-    const cs=getComputedStyle(fr);
-    const inner=fr.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0);
-    const extent=function(){
-      const f=fr.children[0].getBoundingClientRect(),l=fr.children[fr.children.length-1].getBoundingClientRect();
-      return l.bottom-f.top;
-    };
-    let fs=13,lh=1.95,guard=0;
-    while(extent()>inner+1&&fs>8.5&&guard++<40){
-      fs-=0.5;lh=Math.max(1.35,lh-0.03);
-      tx.style.fontSize=fs+'px';tx.style.lineHeight=String(lh);
-    }
-  });
-}
-function pbRemoveViewer(){
-  const v=document.getElementById('pb-viewer');
-  if(v)v.remove();
-  const s=document.getElementById('pb-print-style');
-  if(s)s.remove();
-  window.removeEventListener('popstate',pbCloseViewer);
-}
-function pbCloseViewer(){
-  pbRemoveViewer();
-  document.documentElement.style.overflow='';
-  _pbBlobsRevoke();
-}
-function _pbBlobsRevoke(){_pbBlobs.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});_pbBlobs=[];}
-function pbBackOrClose(){
-  if(history.state&&history.state.pb){history.back();}else{pbCloseViewer();}
-}
-async function pbShowViewer(html,title){
-  _pbCancel=false;_pbBlobsRevoke();
-  const ovEl=function(){return document.getElementById('pb-loading-overlay');};
-  try{
-    // 1) Fotos vorbereiten (verkleinern), höchstens 5 gleichzeitig
-    const urls=pbCollectImages(html);
-    const map={};
-    let done=0,next=0;
-    pbProgress('Fotos werden vorbereitet … 0 von '+urls.length);
-    async function worker(){
-      while(!_pbCancel&&next<urls.length){
-        const orig=urls[next++];
-        const _u=pbUnesc(orig);let blob=await pbShrink(tvT(_u,1400),1400);if(!blob&&tvT(_u,1400)!==_u)blob=await pbShrink(_u,1400);
-        if(blob){map[orig]=blob;_pbBlobs.push(blob);}
-        done++;pbProgress('Fotos werden vorbereitet … '+done+' von '+urls.length);
-      }
-    }
-    await Promise.all([worker(),worker(),worker(),worker(),worker()]);
-    if(_pbCancel){_pbBlobsRevoke();const o=ovEl();if(o)o.remove();toast('Abgebrochen.');return;}
-    html=pbApplyBlobs(html,map);
-    // 2) Ansicht aufbauen
-    pbRemoveViewer();
-    const doc=pbSplitDoc(html);
-    const v=document.createElement('div');
-    v.id='pb-viewer';
-    v.style.cssText='position:fixed;inset:0;z-index:10000;background:#cfc9c0;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif;';
-    const bar=document.createElement('div');
-    bar.className='pb-bar';
-    bar.style.cssText='flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 14px 10px;background:#F4EFE8;border-bottom:1px solid #D8D0C4;';
-    const btn=function(label,fn,solid){
-      const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;
-      b.style.cssText='min-height:42px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid '+(solid?'#1A1714':'#D8D0C4')+';background:'+(solid?'#1A1714':'transparent')+';color:'+(solid?'#F4EFE8':'#1A1714')+';white-space:nowrap;';
-      return b;
-    };
-    const ttl=document.createElement('div');
-    ttl.textContent=title||'Fotobuch';ttl.style.cssText='flex:1;min-width:0;font-size:13px;color:#6B6560;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    bar.appendChild(btn('← Schließen',pbBackOrClose,false));
-    bar.appendChild(ttl);
-    bar.appendChild(btn('Drucken / PDF',function(){toast('Für den Druck: Papier A4 und Querformat wählen.');setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},400);},true));
-    bar.appendChild(btn('Neuer Tab',function(){
-      const u=URL.createObjectURL(new Blob([html],{type:'text/html'}));_pbBlobs.push(u);window.open(u,'_blank');
-    },false));
-    const scroll=document.createElement('div');
-    scroll.id='pb-scroll';
-    scroll.style.cssText='flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;';
-    const zwrap=document.createElement('div');
-    zwrap.id='pb-zwrap';
-    zwrap.style.cssText='width:297mm;';
-    const host=document.createElement('div');
-    zwrap.appendChild(host);scroll.appendChild(zwrap);
-    v.appendChild(bar);v.appendChild(scroll);
-    // Druck: nur das Fotobuch, A4 quer, ohne Ränder
-    const ps=document.createElement('style');
-    ps.id='pb-print-style';
-    ps.textContent='@page{size:A4 landscape;margin:0}@media print{html,body{background:#fff !important;height:auto !important;overflow:visible !important}body>*:not(#pb-viewer){display:none !important}#pb-viewer{position:static !important;display:block !important;background:#fff !important;height:auto !important;overflow:visible !important}#pb-viewer .pb-bar{display:none !important}#pb-scroll{overflow:visible !important;height:auto !important}#pb-zwrap{zoom:1 !important;width:auto !important}}';
-    document.head.appendChild(ps);
-    document.body.appendChild(v);
-    document.documentElement.style.overflow='hidden';
-    const root=host.attachShadow({mode:'open'});
-    root.innerHTML='<style>:host{all:initial;display:block}'+pbScopeCss(doc.css)
-      +'.pb-root{width:297mm;}@media screen{.pb-page{margin:0 0 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style><div class="pb-root">'+doc.body+'</div>';
-    const fit=function(){zwrap.style.zoom=String(Math.min(1,scroll.clientWidth/1125));};
-    fit();window.addEventListener('resize',fit);
-    pbFitTexts(root);
-    try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){pbFitTexts(root);});}catch(e){}
-    // Zurück-Geste des Handys schließt das Fotobuch statt die Seite zu verlassen
-    try{history.pushState({pb:1},'');}catch(e){}
-    window.addEventListener('popstate',pbCloseViewer);
-    const o=ovEl();if(o)o.remove();
-    toast('✓ Fotobuch bereit. Tippe auf „Drucken / PDF“, um es zu speichern.');
-  }catch(e){
-    console.error('Fotobuch-Ansicht:',e);
-    const o=ovEl();if(o)o.remove();
-    // Rückfall: wie früher in einem neuen Tab öffnen
-    const win=window.open('','_blank');
-    if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-    win.document.write(html);win.document.close();
-  }
-}
-
 async function createPhotobook(){
   // Nur für den Besitzer: Gäste können das Fotobuch nicht erstellen
   if(!editMode){try{toast('Das Fotobuch ist nur für den Besitzer verfügbar.');}catch(e){}return;}
-  var _ov=document.createElement('div');
-  _ov.id='pb-loading-overlay';
-  _ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(26,23,20,.72);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:\'DM Sans\',sans-serif;';
-  _ov.innerHTML='<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.25);border-top-color:#B5714A;border-radius:50%;animation:pbspin .8s linear infinite;margin-bottom:20px"></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;margin-bottom:8px">Fotobuch wird vorbereitet…</div><div style="font-size:13px;opacity:.75;text-align:center;max-width:280px;line-height:1.5">Alle Fotos werden geladen. Das kann einen Moment dauern – bitte warten.</div>';
-  if(!document.getElementById('pbspin-style')){var st=document.createElement('style');st.id='pbspin-style';st.textContent='@keyframes pbspin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
-  document.body.appendChild(_ov);
+  if(!window.TvFotobuch){toast('Fotobuch lädt noch – bitte gleich noch einmal tippen.');return;}
   const days=buildDays();
-  if(!days.length){var o0=document.getElementById('pb-loading-overlay');if(o0)o0.remove();toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
-  // Alle Fotos aller Tage laden (in gespeicherter Reihenfolge)
-  for(const iso of days){
-    if(photos[iso]===undefined){
+  if(!days.length){toast('Erst Eckdaten oder Kosten mit Datum anlegen.');return;}
+  TvFotobuch.busy('Fotobuch wird vorbereitet …');
+  try{
+    // Fotolisten aller Tage parallel laden (in gespeicherter Reihenfolge)
+    await TvFotobuch.pool(days.filter(iso=>photos[iso]===undefined),6,async function(iso){
       try{photos[iso]=orderedPhotos(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
-    }
-  }
-  const rots=['-2.5deg','2deg','-1.5deg','3deg','-3deg','1.5deg','-2deg','2.5deg'];
-  function photoLayout(pics,iso,offset){
-    offset=offset||0;
-    const n=pics.length;
-    const cap=function(pi){const c=captionFor(iso,pics[pi]);return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
-    const img=function(pi){return '<figure style="--rot:'+rots[(pi+offset)%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';};
-    return '<div class="pomasonry poN'+n+'">'+pics.map(function(_,i){return img(i);}).join('')+'</div>';
-  }
-  // ── Seiten ──
-  const pages=[];
-  let tagNr=0;
-  const seenHotels={};
-  const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
-  for(const iso of days){
-    // Eigene Unterkunfts-Seite, wenn heute der Anreisetag einer Unterkunft ist
-    const stayStart=allStays.find(c=>c.datum===iso);
-    if(stayStart && !seenHotels[stayStart.id]){
-      seenHotels[stayStart.id]=true;
-      const pin=parseInfo(stayStart.info);
-      const hName=stayStart.label.split('·')[0].trim();
-      const hOrt=(_tagOrte[stayStart.datum]||'').trim();
-      const hp=(hotelPhotos[stayStart.datum]||[])[0];
-      const hFoto=hp?'<div class="ho-photo"><img src="'+esc(hp)+'"></div>':'<div class="ho-photo ho-nophoto">🏨</div>';
-      const hRev=hotelReviews[stayStart.datum]||{stars:0,text:''};
-      let hStars='';for(let s=1;s<=5;s++){hStars+=(s<=hRev.stars)?'★':'☆';}
-      pages.push(
-        '<div class="pb-page pb-hotel">'
-        +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
-        +'<div class="ho-eyebrow">Unsere Unterkunft</div>'
-        +'<div class="ho-emoji">🏨</div>'
-        +'<h2 class="ho-name">'+esc(hName)+'</h2>'
-        +(hOrt?'<div class="ho-loc">'+esc(hOrt)+'</div>':'')
-        +hFoto
-        +(hRev.stars?'<div class="ho-stars">'+hStars+'</div>':'')
-        +(hRev.text?'<div class="ho-note">„'+esc(hRev.text)+'"</div>':(pin.text?'<div class="ho-note">„'+esc(pin.text)+'"</div>':''))
-        +'</div>'
-      );
-    }
-    const entry=entries[iso];
-    const allDayPhotos=(photos[iso]||[]);
-    // Alle Fotos eines Tages auf maximal 3 Seiten verteilen (bis zu 8 Fotos je Seite)
-    const PB_MAX_PAGES=3, PB_MAX_PER_PAGE=8;
-    const dayPhotos=allDayPhotos.slice(0,PB_MAX_PAGES*PB_MAX_PER_PAGE);
-    const photoChunks=(function(pics){
-      const total=pics.length;
-      if(!total)return[];
-      const pagesNeeded=Math.min(PB_MAX_PAGES,Math.ceil(total/PB_MAX_PER_PAGE));
-      const base=Math.floor(total/pagesNeeded);let rem=total%pagesNeeded;
-      const chunks=[];let idx=0;
-      for(let p=0;p<pagesNeeded;p++){
-        let size=base+(rem>0?1:0);if(rem>0)rem--;
-        chunks.push(pics.slice(idx,idx+size));idx+=size;
-      }
-      return chunks;
-    })(dayPhotos);
-    if((!entry||!entry.text)&&photoChunks.length===0)continue;
-    tagNr++;
-    const dayCosts=costs.filter(c=>c.datum===iso);
-    const stay=stayForDay(iso);                      // erkennt auch Folgetage einer Unterkunft
-    const ort=ortFuerTag(iso) || (stay?stay.label:'');
-    const emoji=stay?'🏨':'📸';
-    const rawText=entry&&entry.text?entry.text:'';
-    const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
-    const eTitel=entry&&entry.titel?esc((ENTRY_CAT_EMOJI[entry.kat]?ENTRY_CAT_EMOJI[entry.kat]+' ':'')+entry.titel):'';
-    const isLong=rawText.length>400;
-    const titelBlock=eTitel?'<div class="pb-etitel">'+eTitel+'</div>':'';
-    const textBlock=text?('<div class="pb-textbox">'+titelBlock+'<div class="pb-text">'+text+'</div></div>'):'';
-    const head=function(tn){return '<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="pb-loc">📍 '+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';};
-    if(isLong&&text){
-      pages.push('<div class="pb-page pb-textpage"><div class="tp-frame"><div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div><div class="tp-emoji">'+emoji+'</div><div class="tp-date">'+fmtDateLong(iso)+'</div>'+(ort?'<div class="tp-loc">📍 '+esc(ort)+'</div>':'')+'<div class="tp-rule">✶ ✶ ✶</div>'+(eTitel?'<div class="tp-title">'+eTitel+'</div>':'')+'<div class="tp-text">'+text+'</div></div></div>');
-      let off=0;
-      photoChunks.forEach(function(chunk,idx){
-        const headHtml=idx===0?head(tagNr):'';
-        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+headHtml+photoLayout(chunk,iso,off)+'</div>');
-        off+=chunk.length;
-      });
-    }else if(photoChunks.length){
-      let off=0;
-      photoChunks.forEach(function(chunk,idx){
-        const headHtml=idx===0?head(tagNr):'';
-        const txt=idx===0?textBlock:'';
-        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+headHtml+photoLayout(chunk,iso,off)+txt+'</div>');
-        off+=chunk.length;
-      });
-    }else{
-      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+textBlock+'</div>');
-    }
-  }
-  if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
-  // ── Deckblatt ──
-  const title=tripHead.title||'Unsere Reise';
-  const sub=tripHead.sub||'';
-  const emoji=tripHead.emoji&&tripHead.emoji!=='🌍'?tripHead.emoji:'🧳';
-  let dateStr='';
-  if(tripHead.from){
-    const f=new Date(tripHead.from+'T12:00:00');
-    if(tripHead.to){dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
-    else{dateStr=f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
-  }
-  // Stationen = nur gesetzte Karten-Orte an Übernachtungstagen, chronologisch, ohne Duplikate
-  const stationList=[];
-  const seen={};
-  costs.filter(function(c){return c.cat==='Unterkunft'&&c.datum;})
-    .slice().sort(function(a,b){return a.datum<b.datum?-1:a.datum>b.datum?1:0;})
-    .forEach(function(c){
-      var o=(_tagOrte[c.datum]||'').trim();
-      if(!o)return;                       // ohne gesetzten Kartenort überspringen
-      var k=o.toLowerCase().replace(/[^a-zäöüß]/g,'');  // Vergleichsschlüssel
-      if(seen[k])return;
-      seen[k]=1;
-      stationList.push(o);
     });
-  const stations=stationList.join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-  // Titelbild der Reise als Deckblatt-Hintergrund (falls vorhanden)
-  var heroSrc='';
-  var heroEl=document.getElementById('hero-bg-img');
-  if(heroEl&&heroEl.src)heroSrc=heroEl.src;
-  const coverBg=heroSrc
-    ?'<img class="pb-cover-img" src="'+esc(heroSrc)+'" alt=""><div class="pb-cover-veil"></div>'
-    :'<div class="pb-cover-sun"></div><div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div>';
-  const cover='<div class="pb-page pb-cover">'+coverBg+'<div class="pb-cover-inner"><div class="pb-cover-eyebrow">Unser Reisetagebuch</div><h1 class="pb-cover-title">'+esc(title)+'</h1>'+(sub?'<div class="pb-cover-sub">'+esc(sub)+'</div>':'')+'<div class="pb-cover-line"></div>'+(dateStr?'<div class="pb-cover-dates">'+dateStr+'</div>':'')+(stations?'<div class="pb-cover-route">'+stations+'</div>':'')+'</div><div class="pb-cover-footer">Travona · travona.de</div></div>';
-  // ── CSS ──
-  const css='<style>'
-    +'@page{size:A4 landscape;margin:0;}'
-    +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-    +'body{font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;color:#2b2620;}'
-    +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:14mm;page-break-after:always;overflow:hidden;}'
-    +'.pb-page:last-child{page-break-after:auto;}'
-    +'.pb-cover{background:linear-gradient(160deg,#1a6b8a 0%,#13506b 45%,#0d3a52 100%);color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;position:relative;overflow:hidden;}'
-    +'.pb-cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}'
-    +'.pb-cover-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,58,82,.45) 0%,rgba(13,58,82,.55) 50%,rgba(13,58,82,.75) 100%);}'
-    +'.pb-cover-sun{position:absolute;top:42mm;left:50%;transform:translateX(-50%);width:120mm;height:120mm;background:radial-gradient(circle,rgba(224,123,63,.45) 0%,rgba(224,123,63,0) 70%);border-radius:50%;}'
-    +'.pb-cover-waves{position:absolute;bottom:0;left:0;width:100%;height:60mm;}'
-    +'.pb-cover-waves svg{width:100%;height:100%;display:block;}'
-    +'.pb-cover-inner{position:relative;z-index:2;padding:20mm;}'
-    +'.pb-cover-koala{font-size:64px;margin-bottom:10mm;}'
-    +'.pb-cover-eyebrow{font-size:15px;letter-spacing:4px;text-transform:uppercase;opacity:.9;margin-bottom:6mm;}'
-    +'.pb-cover-title{font-family:Georgia,serif;font-size:64px;font-weight:bold;letter-spacing:1px;line-height:1.1;}'
-    +'.pb-cover-sub{font-family:Georgia,serif;font-size:22px;font-style:italic;margin-top:4mm;opacity:.95;}'
-    +'.pb-cover-line{width:40mm;height:3px;background:rgba(255,255,255,.7);margin:10mm auto;}'
-    +'.pb-cover-dates{font-size:18px;letter-spacing:1px;margin-bottom:8mm;}'
-    +'.pb-cover-route{font-size:12px;line-height:2;opacity:.92;max-width:150mm;margin:0 auto;}'
-    +'.pb-cover-footer{position:absolute;bottom:14mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:2px;opacity:.8;z-index:2;}'
-    +'.pb-day{background:#fdfbf7;background-image:radial-gradient(#efe7d8 0.5px,transparent 0.5px),radial-gradient(#efe7d8 0.5px,#fdfbf7 0.5px);background-size:14px 14px;background-position:0 0,7px 7px;display:flex;flex-direction:column;}'
-    +'.pb-day-cont{font-family:Georgia,serif;font-style:italic;color:#1a6b8a;font-size:14px;text-align:center;margin-bottom:6mm;padding-bottom:3mm;border-bottom:1px dashed #d8cfc2;}'
-    +'.pb-corner{position:absolute;width:22mm;height:22mm;}'
-    +'.pb-corner-tl{top:8mm;left:8mm;border-top:2px solid #1a6b8a;border-left:2px solid #1a6b8a;}'
-    +'.pb-corner-br{bottom:8mm;right:8mm;border-bottom:2px solid #1a6b8a;border-right:2px solid #1a6b8a;}'
-    +'.pb-head{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1a6b8a;padding-bottom:6mm;margin-bottom:8mm;}'
-    +'.pb-head-l{display:flex;align-items:center;gap:5mm;}'
-    +'.pb-emoji{font-size:34px;}'
-    +'.pb-date{font-family:Georgia,serif;font-size:22px;font-weight:bold;color:#1a6b8a;}'
-    +'.pb-loc{font-size:13px;color:#999;margin-top:1mm;letter-spacing:.5px;}'
-    +'.pb-tagnr{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#bbb;border:1px solid #e0d8cc;border-radius:20px;padding:2mm 4mm;}'
-    +'.pomasonry{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:8mm 6mm;padding:6mm 4mm;}'
-    +'.pomasonry figure{background:#fff;padding:2.5mm 2.5mm 6mm;border-radius:1mm;box-shadow:0 4px 14px rgba(0,0,0,.16);transform:rotate(var(--rot));position:relative;}'
-    +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;border-radius:.5mm;}'
-    +'.pb-cap{margin-top:2mm;font-size:10px;color:#666;font-style:italic;text-align:center;font-family:Georgia,serif;}'
-    +'.poN1 figure{width:150mm;}.poN1 figure img{height:120mm;}'
-    +'.poN2 figure{width:115mm;}.poN2 figure img{height:78mm;}'
-    +'.poN3 figure{width:82mm;}.poN3 figure img{height:62mm;}'
-    +'.poN4 figure{width:80mm;}.poN4 figure img{height:58mm;}'
-    +'.poN5 figure{width:76mm;}.poN5 figure img{height:54mm;}'
-    +'.poN6 figure{width:72mm;}.poN6 figure img{height:50mm;}'
-    +'.poN7 figure{width:66mm;}.poN7 figure img{height:47mm;}'
-    +'.poN8 figure{width:62mm;}.poN8 figure img{height:45mm;}'
-    +'.pb-textbox{margin-top:8mm;background:#fff;border-left:4px solid #1a6b8a;border-radius:0 3mm 3mm 0;padding:6mm 7mm;box-shadow:0 2px 10px rgba(0,0,0,.05);}'
-    +'.pb-etitel{font-family:Georgia,serif;font-size:16px;font-weight:bold;color:#1a6b8a;margin-bottom:3mm;}'
-    +'.tp-title{font-family:Georgia,serif;font-size:20px;font-style:italic;color:#1a6b8a;margin-bottom:5mm;}'
-    +'.pb-text{font-size:12px;line-height:1.8;color:#444;text-align:justify;}'
-    +'.pb-textpage{background:linear-gradient(160deg,#f1f7f9 0%,#e0eef2 100%);display:flex;align-items:center;justify-content:center;}'
-    +'.tp-frame{position:relative;width:100%;height:182mm;border:2px solid #6aa6bd;border-radius:3mm;padding:16mm 24mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.5);}'
-    +'.tp-frame:before{content:"";position:absolute;inset:4mm;border:1px solid #9ac3d3;border-radius:2mm;pointer-events:none;}'
-    +'.tp-corner{position:absolute;font-size:20px;color:#6aa6bd;}'
-    +'.tp-tl{top:6mm;left:8mm;}.tp-tr{top:6mm;right:8mm;}.tp-bl{bottom:6mm;left:8mm;}.tp-br{bottom:6mm;right:8mm;}'
-    +'.tp-emoji{font-size:40px;margin-bottom:4mm;}'
-    +'.tp-date{font-family:Georgia,serif;font-size:22px;color:#1a6b8a;font-weight:bold;}'
-    +'.tp-loc{font-size:13px;color:#999;margin-top:2mm;letter-spacing:.5px;}'
-    +'.tp-rule{color:#6aa6bd;font-size:13px;letter-spacing:6px;margin:6mm 0;}'
-    +'.tp-text{font-family:Georgia,serif;font-size:14px;line-height:2;color:#3a342c;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
-    +'.pb-hotels{padding:20mm 18mm;background:#fbf8f3;}'
-    +'.hs-head{text-align:center;margin-bottom:12mm;border-bottom:1px solid #e0d8c8;padding-bottom:8mm;}'
-    +'.hs-eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#b5714a;margin-bottom:3mm;}'
-    +'.hs-title{font-family:Georgia,serif;font-size:30px;color:#1a1714;font-weight:normal;margin:0;}'
-    +'.hs-list{display:flex;flex-direction:column;gap:7mm;}'
-    +'.hs-item{border-left:2px solid #b5714a;padding:1mm 0 1mm 6mm;}'
-    +'.hs-name{font-family:Georgia,serif;font-size:17px;color:#1a1714;font-weight:bold;}'
-    +'.hs-ort{font-size:12px;color:#b5714a;margin-top:0.5mm;}'
-    +'.hs-dates{font-size:12px;color:#8a8178;margin-top:1mm;letter-spacing:.3px;}'
-    +'.hs-stars{color:#c79030;font-size:15px;letter-spacing:2px;margin-top:2mm;}'
-    +'.hs-text{font-family:Georgia,serif;font-size:12.5px;line-height:1.7;color:#4a4038;margin-top:2mm;font-style:italic;}'
-    +'.pb-hotel{background:#EDE8E0;display:flex;flex-direction:column;align-items:center;text-align:center;}'
-    +'.ho-eyebrow{font-size:12px;letter-spacing:5px;text-transform:uppercase;color:#B5714A;margin-top:4mm;}'
-    +'.ho-emoji{display:none;}'
-    +'.ho-name{font-family:Georgia,serif;font-size:32px;color:#1A1714;font-weight:bold;line-height:1.2;max-width:200mm;margin-top:3mm;}'
-    +'.ho-loc{font-size:13px;color:#6B6560;margin-top:3mm;letter-spacing:1px;text-transform:uppercase;}'
-    +'.ho-photo{margin:8mm 0 4mm;background:#fff;padding:2mm;box-shadow:0 4px 18px rgba(26,23,20,.14);}'
-    +'.ho-photo img{display:block;width:150mm;height:80mm;object-fit:cover;}'
-    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:150mm;height:80mm;background:#e3dccf;color:#6B6560;font-size:32px;}'
-    +'.ho-stars{color:#c79030;font-size:20px;letter-spacing:4px;margin-bottom:3mm;}'
-    +'.ho-note{font-family:Georgia,serif;font-style:italic;font-size:16px;color:#3a352e;max-width:180mm;margin:2mm 0 4mm;line-height:1.5;}'
-    +'</style>';
-  await pbShowViewer('<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(title)+' – Fotobuch</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>', title+' – Fotobuch');
+    const items=[];
+    const seenHotels={};
+    const allStays=costs.filter(c=>c.cat==='Unterkunft'&&c.datum);
+    for(const iso of days){
+      // Eigene Unterkunfts-Seite am Anreisetag einer Unterkunft
+      const stayStart=allStays.find(c=>c.datum===iso);
+      if(stayStart&&!seenHotels[stayStart.id]){
+        seenHotels[stayStart.id]=true;
+        const pin=parseInfo(stayStart.info);
+        const hRev=hotelReviews[stayStart.datum]||{stars:0,text:''};
+        items.push({type:'hotel',
+          name:stayStart.label.split('·')[0].trim(),
+          ort:(_tagOrte[stayStart.datum]||'').trim(),
+          photo:(hotelPhotos[stayStart.datum]||[])[0]||'',
+          stars:hRev.stars||0,
+          note:hRev.text||pin.text||''});
+      }
+      const entry=entries[iso];
+      const pics=photos[iso]||[];
+      if((!entry||!entry.text)&&!pics.length)continue;
+      const stay=stayForDay(iso);
+      items.push({type:'day',
+        date:fmtDateLong(iso),
+        ort:ortFuerTag(iso)||(stay?stay.label:''),
+        titel:entry&&entry.titel?entry.titel:'',
+        text:entry&&entry.text?entry.text:'',
+        photos:pics.map(u=>({url:u,cap:captionFor(iso,u)}))});
+    }
+    if(!items.some(it=>it.type==='day')){TvFotobuch.unbusy();toast('Noch keine Einträge oder Fotos vorhanden.');return;}
+    let dates='';
+    if(tripHead.from){
+      const f=new Date(tripHead.from+'T12:00:00');
+      dates=tripHead.to
+        ?f.toLocaleDateString('de-DE',{day:'numeric',month:'long'})+' – '+new Date(tripHead.to+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})
+        :f.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    }
+    // Stationen = gesetzte Karten-Orte an Übernachtungstagen, chronologisch, ohne Duplikate
+    const stations=[],seen={};
+    allStays.slice().sort((a,b)=>a.datum<b.datum?-1:a.datum>b.datum?1:0).forEach(function(c){
+      const o=(_tagOrte[c.datum]||'').trim();if(!o)return;
+      const k=o.toLowerCase().replace(/[^a-zäöüß]/g,'');if(seen[k])return;
+      seen[k]=1;stations.push(o);
+    });
+    const heroEl=document.getElementById('hero-bg-img');
+    await TvFotobuch.open({title:tripHead.title||'Unsere Reise',sub:tripHead.sub||'',dates:dates,stations:stations,
+      cover:heroEl&&heroEl.src?heroEl.src:'',items:items});
+  }catch(e){
+    console.error('Fotobuch:',e);TvFotobuch.unbusy();toast('Das Fotobuch konnte nicht erstellt werden.');
+  }
 }
 function fmtDateLong(iso){return new Date(iso+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});}
 
