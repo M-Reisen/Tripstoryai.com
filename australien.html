@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="/fehler.js"></script>
+<script src="/fotobuch.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Australien 2026 · Unser Reisetagebuch</title>
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -3214,400 +3215,43 @@ function drawAusMap(upToBid){
   return '<svg viewBox="0 0 '+W+' '+H+'" class="ausmap-svg"><rect x="0" y="0" width="'+W+'" height="'+H+'" fill="#EDE8E0" rx="3"/>'+restLine+doneLine+dots+'</svg>';
 }
 
-// ── FOTOBUCH-ANSICHT: Fotos vorbereiten und in einem Fenster mit „Schließen“ anzeigen ──
-var _pbBlobs=[],_pbCancel=false;
+// ── FOTOBUCH ──────────────────────────────────────────────────────────────────
+// Layout, Vorschau und Druck stecken in /fotobuch.js; hier werden nur die Reisedaten zusammengestellt.
 function tvT(u,w){return window.tvThumb?window.tvThumb(u,w):u;}
-function pbUnesc(s){return String(s).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
-// alle Bild-Adressen aus dem Fotobuch-HTML (so, wie sie dort stehen)
-function pbCollectImages(html){
-  const out=[],seen={};
-  String(html).replace(/<img[^>]*\ssrc="([^"]+)"/g,function(_,u){
-    if(u.indexOf('data:')===0||u.indexOf('blob:')===0||seen[u])return _;
-    seen[u]=1;out.push(u);return _;
-  });
-  return out;
-}
-function pbApplyBlobs(html,map){
-  Object.keys(map).forEach(function(orig){
-    if(map[orig])html=html.split('src="'+orig+'"').join('src="'+map[orig]+'" data-o="'+orig+'" onerror="this.onerror=null;this.src=this.getAttribute(\'data-o\')"');
-  });
-  return html;
-}
-// Foto laden und auf höchstens maxDim Pixel verkleinern (spart Speicher am Handy); bei Problemen null
-function pbShrink(url,maxDim){
-  return new Promise(function(resolve){
-    const im=new Image();
-    im.crossOrigin='anonymous';
-    const t=setTimeout(function(){im.src='';resolve(null);},25000);
-    im.onload=function(){
-      clearTimeout(t);
-      try{
-        const sc=Math.min(1,maxDim/Math.max(im.naturalWidth,im.naturalHeight));
-        const c=document.createElement('canvas');
-        c.width=Math.max(1,Math.round(im.naturalWidth*sc));c.height=Math.max(1,Math.round(im.naturalHeight*sc));
-        c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-        c.toBlob(function(b){resolve(b?URL.createObjectURL(b):null);},'image/jpeg',0.82);
-      }catch(e){resolve(null);}
-    };
-    im.onerror=function(){clearTimeout(t);resolve(null);};
-    im.src=url;
-  });
-}
-function pbProgress(text){
-  const ov=document.getElementById('pb-loading-overlay');
-  if(!ov)return;
-  let p=document.getElementById('pb-progress');
-  if(!p){
-    p=document.createElement('div');p.id='pb-progress';p.style.cssText='font-size:13px;opacity:.9;margin-top:10px;text-align:center;padding:0 24px';
-    ov.appendChild(p);
-    const c=document.createElement('button');c.textContent='Abbrechen';c.style.cssText='margin-top:18px;padding:10px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-size:13px;cursor:pointer';
-    c.onclick=function(){_pbCancel=true;};ov.appendChild(c);
-  }
-  p.textContent=text;
-}
-// ── Darstellung im selben Dokument (Shadow-DOM), ohne Rahmen und ohne Umweg über Blob-Adressen in einem Fremdrahmen ──
-function pbSplitDoc(html){
-  const css=[];
-  String(html).replace(/<style[^>]*>([\s\S]*?)<\/style>/gi,function(_,c){css.push(c);return _;});
-  const m=String(html).match(/<body[^>]*>([\s\S]*)<\/body>/i);
-  return {css:css.join('\n'),body:m?m[1]:String(html)};
-}
-// body-Regeln des Fotobuchs auf den Container umlenken, @page entfernen (steht separat im Dokument)
-function pbScopeCss(css){
-  return String(css).replace(/@page\s*\{[^}]*\}/g,'').replace(/(^|\})\s*body\s*\{/g,'$1.pb-root{');
-}
-// Lange Texte so lange verkleinern, bis sie in den Rahmen der Textseite passen
-function pbFitTexts(root){
-  root.querySelectorAll('.tp-frame').forEach(function(fr){
-    const tx=fr.querySelector('.tp-text');if(!tx||!fr.children.length)return;
-    const cs=getComputedStyle(fr);
-    const inner=fr.clientHeight-(parseFloat(cs.paddingTop)||0)-(parseFloat(cs.paddingBottom)||0);
-    const extent=function(){
-      const f=fr.children[0].getBoundingClientRect(),l=fr.children[fr.children.length-1].getBoundingClientRect();
-      return l.bottom-f.top;
-    };
-    let fs=13,lh=1.95,guard=0;
-    while(extent()>inner+1&&fs>8.5&&guard++<40){
-      fs-=0.5;lh=Math.max(1.35,lh-0.03);
-      tx.style.fontSize=fs+'px';tx.style.lineHeight=String(lh);
-    }
-  });
-}
-function pbRemoveViewer(){
-  const v=document.getElementById('pb-viewer');
-  if(v)v.remove();
-  const s=document.getElementById('pb-print-style');
-  if(s)s.remove();
-  window.removeEventListener('popstate',pbCloseViewer);
-}
-function pbCloseViewer(){
-  pbRemoveViewer();
-  document.documentElement.style.overflow='';
-  _pbBlobsRevoke();
-}
-function _pbBlobsRevoke(){_pbBlobs.forEach(function(u){try{URL.revokeObjectURL(u);}catch(e){}});_pbBlobs=[];}
-function pbBackOrClose(){
-  if(history.state&&history.state.pb){history.back();}else{pbCloseViewer();}
-}
-async function pbShowViewer(html,title){
-  _pbCancel=false;_pbBlobsRevoke();
-  const ovEl=function(){return document.getElementById('pb-loading-overlay');};
-  try{
-    // 1) Fotos vorbereiten (verkleinern), höchstens 5 gleichzeitig
-    const urls=pbCollectImages(html);
-    const map={};
-    let done=0,next=0;
-    pbProgress('Fotos werden vorbereitet … 0 von '+urls.length);
-    async function worker(){
-      while(!_pbCancel&&next<urls.length){
-        const orig=urls[next++];
-        const _u=pbUnesc(orig);let blob=await pbShrink(tvT(_u,1400),1400);if(!blob&&tvT(_u,1400)!==_u)blob=await pbShrink(_u,1400);
-        if(blob){map[orig]=blob;_pbBlobs.push(blob);}
-        done++;pbProgress('Fotos werden vorbereitet … '+done+' von '+urls.length);
-      }
-    }
-    await Promise.all([worker(),worker(),worker(),worker(),worker()]);
-    if(_pbCancel){_pbBlobsRevoke();const o=ovEl();if(o)o.remove();toast('Abgebrochen.');return;}
-    html=pbApplyBlobs(html,map);
-    // 2) Ansicht aufbauen
-    pbRemoveViewer();
-    const doc=pbSplitDoc(html);
-    const v=document.createElement('div');
-    v.id='pb-viewer';
-    v.style.cssText='position:fixed;inset:0;z-index:10000;background:#cfc9c0;display:flex;flex-direction:column;font-family:"DM Sans",sans-serif;';
-    const bar=document.createElement('div');
-    bar.className='pb-bar';
-    bar.style.cssText='flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:max(10px,env(safe-area-inset-top)) 14px 10px;background:#F4EFE8;border-bottom:1px solid #D8D0C4;';
-    const btn=function(label,fn,solid){
-      const b=document.createElement('button');b.type='button';b.textContent=label;b.onclick=fn;
-      b.style.cssText='min-height:42px;padding:0 16px;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;border:1px solid '+(solid?'#1A1714':'#D8D0C4')+';background:'+(solid?'#1A1714':'transparent')+';color:'+(solid?'#F4EFE8':'#1A1714')+';white-space:nowrap;';
-      return b;
-    };
-    const ttl=document.createElement('div');
-    ttl.textContent=title||'Fotobuch';ttl.style.cssText='flex:1;min-width:0;font-size:13px;color:#6B6560;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-    bar.appendChild(btn('← Schließen',pbBackOrClose,false));
-    bar.appendChild(ttl);
-    bar.appendChild(btn('Drucken / PDF',function(){toast('Für den Druck: Papier A4 und Querformat wählen.');setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},400);},true));
-    bar.appendChild(btn('Neuer Tab',function(){
-      const u=URL.createObjectURL(new Blob([html],{type:'text/html'}));_pbBlobs.push(u);window.open(u,'_blank');
-    },false));
-    const scroll=document.createElement('div');
-    scroll.id='pb-scroll';
-    scroll.style.cssText='flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;';
-    const zwrap=document.createElement('div');
-    zwrap.id='pb-zwrap';
-    zwrap.style.cssText='width:297mm;';
-    const host=document.createElement('div');
-    zwrap.appendChild(host);scroll.appendChild(zwrap);
-    v.appendChild(bar);v.appendChild(scroll);
-    // Druck: nur das Fotobuch, A4 quer, ohne Ränder
-    const ps=document.createElement('style');
-    ps.id='pb-print-style';
-    ps.textContent='@page{size:A4 landscape;margin:0}@media print{html,body{background:#fff !important;height:auto !important;overflow:visible !important}body>*:not(#pb-viewer){display:none !important}#pb-viewer{position:static !important;display:block !important;background:#fff !important;height:auto !important;overflow:visible !important}#pb-viewer .pb-bar{display:none !important}#pb-scroll{overflow:visible !important;height:auto !important}#pb-zwrap{zoom:1 !important;width:auto !important}}';
-    document.head.appendChild(ps);
-    document.body.appendChild(v);
-    document.documentElement.style.overflow='hidden';
-    const root=host.attachShadow({mode:'open'});
-    root.innerHTML='<style>:host{all:initial;display:block}'+pbScopeCss(doc.css)
-      +'.pb-root{width:297mm;}@media screen{.pb-page{margin:0 0 14px;box-shadow:0 2px 12px rgba(0,0,0,.28)}}</style><div class="pb-root">'+doc.body+'</div>';
-    const fit=function(){zwrap.style.zoom=String(Math.min(1,scroll.clientWidth/1125));};
-    fit();window.addEventListener('resize',fit);
-    pbFitTexts(root);
-    try{if(document.fonts&&document.fonts.ready)document.fonts.ready.then(function(){pbFitTexts(root);});}catch(e){}
-    // Zurück-Geste des Handys schließt das Fotobuch statt die Seite zu verlassen
-    try{history.pushState({pb:1},'');}catch(e){}
-    window.addEventListener('popstate',pbCloseViewer);
-    const o=ovEl();if(o)o.remove();
-    toast('✓ Fotobuch bereit. Tippe auf „Drucken / PDF“, um es zu speichern.');
-  }catch(e){
-    console.error('Fotobuch-Ansicht:',e);
-    const o=ovEl();if(o)o.remove();
-    // Rückfall: wie früher in einem neuen Tab öffnen
-    const win=window.open('','_blank');
-    if(!win){toast('Bitte Pop-ups erlauben, dann erneut versuchen.');return;}
-    win.document.write(html);win.document.close();
-  }
-}
-
 async function createPhotobook(){
   // Nur für den Besitzer: Gäste können das Fotobuch nicht erstellen
   if(!editMode){try{toast('Das Fotobuch ist nur für den Besitzer verfügbar.');}catch(e){}return;}
-  // Sichtbarer Lade-Hinweis (Overlay)
-  var _ov=document.createElement('div');
-  _ov.id='pb-loading-overlay';
-  _ov.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(26,23,20,.72);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:\'DM Sans\',sans-serif;';
-  _ov.innerHTML='<div style="width:44px;height:44px;border:3px solid rgba(255,255,255,.25);border-top-color:#B5714A;border-radius:50%;animation:pbspin .8s linear infinite;margin-bottom:20px"></div><div style="font-family:\'Playfair Display\',serif;font-size:22px;margin-bottom:8px">Fotobuch wird vorbereitet…</div><div style="font-size:13px;opacity:.75;text-align:center;max-width:280px;line-height:1.5">Alle Fotos werden geladen. Das kann einen Moment dauern – bitte warten.</div>';
-  if(!document.getElementById('pbspin-style')){var st=document.createElement('style');st.id='pbspin-style';st.textContent='@keyframes pbspin{to{transform:rotate(360deg)}}';document.head.appendChild(st);}
-  document.body.appendChild(_ov);
-  // Alle Fotos aller Tage laden
-  for(const day of DAYS){
-    if(!photos[day.iso]){
+  if(!window.TvFotobuch){toast('Fotobuch lädt noch – bitte gleich noch einmal tippen.');return;}
+  TvFotobuch.busy('Fotobuch wird vorbereitet …');
+  try{
+    // Fotolisten aller Tage und Hotelfotos parallel laden
+    await TvFotobuch.pool(DAYS.filter(d=>!photos[d.iso]),6,async function(day){
       try{photos[day.iso]=loadPhotoOrder(day.iso,await sbLoadPhotos(day.iso));}catch(e){photos[day.iso]=[];}
-    }
-  }
-  // Hotelfotos aller Unterkünfte laden
-  for(const b of BOOKINGS){
-    if(!hotelPhotos[b.id]){
+    });
+    await TvFotobuch.pool(BOOKINGS.filter(b=>!hotelPhotos[b.id]),6,async function(b){
       try{hotelPhotos[b.id]=await sbLoadHotelPhotos(b.id);}catch(e){hotelPhotos[b.id]=[];}
-    }
-  }
-  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // ── Foto-Layout je nach Anzahl (max 8) – lockerer Polaroid-Stil ──
-  function photoLayout(pics,iso){
-    const n=pics.length;
-    const rots=['-2.5deg','2deg','-1.5deg','3deg','-3deg','1.5deg','-2deg','2.5deg'];
-    const cap=pi=>{const c=photoComments[iso+'_'+pi]||'';return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
-    const img=(pi,cls)=>'<figure class="po-'+(cls||'')+'" style="--rot:'+rots[pi%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
-    return '<div class="pomasonry poN'+n+'">'+pics.map((_,i)=>img(i)).join('')+'</div>';
-  }
-  // Fortsetzungsseite: gleiche Optik, aber Bildunterschrift-Index versetzt
-  function photoLayout2(pics,iso,offset){
-    const n=pics.length;
-    const rots=['-2deg','2.5deg','-3deg','1.5deg','-1.5deg','3deg','-2.5deg','2deg'];
-    const cap=pi=>{const c=photoComments[iso+'_'+(pi+offset)]||'';return c?'<div class="pb-cap">'+esc(c)+'</div>':'';};
-    const img=pi=>'<figure style="--rot:'+rots[pi%rots.length]+'"><img src="'+pics[pi]+'">'+cap(pi)+'</figure>';
-    return '<div class="pomasonry poN'+n+'">'+pics.map((_,i)=>img(i)).join('')+'</div>';
-  }
-  // ── Seiten aufbauen: Hotel-Seiten + Tagesseiten ──
-  const pages=[];
-  let tagNr=0;
-  const seenHotels={};
-  for(const day of DAYS){
-    // Hotel-Seite einmal pro Hotel (beim ersten Tag dieser Unterkunft)
-    if(day.stay && !seenHotels[day.stay.id]){
-      seenHotels[day.stay.id]=true;
-      const b=day.stay;
-      const hp=(hotelPhotos[b.id]||[])[0];
-      const hotelFoto=hp?'<div class="ho-photo" style="--rot:-2deg"><img src="'+hp+'"></div>':'<div class="ho-photo ho-nophoto">'+b.emoji+'</div>';
-      pages.push(
-        '<div class="pb-page pb-hotel">'
-        +'<div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'
-        +'<div class="ho-eyebrow">Unsere Unterkunft</div>'
-        +'<div class="ho-emoji">'+b.emoji+'</div>'
-        +'<h2 class="ho-name">'+esc(b.name)+'</h2>'
-        +'<div class="ho-loc">'+esc(b.loc)+'</div>'
-        +hotelFoto
-        +(b.note?'<div class="ho-note">„'+esc(b.note)+'"</div>':'')
-        +'<div class="ho-map"><div class="ho-map-title">Unsere Route bisher</div>'+drawAusMap(b.id)+'</div>'
-        +'</div>'
-      );
-    }
-    // Tagesseite(n)
-    const entry=entries.find(e=>e.datum===day.iso);
-    const allDayPhotos=(photos[day.iso]||[]);
-    // Alle Fotos eines Tages auf maximal 3 Seiten verteilen (bis zu 8 Fotos je Seite)
-    const PB_MAX_PAGES=3, PB_MAX_PER_PAGE=8;
-    const dayPhotos=allDayPhotos.slice(0,PB_MAX_PAGES*PB_MAX_PER_PAGE);
-    const photoChunks=(function(pics){
-      const total=pics.length;
-      if(!total)return[];
-      const pagesNeeded=Math.min(PB_MAX_PAGES,Math.ceil(total/PB_MAX_PER_PAGE));
-      const base=Math.floor(total/pagesNeeded);let rem=total%pagesNeeded;
-      const chunks=[];let idx=0;
-      for(let p=0;p<pagesNeeded;p++){
-        let size=base+(rem>0?1:0);if(rem>0)rem--;
-        chunks.push(pics.slice(idx,idx+size));idx+=size;
+    });
+    const items=[];
+    const seenHotels={};
+    for(const day of DAYS){
+      if(day.stay&&!seenHotels[day.stay.id]){
+        seenHotels[day.stay.id]=true;
+        const b=day.stay;
+        items.push({type:'hotel',name:b.name,ort:b.loc,photo:(hotelPhotos[b.id]||[])[0]||'',note:b.note||'',
+          extraHtml:'<div class="pb-eyebrow" style="margin-bottom:2mm">Unsere Route bisher</div>'+drawAusMap(b.id)});
       }
-      return chunks;
-    })(dayPhotos);
-    if(!entry&&photoChunks.length===0)continue;
-    tagNr++;
-    const ort=day.stay?day.stay.loc:'';
-    const emoji=day.stay?day.stay.emoji:'📸';
-    const titel=entry&&entry.titel?esc(entry.titel):'';
-    const rawText=entry&&entry.text?entry.text:'';
-    const text=rawText?esc(rawText).replace(/\n/g,'<br>'):'';
-    const isLong=rawText.length>400;
-    const textBlock=(titel||text)?('<div class="pb-textbox">'+(titel?'<div class="pb-title">'+titel+'</div>':'')+(text?'<div class="pb-text">'+text+'</div>':'')+'</div>'):'';
-    const head=tn=>'<header class="pb-head"><div class="pb-head-l"><span class="pb-emoji">'+emoji+'</span><div><div class="pb-date">'+formatDate(day.iso)+'</div>'+(ort?'<div class="pb-loc">'+esc(ort)+'</div>':'')+'</div></div><div class="pb-tagnr">Tag '+tn+'</div></header>';
-    // Lange Texte: eigene gestaltete Textseite VOR den Fotos
-    if(isLong&&(titel||text)){
-      pages.push(
-        '<div class="pb-page pb-textpage">'
-        +'<div class="tp-frame">'
-        +'<div class="tp-corner tp-tl">❦</div><div class="tp-corner tp-tr">❦</div><div class="tp-corner tp-bl">❦</div><div class="tp-corner tp-br">❦</div>'
-        +'<div class="tp-emoji">'+emoji+'</div>'
-        +'<div class="tp-date">'+formatDate(day.iso)+'</div>'
-        +(ort?'<div class="tp-loc">'+esc(ort)+'</div>':'')
-        +'<div class="tp-rule">✶ ✶ ✶</div>'
-        +(titel?'<div class="tp-title">'+titel+'</div>':'')
-        +'<div class="tp-text">'+text+'</div>'
-        +'</div></div>'
-      );
-      // Fotoseite(n) ohne Text
-      let off=0;
-      photoChunks.forEach(function(chunk,idx){
-        const layout=idx===0?photoLayout(chunk,day.iso):photoLayout2(chunk,day.iso,off);
-        const headHtml=idx===0?head(tagNr):'';
-        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+headHtml+layout+'</div>');
-        off+=chunk.length;
-      });
+      const entry=entries.find(e=>e.datum===day.iso);
+      const pics=photos[day.iso]||[];
+      if(!entry&&!pics.length)continue;
+      items.push({type:'day',date:formatDate(day.iso),ort:day.stay?day.stay.loc:'',
+        titel:entry&&entry.titel?entry.titel:'',text:entry&&entry.text?entry.text:'',
+        photos:pics.map((u,i)=>({url:u,cap:photoComments[day.iso+'_'+i]||''}))});
     }
-    // Kurzer Text: bei den Fotos
-    else if(photoChunks.length){
-      let off=0;
-      photoChunks.forEach(function(chunk,idx){
-        const layout=idx===0?photoLayout(chunk,day.iso):photoLayout2(chunk,day.iso,off);
-        const headHtml=idx===0?head(tagNr):'';
-        const txt=idx===0?textBlock:'';
-        pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+headHtml+layout+txt+'</div>');
-        off+=chunk.length;
-      });
-    }else{
-      pages.push('<div class="pb-page pb-day"><div class="pb-corner pb-corner-tl"></div><div class="pb-corner pb-corner-br"></div>'+head(tagNr)+textBlock+'</div>');
-    }
+    await TvFotobuch.open({title:'Australien',sub:'Queensland & Great Barrier Reef',dates:'13. September – 10. Oktober 2026',
+      stations:BOOKINGS.map(b=>b.loc.split(',')[0]),cover:'',items:items});
+  }catch(e){
+    console.error('Fotobuch:',e);TvFotobuch.unbusy();toast('Das Fotobuch konnte nicht erstellt werden.');
   }
-  if(!pages.length){toast('Noch keine Einträge oder Fotos vorhanden.');return;}
-  // ── Deckblatt ──
-  const stations=BOOKINGS.map(b=>b.emoji+' '+b.loc.split(',')[0]).join('&nbsp;&nbsp;·&nbsp;&nbsp;');
-  const cover=
-    '<div class="pb-page pb-cover">'
-    +'<div class="pb-cover-sun"></div>'
-    +'<div class="pb-cover-waves"><svg viewBox="0 0 600 120" preserveAspectRatio="none"><path d="M0,40 Q150,80 300,40 T600,40 L600,120 L0,120 Z" fill="rgba(255,255,255,.18)"/><path d="M0,60 Q150,100 300,60 T600,60 L600,120 L0,120 Z" fill="rgba(255,255,255,.28)"/></svg></div>'
-    +'<div class="pb-cover-inner">'
-    +'<div class="pb-cover-koala">🐨</div>'
-    +'<div class="pb-cover-eyebrow">Unser Reisetagebuch</div>'
-    +'<h1 class="pb-cover-title">Australien</h1>'
-    +'<div class="pb-cover-sub">Queensland &amp; Great Barrier Reef</div>'
-    +'<div class="pb-cover-line"></div>'
-    +'<div class="pb-cover-dates">13. September – 10. Oktober 2026</div>'
-    +'<div class="pb-cover-route">'+stations+'</div>'
-    +'</div>'
-    +'<div class="pb-cover-footer">Travona · travona.de</div>'
-    +'</div>';
-  // ── CSS ──
-  const css='<style>'
-    +'@page{size:A4 landscape;margin:0;}'
-    +'@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap");'
-    +'*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}'
-    +'body{font-family:"DM Sans",sans-serif;color:#1A1714;}'
-    +'.pb-page{position:relative;width:297mm;min-height:210mm;padding:20mm;page-break-after:always;overflow:hidden;background:#F4EFE8;}'
-    +'.pb-page:last-child{page-break-after:auto;}'
-    // Deckblatt - elegant, Petrol-Hintergrund
-    +'.pb-cover{background:#2C5F6A;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:0;}'
-    +'.pb-cover-inner{position:relative;z-index:2;padding:20mm;}'
-    +'.pb-cover-eyebrow{font-size:12px;letter-spacing:6px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:14mm;}'
-    +'.pb-cover-title{font-family:"Playfair Display",serif;font-size:88px;font-weight:400;letter-spacing:-1px;line-height:.95;}'
-    +'.pb-cover-line{width:40mm;height:1px;background:#B5714A;margin:12mm auto;}'
-    +'.pb-cover-sub{font-family:"Playfair Display",serif;font-size:22px;font-style:italic;margin-top:2mm;color:rgba(255,255,255,.85);}'
-    +'.pb-cover-dates{font-size:15px;letter-spacing:2px;margin-bottom:10mm;color:rgba(255,255,255,.7);}'
-    +'.pb-cover-route{font-size:12px;line-height:2.2;color:rgba(255,255,255,.6);max-width:150mm;margin:0 auto;}'
-    +'.pb-cover-footer{position:absolute;bottom:16mm;left:0;width:100%;text-align:center;font-size:11px;letter-spacing:3px;color:rgba(255,255,255,.5);z-index:2;}'
-    +'.pb-cover-koala,.pb-cover-sun,.pb-cover-waves{display:none;}'
-    // Tagesseite - clean, Creme
-    +'.pb-day{background:#F4EFE8;display:flex;flex-direction:column;}'
-    +'.pb-day-cont{display:none;}'
-    +'.pb-corner{display:none;}'
-    +'.pb-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid #D8D0C4;padding-bottom:6mm;margin-bottom:10mm;}'
-    +'.pb-head-l{display:flex;align-items:baseline;gap:5mm;}'
-    +'.pb-emoji{display:none;}'
-    +'.pb-date{font-family:"Playfair Display",serif;font-size:30px;font-weight:400;color:#1A1714;}'
-    +'.pb-loc{font-size:12px;color:#6B6560;margin-top:2mm;letter-spacing:1px;text-transform:uppercase;}'
-    +'.pb-tagnr{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#B5714A;}'
-    // Foto-Raster - gerade, elegant, kein Schräg-Polaroid
-    +'.pomasonry{display:flex;flex-wrap:wrap;justify-content:center;align-content:flex-start;gap:5mm;padding:2mm 0;}'
-    +'.pomasonry figure{background:#fff;padding:2mm;box-shadow:0 2px 12px rgba(26,23,20,.1);transform:none;position:relative;}'
-    +'.pomasonry figure img{display:block;width:100%;height:100%;object-fit:cover;}'
-    +'.pb-cap{margin-top:2mm;font-size:10px;color:#6B6560;text-align:center;font-family:"DM Sans",sans-serif;}'
-    +'.poN1 figure{width:160mm;}.poN1 figure img{height:120mm;}'
-    +'.poN2 figure{width:120mm;}.poN2 figure img{height:82mm;}'
-    +'.poN3 figure{width:88mm;}.poN3 figure img{height:64mm;}'
-    +'.poN4 figure{width:85mm;}.poN4 figure img{height:60mm;}'
-    +'.poN5 figure{width:80mm;}.poN5 figure img{height:56mm;}'
-    +'.poN6 figure{width:76mm;}.poN6 figure img{height:52mm;}'
-    +'.poN7 figure{width:70mm;}.poN7 figure img{height:48mm;}'
-    +'.poN8 figure{width:66mm;}.poN8 figure img{height:46mm;}'
-    // Textbox - clean
-    +'.pb-textbox{margin-top:10mm;background:#fff;border-left:2px solid #B5714A;padding:7mm 9mm;box-shadow:0 2px 10px rgba(26,23,20,.05);}'
-    +'.pb-title{font-family:"Playfair Display",serif;font-size:18px;font-weight:400;color:#1A1714;margin-bottom:3mm;}'
-    +'.pb-text{font-size:12px;line-height:1.9;color:#3a352e;text-align:justify;}'
-    // Hotel-Seite - clean Creme
-    +'.pb-hotel{background:#EDE8E0;display:flex;flex-direction:column;align-items:center;text-align:center;}'
-    +'.ho-eyebrow{font-size:12px;letter-spacing:5px;text-transform:uppercase;color:#B5714A;margin-top:4mm;}'
-    +'.ho-emoji{display:none;}'
-    +'.ho-name{font-family:"Playfair Display",serif;font-size:32px;color:#1A1714;font-weight:400;line-height:1.2;max-width:200mm;margin-top:3mm;}'
-    +'.ho-loc{font-size:13px;color:#6B6560;margin-top:3mm;letter-spacing:1px;text-transform:uppercase;}'
-    +'.ho-photo{margin:8mm 0;background:#fff;padding:2mm;box-shadow:0 4px 18px rgba(26,23,20,.14);transform:none;}'
-    +'.ho-photo img{display:block;width:150mm;height:80mm;object-fit:cover;}'
-    +'.ho-nophoto{display:flex;align-items:center;justify-content:center;width:150mm;height:80mm;background:#e3dccf;color:#6B6560;font-size:14px;}'
-    +'.ho-note{font-family:"Playfair Display",serif;font-style:italic;font-size:16px;color:#3a352e;max-width:180mm;margin:2mm 0 4mm;line-height:1.5;}'
-    +'.ho-map{margin-top:auto;width:100%;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6mm;padding-bottom:2mm;}'
-    +'.ho-map-title{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#B5714A;}'
-    +'.ausmap-svg{width:80mm;height:auto;}'
-    +'.ausmap-img{width:70mm;height:auto;border:1px solid #D8D0C4;border-radius:2px;display:block;}'
-    // Textseite (Querformat) - clean
-    +'.pb-textpage{background:#F4EFE8;display:flex;align-items:center;justify-content:center;}'
-    +'.tp-frame{position:relative;width:100%;height:170mm;border:1px solid #D8D0C4;padding:18mm 26mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#fff;}'
-    +'.tp-frame:before{display:none;}'
-    +'.tp-corner{display:none;}'
-    +'.tp-emoji{display:none;}'
-    +'.tp-date{font-family:"Playfair Display",serif;font-size:26px;color:#1A1714;font-weight:400;}'
-    +'.tp-loc{font-size:12px;color:#6B6560;margin-top:2mm;letter-spacing:1px;text-transform:uppercase;}'
-    +'.tp-rule{width:40mm;height:1px;background:#B5714A;margin:8mm auto;}'
-    +'.tp-title{font-family:"Playfair Display",serif;font-size:22px;font-style:italic;color:#2C5F6A;margin-bottom:7mm;}'
-    +'.tp-text{font-family:"DM Sans",sans-serif;font-size:13px;line-height:1.95;color:#3a352e;text-align:justify;max-width:200mm;column-count:2;column-gap:14mm;}'
-    +'</style>';
-  await pbShowViewer('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Travona Fotobuch – Australien 2026</title>'+css+'</head><body>'+cover+pages.join('')+'</body></html>', 'Fotobuch – Australien 2026');
 }
 
 function formatEUR(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
