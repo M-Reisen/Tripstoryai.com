@@ -1439,12 +1439,14 @@ async function compressImage(file){
   }catch(e){console.warn('Komprimierung übersprungen:',e);return file;}
 }
 
-async function sbUploadPhoto(iso,file){
+async function sbUploadPhoto(iso,orig){
   try{
-    const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+    // große Handy-Fotos vor dem Upload verkleinern (spart Speicher und Datenvolumen)
+    const file=await compressImage(orig);
+    const ext=file===orig?((orig.name.split('.').pop()||'jpg').toLowerCase()):'jpg';
     const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
     // Timeout: bricht nach 30s ab statt ewig zu hängen
-    const uploadPromise=sb.storage.from('Reisefotos').upload(path,file,{cacheControl:'31536000'});
+    const uploadPromise=sb.storage.from('Reisefotos').upload(path,file,{contentType:file.type||'image/jpeg',cacheControl:'31536000'});
     const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Zeitüberschreitung (30s) – Upload hängt')),30000));
     const result=await Promise.race([uploadPromise,timeoutPromise]);
     if(result.error){console.error('Upload-Fehler:',result.error);try{toast('Foto-Upload fehlgeschlagen.');}catch(e){}return null;}
