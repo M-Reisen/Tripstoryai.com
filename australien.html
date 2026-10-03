@@ -4431,7 +4431,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4448,6 +4448,7 @@ initApp();
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
+    else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
@@ -5659,5 +5660,6 @@ initApp();
 })();
 
 </script>
+<script src="/reise-in-zahlen.js" defer></script>
 </body>
 </html>
