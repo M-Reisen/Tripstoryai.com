@@ -1444,7 +1444,7 @@ async function sbUploadPhoto(iso,file){
     const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
     const path=iso+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,7)+'.'+ext;
     // Timeout: bricht nach 30s ab statt ewig zu hängen
-    const uploadPromise=sb.storage.from('Reisefotos').upload(path,file);
+    const uploadPromise=sb.storage.from('Reisefotos').upload(path,file,{cacheControl:'31536000'});
     const timeoutPromise=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Zeitüberschreitung (30s) – Upload hängt')),30000));
     const result=await Promise.race([uploadPromise,timeoutPromise]);
     if(result.error){console.error('Upload-Fehler:',result.error);try{toast('Foto-Upload fehlgeschlagen.');}catch(e){}return null;}
@@ -1706,7 +1706,7 @@ function buildDayHTML(day,i){
   const photoItems=dayPhotos.map((src,pi)=>{
     const caption=photoComments[day.iso+'_'+pi]||'';
     const hid=isHiddenPhoto(day.iso,src);
-    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${src}" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(day.iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${tvT(src,480)}" data-orig="${src}" onerror="tvImgErr(this)" data-iso="${day.iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy" decoding="async">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${day.iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${day.iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(day.iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${day.iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${day.iso}')"></label>`:'';
   const loadingHint=!photos[day.iso]?`<div style="grid-column:1/-1;padding:8px;font-size:.75rem;color:var(--fog)">⏳ Fotos werden geladen…</div>`:'';
@@ -1718,7 +1718,7 @@ function buildDayHTML(day,i){
     const bgCol={bush:'#3d6b2a',ocean:'#1a6b8a',reef:'#0d9488',sunset:'#c96a30'}[stayItem.color]||'#3d6b2a';
     const hPh=hotelPhotos[stayItem.id]||[];
     if(hPh.length){
-      const slides=hPh.map((src,hi)=>`<div class="hotel-banner-slide"><img src="${src}" alt="Hotelfoto">${editMode?`<button class="hotel-btn hotel-del-btn" data-bid="${stayItem.id}" data-idx="${hi}" onclick="delHotelPhotoEl(this)">✕</button>`:''}</div>`).join('');
+      const slides=hPh.map((src,hi)=>`<div class="hotel-banner-slide"><img src="${tvT(src,900)}" data-orig="${src}" onerror="tvImgErr(this)" alt="Hotelfoto" loading="lazy" decoding="async">${editMode?`<button class="hotel-btn hotel-del-btn" data-bid="${stayItem.id}" data-idx="${hi}" onclick="delHotelPhotoEl(this)">✕</button>`:''}</div>`).join('');
       hotelBannerHTML=`<div class="hotel-banner"><div class="hotel-banner-inner">${slides}</div>${editMode?`<button class="hotel-btn hotel-add-btn" data-bid="${stayItem.id}" onclick="addHotelPhotoEl(this)">Foto</button>`:''}</div>`;
     } else {
       hotelBannerHTML=`<div class="hotel-banner"><div class="hotel-banner-placeholder" style="background:${bgCol}"><div class="hotel-banner-emoji-bg">${stayItem.emoji}</div><div class="hotel-banner-name">${stayItem.name}</div><div class="hotel-banner-loc">${stayItem.loc}</div><div class="hotel-banner-nights">${stayItem.nights} Nacht${stayItem.nights>1?'e':''}</div>${editMode?`<button class="hotel-btn hotel-add-btn" data-bid="${stayItem.id}" onclick="addHotelPhotoEl(this)">Hotelfoto</button>`:''}</div></div>`;
@@ -1809,7 +1809,7 @@ function refreshPhotoGrid(iso){
   const items=dayPhotos.map((src,pi)=>{
     const caption=photoComments[iso+'_'+pi]||'';
     const hid=isHiddenPhoto(iso,src);
-    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${src}" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
+    return `<div class="photo-cell${hid?' photo-hidden':''}"><img src="${tvT(src,480)}" data-orig="${src}" onerror="tvImgErr(this)" data-iso="${iso}" data-idx="${pi}" onclick="openLB(this)" alt="Foto" loading="lazy" decoding="async">${editMode?`<button class="photo-cell-del" style="display:flex" data-iso="${iso}" data-idx="${pi}" onclick="delPhotoEl(this)">✕</button>`:''}${editMode&&pi>0?`<button class="photo-move photo-move-l" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,-1)">◀</button>`:''}${editMode&&pi<dayPhotos.length-1?`<button class="photo-move photo-move-r" data-iso="${iso}" data-idx="${pi}" onclick="movePhoto(this,1)">▶</button>`:''}${photoHideCtl(iso,pi,hid)}${caption?`<div class="photo-cell-caption">${caption}</div>`:''}${editMode?`<button class="photo-cell-edit" data-iso="${iso}" data-idx="${pi}" onclick="openCaptionModal(this)">✏️</button>`:''}</div>`;
   }).join('');
   const addBtn=editMode?`<label class="photo-add-cell"><span class="photo-add-cell-icon">📷</span><span>Foto</span><input type="file" accept="image/*" multiple style="display:none" onchange="handlePhotos(event,'${iso}')"></label>`:'';
   grid.innerHTML=items+addBtn;
@@ -2376,10 +2376,10 @@ async function renderJournal(){
     }else if(fotos.length>1){
       var gid='fjg'+idx;
       img='<div class="fj-img fj-gallery"><div class="fj-tag">'+tagLbl+'</div><div class="fj-scroll" id="'+gid+'" data-total="'+fotos.length+'">'
-        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(f)+'" alt="'+esc(titel)+'" loading="lazy" decoding="async"></div>';}).join('')
+        +fotos.map(function(f){return '<div class="fj-slide"><img src="'+esc(tvT(f,900))+'" data-orig="'+esc(f)+'" onerror="tvImgErr(this)" alt="'+esc(titel)+'" loading="lazy" decoding="async"></div>';}).join('')
         +'</div><div class="fj-count" id="'+gid+'-c">1 / '+fotos.length+'</div></div>';
     }else if(fotos.length===1){
-      img='<div class="fj-img"><img src="'+esc(fotos[0])+'" alt="'+esc(titel)+'" loading="lazy" decoding="async"><div class="fj-tag">'+tagLbl+'</div></div>';
+      img='<div class="fj-img"><img src="'+esc(tvT(fotos[0],900))+'" data-orig="'+esc(fotos[0])+'" onerror="tvImgErr(this)" alt="'+esc(titel)+'" loading="lazy" decoding="async"><div class="fj-tag">'+tagLbl+'</div></div>';
     }else{
       img='<div class="fj-img fj-noimg"><div class="fj-tag">'+tagLbl+'</div><span>Kein Foto</span></div>';
     }
@@ -3213,6 +3213,7 @@ function drawAusMap(upToBid){
 
 // ── FOTOBUCH-ANSICHT: Fotos vorbereiten und in einem Fenster mit „Schließen“ anzeigen ──
 var _pbBlobs=[],_pbCancel=false;
+function tvT(u,w){return window.tvThumb?window.tvThumb(u,w):u;}
 function pbUnesc(s){return String(s).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&lt;/g,'<').replace(/&gt;/g,'>');}
 // alle Bild-Adressen aus dem Fotobuch-HTML (so, wie sie dort stehen)
 function pbCollectImages(html){
@@ -3317,7 +3318,7 @@ async function pbShowViewer(html,title){
     async function worker(){
       while(!_pbCancel&&next<urls.length){
         const orig=urls[next++];
-        const blob=await pbShrink(pbUnesc(orig),1400);
+        const _u=pbUnesc(orig);let blob=await pbShrink(tvT(_u,1400),1400);if(!blob&&tvT(_u,1400)!==_u)blob=await pbShrink(_u,1400);
         if(blob){map[orig]=blob;_pbBlobs.push(blob);}
         done++;pbProgress('Fotos werden vorbereitet … '+done+' von '+urls.length);
       }
@@ -4323,7 +4324,7 @@ initApp();
     }
     if(cs){
       var cph=photoFor(cs.iso);
-      html+='<div class="st-card ah-stay" data-ort-iso="'+E(cs.iso)+'" data-ort-n="'+cs.nights+'"><div class="st-ph"'+(cph?' style="background-image:url(\''+esc(cph)+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
+      html+='<div class="st-card ah-stay" data-ort-iso="'+E(cs.iso)+'" data-ort-n="'+cs.nights+'"><div class="st-ph"'+(cph?' style="background-image:url(\''+esc(tvThumb(cph,320))+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
         +'<div class="st-tx"><small>'+(ph.p==='during'?'Heute in':(ph.p==='after'?'Zuletzt in':'Station'))+'</small><b>'+E(cs.name||cs.label)+'</b>'+(nightTxt?'<small>'+E(nightTxt)+'</small>':'')+'<small class="ah-edit">Ort ändern</small></div></div>';
     }
     var o1=ph.p==='before'?[ph.n,'Tage bis zur Abreise']:(ph.p==='during'?[ph.total-ph.n,'Tage noch']:[ph.total,'Tage']);
@@ -4599,7 +4600,7 @@ initApp();
   }
   function pm(url,k){
     var size=url?(k==='c'?56:(k==='d'?42:38)):(k==='c'?30:(k==='d'?15:14));
-    var st='width:'+size+'px;height:'+size+'px;'+(url?"background-image:url('"+String(url).replace(/'/g,'%27')+"');":'');
+    var st='width:'+size+'px;height:'+size+'px;'+(url?"background-image:url('"+String(tvThumb(url,200)).replace(/'/g,'%27')+"');":'');
     return {html:'<div class="pm pm-'+k+(url?'':' pm-none')+'" style="'+st+'"></div>',size:size};
   }
   function stStatus(sts,i){
@@ -4625,7 +4626,7 @@ initApp();
       var url=photoFor(st.iso),next=sts[i+1];
       var when=shortDate(st.iso)+(st.bis?' – '+shortDate(st.bis):'');
       var chip=st.nights>0?'<span class="st-chip">'+st.nights+(st.nights===1?' Nacht':' Nächte')+'</span>':'';
-      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'" data-st-i="'+i+'"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(url)+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
+      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'" data-st-i="'+i+'"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
         +'<div class="st-tx"><b>'+E(st.name||st.label)+'</b><small>'+E(when)+'</small>'+(function(){var c=entryDaysOf(st).length;return c?'<small class="ah-edit">'+c+(c===1?' Tagebucheintrag':' Tagebucheinträge')+' ansehen</small>':'';})()+'</div>'+chip+'</div>';
       if(next)html+='<div class="st-km" data-a="'+esc(st.iso)+'" data-b="'+esc(next.iso)+'"><span>…</span></div>';
     });
@@ -4710,7 +4711,7 @@ initApp();
       var st=sts[i],url=photoFor(st.iso),cnt=entryDaysOf(st).length;
       var when=shortDate(st.iso)+(st.nights>1?' – '+shortDate(addIso(st.iso,st.nights-1)):'');
       var info=cnt?cnt+(cnt===1?' Tagebucheintrag':' Tagebucheinträge'):'Noch kein Tagebucheintrag';
-      h+='<div class="ss-blk"><div class="ss-row"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(url)+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
+      h+='<div class="ss-blk"><div class="ss-row"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
         +'<div class="st-tx"><b>'+E(st.name)+'</b><small>'+E(when)+(st.nights>0?' · '+st.nights+(st.nights===1?' Nacht':' Nächte'):'')+'</small><small>'+E(info)+'</small></div></div>'
         +'<div class="ss-acts">'
         +'<button type="button" class="ao-btn ss-go" data-ss-go="'+E(st.iso)+'|'+st.nights+'"'+((!cnt&&!owner)?' disabled':'')+'>'+(cnt?'Zum Tagebuch':(owner?'Eintrag schreiben':'Kein Eintrag vorhanden'))+'</button>'
@@ -4876,6 +4877,39 @@ initApp();
   window.jumpTo=function(ev,tab){if(ev&&ev.preventDefault)ev.preventDefault();show(OLD[tab]||tab);};
   window.showTab=function(tab){show(OLD[tab]||tab);};
 
+  /* ---------- Kleine Vorschaubilder (Supabase-Bildumwandlung) mit Rückfall auf das Original (THUMB-BEGIN) ---------- */
+  function thumbOff(){
+    if(window.__noThumb)return true;
+    try{var t=parseInt(localStorage.getItem('tv_nothumb')||'0',10);return !!t&&Date.now()-t<86400000;}catch(e){return false;}
+  }
+  function thumbFail(){window.__noThumb=1;try{localStorage.setItem('tv_nothumb',String(Date.now()));}catch(e){}}
+  var TPROBE=0;
+  function thumbProbe(url){
+    if(TPROBE)return;
+    try{var ok=parseInt(localStorage.getItem('tv_thumb_ok')||'0',10);if(ok&&Date.now()-ok<7*86400000)return;}catch(e){}
+    TPROBE=1;
+    var im=new Image();
+    im.onload=function(){try{localStorage.setItem('tv_thumb_ok',String(Date.now()));}catch(e){}};
+    im.onerror=function(){thumbFail();try{window.appRefresh();}catch(e){}};
+    im.src=url;
+  }
+  function tvThumb(u,w){
+    try{
+      if(typeof u!=='string'||thumbOff())return u;
+      var m=u.match(/^(https:\/\/[^\/]+)\/storage\/v1\/object\/public\/(Reisefotos\/[^?]+\.(?:jpe?g|png|webp))$/i);
+      if(!m||/^Reisefotos\/Logo\//.test(m[2]))return u;
+      var t=m[1]+'/storage/v1/render/image/public/'+m[2]+'?width='+w+'&quality=75';
+      thumbProbe(m[1]+'/storage/v1/render/image/public/'+m[2]+'?width=64&quality=60');
+      return t;
+    }catch(e){return u;}
+  }
+  window.tvThumb=tvThumb;
+  window.tvImgErr=function(img){
+    var o=img&&img.getAttribute&&img.getAttribute('data-orig');
+    if(o&&img.src!==o){thumbFail();img.src=o;return true;}
+    return false;
+  };
+  /* ---------- (THUMB-ENDE) ---------- */
   /* ---------- Stationsbild selbst wählen (CV-BEGIN) ---------- */
   var COV={};
   function covKey(){return (typeof PFX!=='undefined'?PFX:'')+'stationsbilder';}
@@ -4928,7 +4962,7 @@ initApp();
       h+='<div class="cv-day">Tag '+waDayNo(d)+' · '+E(shortDate(d))+'</div><div class="cv-grid">';
       list.forEach(function(u,i){
         var hid=(typeof isHiddenPhoto==='function')&&isHiddenPhoto(d,u);
-        h+='<button type="button" class="cv-th'+(u===cur?' on':'')+(hid?' hid':'')+'" '+(hid?'data-cv-hid="1"':'data-cv-pick="'+E(iso)+'|'+E(d)+'|'+i+'"')+' aria-label="Foto '+(i+1)+(hid?' (für Gäste ausgeblendet)':'')+'"><img src="'+esc(u)+'" alt="" loading="lazy">'+(hid?'<span>ausgeblendet</span>':'')+'</button>';
+        h+='<button type="button" class="cv-th'+(u===cur?' on':'')+(hid?' hid':'')+'" '+(hid?'data-cv-hid="1"':'data-cv-pick="'+E(iso)+'|'+E(d)+'|'+i+'"')+' aria-label="Foto '+(i+1)+(hid?' (für Gäste ausgeblendet)':'')+'"><img src="'+esc(tvThumb(u,300))+'" data-orig="'+esc(u)+'" onerror="tvImgErr(this)" alt="" loading="lazy" decoding="async">'+(hid?'<span>ausgeblendet</span>':'')+'</button>';
       });
       h+='</div>';
     });
@@ -5000,7 +5034,8 @@ initApp();
   function aiCapSet(on){try{localStorage.setItem('tv_ai_cap',on?'1':'0');}catch(e){}}
   var AICAP={run:0},CB={rows:[],iso:null,run:0};
   async function capImageB64(url){
-    var r=await fetch(url);
+    var r=await fetch(tvThumb(url,1024));
+    if(!r.ok&&tvThumb(url,1024)!==url)r=await fetch(url);
     if(!r.ok)throw new Error('Foto konnte nicht geladen werden.');
     var blob=await r.blob(),bmp=null;
     try{bmp=await createImageBitmap(blob,{imageOrientation:'from-image'});}
