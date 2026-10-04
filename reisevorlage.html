@@ -2154,7 +2154,7 @@ async function renderReaktionen(){
 function fillReaktion(box,tag){
   var iso=box.getAttribute('data-iso');
   // Besitzer sehen die Reaktionen ihrer Gäste, setzen aber selbst keine
-  var nurLesen=canEdit;
+  var nurLesen=canEdit&&!guestView;
   var gesamt=0;
   var btns=REAKTIONEN.map(function(r){
     var v=tag[r[0]]||{n:0,mine:false};gesamt+=v.n;
