@@ -3455,6 +3455,19 @@ initApp();
   }
   buildCosts();
 
+  /* „Diese Reise nachbuchen“ (nachbuchen.js): Unterkünfte aus den festen Daten, Preise für Flüge, Transfers und Ausflüge aus den Plankosten */
+  W.travonaNachbuchenQuelle=function(){
+    var out=BOOKINGS.map(function(b){return {id:'s'+b.id,cat:'Unterkunft',label:b.name,loc:b.loc,info:'',datum:b.datum,nights:b.nights,amount:b.price||0,cur:'EUR'};});
+    var plan=(typeof planCosts!=='undefined'&&planCosts.length)?planCosts:PLAN_SEED;
+    plan.forEach(function(p,i){
+      if(p.cat==='Unterkunft')return;
+      var d=p.datum||'',m=!d&&String(p.info||'').match(/(\d{1,2})\.(\d{1,2})\./);
+      if(m)d='2026-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+      out.push({id:p.id!=null?'p'+p.id:'seed'+i,cat:p.cat,label:p.label,info:p.info||'',datum:d,amount:p.amount,cur:p.cur||'EUR'});
+    });
+    return out;
+  };
+
   W.stayForDay=function(iso){
     var C=W.costs;
     for(var i=0;i<C.length;i++){
@@ -4191,7 +4204,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4209,6 +4222,7 @@ initApp();
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
     else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
+    else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
@@ -5421,5 +5435,6 @@ initApp();
 
 </script>
 <script src="/reise-in-zahlen.js" defer></script>
+<script src="/nachbuchen.js" defer></script>
 </body>
 </html>
