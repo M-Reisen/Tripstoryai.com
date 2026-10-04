@@ -9,6 +9,7 @@
     { "source": "/reisetagebuch/:land", "destination": "/api/reisetagebuch?land=:land" },
     { "source": "/reisetagebuch", "destination": "/api/reisetagebuch" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
-    { "source": "/testen", "destination": "/testen.html" }
+    { "source": "/testen", "destination": "/testen.html" },
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }
