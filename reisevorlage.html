@@ -1427,7 +1427,7 @@ async function sbUploadHotelPhoto(bid,file){
   return data.publicUrl;
 }
 async function sbLoadHotelPhotos(bid){
-  const {data,error}=await sb.storage.from('Reisefotos').list('hotels/'+REISE+'_'+bid,{limit:100});
+  const {data,error}=await sb.storage.from('Reisefotos').list('hotels/'+REISE+'_'+bid,{limit:100,sortBy:{column:'created_at',order:'desc'}});
   if(error||!data)return[];
   return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
     const {data:u}=sb.storage.from('Reisefotos').getPublicUrl('hotels/'+REISE+'_'+bid+'/'+f.name);
@@ -1497,15 +1497,26 @@ function addHotelPhotoEl(btn){
     _hotelInput.style.display='none';
     _hotelInput.onchange=async function(){
       var files=Array.from(_hotelInput.files);if(!files.length)return;
+      var bid=_hotelBid;
+      if(!hotelPhotos[bid])hotelPhotos[bid]=[];
+      // Vorhandene Fotos: austauschen oder ergänzen? Neue Fotos stehen immer vorne,
+      // sonst bleibt im Banner das alte Foto sichtbar.
+      var oldPh=hotelPhotos[bid].slice();
+      var replace=oldPh.length>0&&confirm('Bisheriges Hotelfoto durch das neue ersetzen?\n\nOK = ersetzen\nAbbrechen = zusätzlich hinzufügen');
       toast('⏳ Hotelfoto wird hochgeladen…');
-      if(!hotelPhotos[_hotelBid])hotelPhotos[_hotelBid]=[];
-      let ok=0;
+      let ok=0;const neu=[];
       for(const f of files){
-        try{const url=await sbUploadHotelPhoto(_hotelBid,f);if(url){hotelPhotos[_hotelBid].push(url);ok++;}}
+        try{const url=await sbUploadHotelPhoto(bid,f);if(url){neu.push(url);ok++;}}
         catch(e){alert('Fehler: '+(e.message||e));}
       }
+      if(replace&&ok>0){
+        for(const u of oldPh){try{await sbDeleteHotelPhoto(u);}catch(e){console.error(e);}}
+        hotelPhotos[bid]=neu;
+      }else{
+        hotelPhotos[bid]=neu.concat(hotelPhotos[bid]);
+      }
       renderTage();
-      if(ok>0)toast('✓ '+ok+' Hotelfoto(s) gespeichert!');
+      if(ok>0)toast(replace?'✓ Hotelfoto ausgetauscht!':'✓ '+ok+' Hotelfoto(s) gespeichert!');
     };
     document.body.appendChild(_hotelInput);
   }
