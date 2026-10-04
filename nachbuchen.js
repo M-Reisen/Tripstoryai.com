@@ -10,7 +10,7 @@
     {key:'Ausflug',label:'Ausflüge & Touren',search:'Tour suchen'},
     {key:'Sonstiges',label:'Sonstiges',search:''}
   ];
-  var S=null,_open=false;
+  var S=null,_open=false,LINKS={},_linksLoaded=false;
 
   // ── Hilfen ────────────────────────────────────────────────────────────────
   function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -30,6 +30,30 @@
   function nN(n){return n+(n===1?' Nacht':' Nächte');}
   function info(raw){var p=String(raw||'').split('‖');return {text:p[0]||'',bis:p[4]||'',from:p[6]||'',to:p[7]||''};}
   function admin(){return document.documentElement.classList.contains('is-admin');}
+  function safeURL(u){u=String(u||'').trim();return /^https?:\/\/[^\s"'<>]+$/i.test(u)?u.slice(0,500):'';}
+  function host(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return '';}}
+
+  // ── Eigene Anbieter-Links der Besitzerin (pro Position: Link + Beschreibung), gespeichert als eine Zeile in kommentare ──
+  function linkKey(){return (typeof PFX!=='undefined'&&PFX?PFX:tripKey()+'_')+'nb_links';}
+  function tripId(){return (typeof REISE!=='undefined'&&REISE)||(typeof REISE_ID!=='undefined'&&REISE_ID)||null;}
+  async function loadLinks(){
+    if(_linksLoaded||typeof sb==='undefined')return;
+    try{
+      var r=await sb.from('kommentare').select('nachricht').eq('ort',linkKey()).limit(1);
+      if(r.error)return;
+      if(r.data&&r.data.length){var j=JSON.parse(r.data[0].nachricht||'{}');if(j&&typeof j==='object')LINKS=j;}
+      _linksLoaded=true;
+    }catch(e){}
+  }
+  async function saveLinks(){
+    try{
+      var payload=JSON.stringify(LINKS),r=await sb.from('kommentare').select('id').eq('ort',linkKey()).limit(1),res;
+      if(r.data&&r.data.length)res=await sb.from('kommentare').update({nachricht:payload}).eq('id',r.data[0].id);
+      else res=await sb.from('kommentare').insert({ort:linkKey(),name:'Nachbuchen-Links',nachricht:payload,created_at:new Date().toISOString(),owner:typeof currentUser!=='undefined'&&currentUser?currentUser.id:null,trip_id:tripId()});
+      if(res&&res.error)throw res.error;
+      if(typeof toast==='function')toast('Anbieter gespeichert');
+    }catch(e){if(typeof toast==='function')toast('Speichern fehlgeschlagen. Bitte erneut versuchen.');}
+  }
 
   // ── Daten der Seite ───────────────────────────────────────────────────────
   function head(){return typeof tripHead!=='undefined'&&tripHead?tripHead:{};}
@@ -216,6 +240,7 @@
       +'#nb-ov .nb-tx{flex:1;min-width:0}'
       +'#nb-ov .nb-name{font-weight:600;font-size:.95rem;line-height:1.25;word-wrap:break-word}'
       +'#nb-ov .nb-sub{font-size:.8rem;color:#5F5953;margin-top:2px}'
+      +'#nb-ov .nb-desc{font-size:.8rem;color:#1A1714;font-style:italic;margin-top:5px;line-height:1.4}'
       +'#nb-ov .nb-warn{font-size:.78rem;color:#A8522F;margin-top:4px}'
       +'#nb-ov .nb-pr{flex:none;text-align:right;font-weight:700;font-size:.95rem;white-space:nowrap}'
       +'#nb-ov .nb-pr small{display:block;font-weight:400;font-size:.72rem;color:#5F5953}'
@@ -271,6 +296,18 @@
       }
       return '';
     }
+    function lnkForm(id){
+      if(open!=='l:'+id)return '';
+      var L=LINKS[id]||{};
+      return '<div class="nb-form" data-lid="'+E(id)+'">'
+        +'<label class="w">Link zum Anbieter<input id="nb-l-u" type="url" maxlength="500" placeholder="https://…" value="'+E(L.u||'')+'" autocomplete="off"></label>'
+        +'<label class="w">Beschreibung (optional)<input id="nb-l-d" maxlength="200" placeholder="z. B. Familiengeführt, super Frühstück, direkt am Strand" value="'+E(L.d||'')+'"></label>'
+        +'<div>'+(L.u||L.d?'<button type="button" class="nb-btn" data-act="ldel" data-id="'+E(id)+'">Entfernen</button>':'')
+        +'<button type="button" class="nb-btn" data-act="cancel">Abbrechen</button><button type="button" class="nb-btn pri" data-act="lsave" data-id="'+E(id)+'">Speichern</button></div></div>';
+    }
+    function lnkBtn(id){return admin()?'<button type="button" class="nb-btn ins" data-act="lnk" data-id="'+E(id)+'">✎ Anbieter</button>':'';}
+    function desc(id){var d=(LINKS[id]||{}).d;return d?'<div class="nb-desc">'+E(d)+'</div>':'';}
+    function direct(id,label){var u=safeURL((LINKS[id]||{}).u);return u?'<a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(u)+'">'+E(label)+' '+E(host(u))+' ↗</a>':'';}
     function insBtn(after){return '<button type="button" class="nb-btn ins" data-act="ins" data-after="'+E(after)+'">＋ Stopp danach</button>';}
     h+=ins(null);
     p.rows.forEach(function(r){
@@ -278,15 +315,16 @@
         var st=r.st;num+=r.off?0:1;
         h+='<div class="nb-card'+(r.off?' off':'')+'"><div class="nb-l1"><span class="nb-num">'+(r.off?'–':num)+'</span>'
           +'<div class="nb-tx"><div class="nb-name">'+E(st.label)+'</div>'
-          +'<div class="nb-sub">'+(st.loc?E(st.loc)+' · ':'')+(r.off?'weggelassen':E(span(r.start,r.end))+' · '+nN(r.n))+'</div></div>'
+          +'<div class="nb-sub">'+(st.loc?E(st.loc)+' · ':'')+(r.off?'weggelassen':E(span(r.start,r.end))+' · '+nN(r.n))+'</div>'+desc(st.id)+'</div>'
           +'<div class="nb-pr">'+(r.off?eur(0):(st.amount?eur(r.price):'–'))+(st.amount&&!r.off?'<small>'+eur(r.ppn)+' / Nacht</small>':'')+'</div></div>'
           +'<div class="nb-l2">'
           +(r.off?'<button type="button" class="nb-btn" data-act="on" data-id="'+E(st.id)+'">Wieder aufnehmen</button>'
             :'<div class="nb-step"><button type="button" data-act="minus" data-id="'+E(st.id)+'"'+(r.n<=1?' disabled':'')+' aria-label="Eine Nacht weniger">−</button><span>'+nN(r.n)+'</span><button type="button" data-act="plus" data-id="'+E(st.id)+'"'+(r.n>=60?' disabled':'')+' aria-label="Eine Nacht mehr">+</button></div>'
              +'<button type="button" class="nb-btn" data-act="off" data-id="'+E(st.id)+'">Weglassen</button>'
-             +'<a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(bookingURL(st.label,st.loc,r.start,r.end))+'">Buchen ↗</a>')
-          +insBtn(st.id)+'</div></div>';
-        h+=ins(st.id);
+             +(direct(st.id,'Buchen bei')||'')
+             +'<a class="nb-btn'+(safeURL((LINKS[st.id]||{}).u)?'':' go')+'" target="_blank" rel="noopener nofollow" href="'+E(bookingURL(st.label,st.loc,r.start,r.end))+'">'+(safeURL((LINKS[st.id]||{}).u)?'Booking.com vergleichen ↗':'Buchen ↗')+'</a>')
+          +insBtn(st.id)+lnkBtn(st.id)+'</div></div>';
+        h+=lnkForm(st.id)+ins(st.id);
       }else{
         var a=r.a;num++;
         h+='<div class="nb-card add"><div class="nb-l1"><span class="nb-num">'+num+'</span>'
@@ -308,11 +346,15 @@
         var it=x.it,url=itemURL(cat.key,it,x.d);
         h+='<div class="nb-card'+(x.off?' off':'')+'"><label class="nb-tg"><input type="checkbox" data-act="tg" data-id="'+E(it.id)+'"'+(x.off?'':' checked')+'>'
           +'<div class="nb-tx"><div class="nb-name">'+E(it.label)+'</div>'
-          +'<div class="nb-sub">'+(x.d?E(kurz(x.d)):'')+(x.d&&it.text?' · ':'')+E(it.text)+'</div>'
+          +'<div class="nb-sub">'+(x.d?E(kurz(x.d)):'')+(x.d&&it.text?' · ':'')+E(it.text)+'</div>'+desc(it.id)
           +(x.warn&&!x.off?'<div class="nb-warn">'+E(x.warn)+'</div>':'')+'</div>'
           +'<div class="nb-pr">'+(it.amount?eur(it.amount):'<small>Preis offen</small>')+'</div></label>'
-          +(url&&!x.off?'<div class="nb-l2"><a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(url)+'">'+E(cat.search)+' ↗</a></div>':'')
-          +'</div>';
+          +(function(){
+            var dl=x.off?'':direct(it.id,'Buchen bei'),sl=url&&!x.off&&!dl?'<a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(url)+'">'+E(cat.search)+' ↗</a>':'';
+            var row=dl+sl+lnkBtn(it.id);
+            return row?'<div class="nb-l2">'+row+'</div>':'';
+          })()
+          +'</div>'+lnkForm(it.id);
       });
     });
 
@@ -322,7 +364,7 @@
         +'<div class="nb-tx"><div class="nb-name">Essen, Eintritte & Co.</div><div class="nb-sub">⌀ '+eur(p.perDay)+' pro Tag × '+p.nDays+' Tage</div></div>'
         +'<div class="nb-pr">'+eur(p.vor)+'</div></label></div>';
     }
-    h+='<p class="nb-note">Die Preise sind die Beträge, die auf dieser Reise bezahlt wurden. Heutige Preise können abweichen. „Buchen“ öffnet die Suche beim Anbieter mit deinen neuen Daten.</p>';
+    h+='<p class="nb-note">Die Preise sind die Beträge, die auf dieser Reise bezahlt wurden. Heutige Preise können abweichen. „Buchen“ öffnet den Anbieter oder die Suche mit deinen neuen Daten.</p>';
     if(admin()&&typeof sbSaveHead==='function'&&typeof tripHead!=='undefined'){
       h+='<label class="nb-own"><input type="checkbox" data-act="pub"'+(tripHead.nachbuchen===false?'':' checked')+'> Für Besucher nach Reiseende anzeigen (nur du siehst diesen Schalter)</label>';
     }
@@ -332,7 +374,7 @@
     var d=p.total-p.orig,dd=Math.round(d);
     document.getElementById('nb-total').innerHTML='<small>Gesamt für deine Version</small><b>'+eur(p.total)+'</b>'
       +(dd?'<span class="nb-d '+(dd<0?'minus':'plus')+'">'+(dd<0?'−':'+')+eur(Math.abs(d))+'</span>':'');
-    var f=document.getElementById('nb-f-name');if(f)f.focus();
+    var f=document.getElementById('nb-f-name')||document.getElementById('nb-l-u');if(f)f.focus();
   }
 
   function onClick(e){
@@ -348,6 +390,14 @@
     else if(a==='aplus'&&ad)ad.n=Math.min(60,ad.n+1);
     else if(a==='adel')S.add=S.add.filter(function(x){return x.id!==id;});
     else if(a==='ins'){body.setAttribute('data-form','f:'+b.getAttribute('data-after'));render();return;}
+    else if(a==='lnk'){body.setAttribute('data-form','l:'+id);render();return;}
+    else if(a==='ldel'){delete LINKS[id];body.removeAttribute('data-form');render();saveLinks();return;}
+    else if(a==='lsave'){
+      var raw=(document.getElementById('nb-l-u').value||'').trim(),u=safeURL(raw),dsc=(document.getElementById('nb-l-d').value||'').trim().slice(0,200);
+      if(raw&&!u){if(typeof toast==='function')toast('Bitte den vollständigen Link mit https:// eingeben.');document.getElementById('nb-l-u').focus();return;}
+      if(u||dsc)LINKS[id]={u:u,d:dsc};else delete LINKS[id];
+      body.removeAttribute('data-form');render();saveLinks();return;
+    }
     else if(a==='cancel'){body.removeAttribute('data-form');render();return;}
     else if(a==='save'){
       var name=(document.getElementById('nb-f-name').value||'').trim();
@@ -404,6 +454,7 @@
       catch(e){prompt('Link kopieren:',url);}
     };
     render();
+    loadLinks().then(function(){if(_open)render();});
   }
 
   // ── Karte im Kopfbereich (Startansicht) ───────────────────────────────────
