@@ -140,7 +140,7 @@ function zeigen(d){
     +n.liste.map(function(u){return '<tr><td>'+esc(u.email)+'</td><td class="muted">'+datum(u.erstellt)+'</td><td class="muted">'+datum(u.zuletzt,true)+'</td><td class="n">'+zahl(u.reisen)+'</td><td class="n">'+zahl(u.ki)+'</td></tr>';}).join('')
     +'</table></div>';
 
-  h+='<div class="sub" style="margin-top:28px">Besuche der Startseite werden derzeit nicht gemessen, nur Aufrufe geteilter Reisen.</div>';
+  h+='<div class="sub" style="margin-top:28px">Alle Seitenaufrufe (Startseite, Länder, Herkunft, Geräte) siehst du in <a href="https://vercel.com/tripstoryaicom/tripstoryai.com/analytics" target="_blank" rel="noopener" style="color:var(--terra)">Vercel Web Analytics</a>.</div>';
   app.innerHTML=h;
 }
 function browserKurz(ua){
