@@ -39,6 +39,13 @@ Jeder Anbieter hat eigene Endformate (oft nicht exakt A4). Vor der ersten Bestel
 Anbieters herunterladen und Maße vergleichen; weicht das Format ab, kann die App ein zweites Profil
 bekommen (nur Zahlen in `MODES` in `fotobuch.js` ändern).
 
+## Designs
+
+Über „🎨 Design“ stehen 10 Designs zur Wahl (Farben, Titelschrift, Motiv). Die Wahl wird pro Reise auf dem
+Gerät gespeichert und gilt für Vorschau, „Drucken / PDF“ und „Druckdatei“. „Sternennacht“ hat dunkle Seiten:
+im Fotobuch sehr edel, beim Drucken zu Hause braucht es viel Tinte. Neue Designs entstehen durch einen Eintrag
+in `THEMES` in `fotobuch.js`.
+
 ## Grenzen
 
 - Fotos werden beim Upload auf 2000 px lange Kante verkleinert. Kleine und mittlere Rahmen erreichen
