@@ -1919,7 +1919,7 @@ async function saveTripHead(){
   if(!title){toast('Bitte einen Titel eingeben.');return;}
   const from=val('h-from'),to=val('h-to');
   if(from&&to&&to<from){toast('„Bis" liegt vor „Von".');return;}
-  tripHead={title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'};
+  tripHead=Object.assign({},tripHead,{title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'});
   await sbSaveHead();
   closeTripHead();
   renderHead();buildDaySlides();
@@ -4596,7 +4596,7 @@ init();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Bearbeiten',row('eckdaten','notiz','Reise-Eckdaten bearbeiten')+row('titelbild','foto','Titelbild ändern'));
@@ -4615,6 +4615,7 @@ init();
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
     else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
+    else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
@@ -5833,5 +5834,6 @@ init();
 
 </script>
 <script src="/reise-in-zahlen.js" defer></script>
+<script src="/nachbuchen.js" defer></script>
 </body>
 </html>
