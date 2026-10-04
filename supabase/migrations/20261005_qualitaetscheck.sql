@@ -1,5 +1,6 @@
 -- Qualitätscheck 2026-10-05: Schutz der Reisedaten, Gästebuch-Moderation, Geschwindigkeit bei vielen Nutzern.
--- Noch NICHT live eingespielt (wartet auf Freigabe). Ändert keine vorhandenen Daten.
+-- Live eingespielt am 2026-10-05 nach Freigabe (Abschnitte 1–4). Ändert keine vorhandenen Daten.
+-- Offen: die drei DROP INDEX am Ende (Supabase verlangt dafür eine Bestätigung; harmlos, nur doppelte Indizes).
 
 -- 1) Fremde Einträge in Reisen verhindern
 --    Bisher konnte jeder Besucher mit name = 'visit' beliebige Zeilen (Kosten, Orte, Reisekopf …) in eine
