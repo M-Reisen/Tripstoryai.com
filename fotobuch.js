@@ -125,14 +125,25 @@
     return out;
   }
 
+  // Deckblatt-Collage: Fotos über die ganze Seite, Ränder laufen in den Beschnitt
+  function coverCollage(urls){
+    var rs=rects(urls.length,0,0,W,H,false);
+    return rs.map(function(r,i){
+      var e=(r.x<0.01?'l':'')+(r.y<0.01?'t':'')+(r.x+r.w>W-0.01?'r':'')+(r.y+r.h>H-0.01?'b':'');
+      return photo({url:urls[i]},r,'cover',e);
+    }).join('');
+  }
   function buildPages(book){
     var pages=[],folio=1,tag=0,nPhotos=0,mirror=false;
     var next=function(){return ++folio;};
     // Deckblatt
     var cov=book.cover?original(book.cover):'';
+    // Collage aus den Ortsfotos der Stationen (wie in der Übersicht), max. 8
+    var coll=(book.coverPhotos||[]).map(original).filter(function(u,i,arr){return u&&arr.indexOf(u)===i;}).slice(0,8);
+    if(coll.length>1)cov=coll[0];
     var stations=(book.stations||[]).filter(Boolean);
-    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+'"><div class="pb-trim">'
-      +(cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
+    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+(coll.length>1?' collage':'')+'"><div class="pb-trim">'
+      +(coll.length>1?coverCollage(coll)+'<div class="pb-veil"></div>':cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
       +'<div class="pb-cover-in">'
       +'<div class="pb-eyebrow">Reisetagebuch</div>'
       +'<h1 class="pb-cover-title">'+esc(book.title||'Unsere Reise')+'</h1>'
@@ -242,7 +253,7 @@
     +'.pb-txt p+p,.pb-cols p+p{margin-top:2.5mm}'
     // Deckblatt
     +'.pb-cover{background:#2A2622;color:#fff}'
-    +'.pb-cover .pb-ph{background:#2A2622}'
+    +'.pb-cover .pb-ph{background:#2A2622}.pb-cover.collage{background:#F6F1EA}'
     +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(180deg,rgba(26,23,20,0) 35%,rgba(26,23,20,.25) 55%,rgba(26,23,20,.78) 100%)}'
     +'.pb-cover-in{position:absolute;left:20mm;right:20mm;bottom:24mm}'
     +'.pb-cover .pb-eyebrow{color:#E9C9B3;font-size:10pt;margin-bottom:3mm}'
