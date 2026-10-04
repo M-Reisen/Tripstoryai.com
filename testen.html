@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<script src="/fehler.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ohne Anmeldung testen · Travona</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#F4EFE8">
+<meta name="description" content="Probier Travona ohne Anmeldung: Buchungen hochladen, die Reise entsteht, und aus deinen Stichworten wird der Tagebuch-Eintrag.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Travona">
+<meta property="og:locale" content="de_DE">
+<meta property="og:title" content="Ohne Anmeldung testen · Travona">
+<meta property="og:description" content="Buchungen rein, Reise angelegt. Stichworte rein, Tagebuch geschrieben.">
+<meta property="og:image" content="https://www.travona.de/og-default.png">
+<meta property="og:url" content="https://www.travona.de/testen.html">
+<link rel="canonical" href="https://www.travona.de/testen.html">
+<meta name="twitter:card" content="summary_large_image">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+<style>
+:root{--ground:#F4EFE8;--ink:#1A1714;--fog:#6B6560;--terra:#B5714A;--teal:#2C5F6A;--rule:#D8D0C4;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--ground);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none;}
+header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule);}
+.header-inner{max-width:1200px;margin:0 auto;padding:16px 32px;display:flex;justify-content:space-between;align-items:center;}
+.brand-full{height:36px;width:auto;max-width:60vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:6px;box-shadow:0 1px 4px rgba(26,23,20,.12);}
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:12px 20px;border-radius:4px;cursor:pointer;transition:all .2s;border:1px solid transparent;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn-solid{background:var(--terra);color:#fff;}
+.btn-solid:hover{background:#9c5f3c;}
+.btn-solid[disabled]{opacity:.5;cursor:default;}
+.btn-ghost{background:transparent;color:var(--fog);border:1px solid var(--rule);}
+.btn-ghost:hover{color:var(--ink);border-color:var(--ink);}
+.wrap{max-width:640px;margin:0 auto;padding:56px 20px 80px;}
+.intro{text-align:center;}
+.eyebrow{display:inline-block;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:18px;}
+h1{font-family:'Playfair Display',serif;font-size:clamp(32px,6vw,52px);font-weight:400;line-height:1.08;letter-spacing:-.5px;}
+h1 em{color:var(--terra);}
+.lead{font-size:16px;line-height:1.7;color:var(--fog);margin:18px auto 0;max-width:520px;}
+.steps{display:flex;gap:10px;justify-content:center;margin:28px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);}
+.steps span{padding:6px 10px;border:1px solid var(--rule);border-radius:20px;}
+.steps span.on{border-color:var(--terra);color:var(--terra);}
+.card{background:#fff;border-radius:8px;box-shadow:0 10px 30px -18px rgba(26,23,20,.45);padding:24px 22px;margin-top:24px;}
+.card h2{font-family:'Playfair Display',serif;font-weight:400;font-size:24px;line-height:1.2;margin-bottom:6px;}
+.card .sub{font-size:14px;line-height:1.6;color:var(--fog);margin-bottom:16px;}
+.drop{display:block;border:1.5px dashed var(--rule);border-radius:8px;background:var(--ground);padding:22px 16px;cursor:pointer;text-align:center;transition:border-color .2s;}
+.drop:hover,.drop.over{border-color:var(--terra);}
+.drop .big{font-family:'Playfair Display',serif;font-size:18px;margin-bottom:4px;}
+.drop .small{font-size:13px;color:var(--fog);}
+.thumbs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;}
+.thumbs img{width:76px;height:110px;object-fit:cover;object-position:top;border-radius:4px;box-shadow:0 4px 10px -6px rgba(26,23,20,.4);background:#fff;}
+.actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px;}
+.msg{margin-top:14px;font-size:14px;color:#9c3b2a;min-height:1em;text-align:center;}
+.busy{display:none;margin-top:18px;color:var(--fog);font-size:14px;text-align:center;}
+.busy.on{display:block;}
+.spinner{width:30px;height:30px;border:3px solid var(--rule);border-top-color:var(--terra);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.hint{font-size:12px;line-height:1.6;color:var(--fog);margin-top:18px;text-align:center;}
+.hint a{text-decoration:underline;text-underline-offset:3px;}
+.cf{display:flex;justify-content:center;margin-top:12px;}
+/* Reiseplan */
+.trip-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--fog);border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:6px;}
+.trip-head b{color:var(--ink);font-weight:500;}
+.pos{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #eee7dc;}
+.pos:last-child{border-bottom:0;}
+.pos .ic{flex:0 0 32px;height:32px;border-radius:50%;background:var(--ground);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.pos .t{flex:1;min-width:0;}
+.pos .l{font-size:15px;font-weight:500;line-height:1.35;}
+.pos .m{font-size:13px;color:var(--fog);margin-top:2px;}
+.pos .b{font-size:14px;white-space:nowrap;}
+/* Tag */
+label.f{display:block;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);margin:14px 0 6px;}
+select,textarea{width:100%;font:16px 'DM Sans',sans-serif;color:var(--ink);background:var(--ground);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;}
+textarea{min-height:110px;resize:vertical;line-height:1.5;}
+.dict{margin-top:8px;font-size:13px;}
+.day-meta{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fog);margin-bottom:8px;}
+.entry{font-size:16px;line-height:1.75;white-space:pre-wrap;}
+.badge{display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--teal);margin-top:14px;}
+.next{margin-top:26px;text-align:center;}
+.next p{font-size:15px;line-height:1.7;color:var(--fog);margin-bottom:14px;}
+.hide{display:none!important;}
+@media(max-width:720px){.header-inner{padding:14px 18px;}.wrap{padding:40px 16px 60px;}.actions .btn{width:100%;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a href="index.html"><img class="brand-full" src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona"></a>
+    <a class="btn btn-ghost" href="meine-reisen.html">Anmelden</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="intro">
+    <span class="eyebrow">Ohne Anmeldung testen</span>
+    <h1>Buchungen rein,<br><em>Reise angelegt.</em></h1>
+    <p class="lead">So funktioniert Travona: Aus Buchungsbestätigungen und Belegen entsteht dein Reiseplan mit Unterkünften, Flügen und Kosten. Aus deinen Stichworten oder einem Diktat schreibt die KI den Tagebuch-Eintrag. Ohne Konto, nichts wird gespeichert.</p>
+    <div class="steps"><span id="st1" class="on">1 · Buchungen</span><span id="st2">2 · Tag beschreiben</span></div>
+  </div>
+
+  <!-- Schritt 1: Buchungen einlesen -->
+  <section class="card" id="s1">
+    <h2>Buchungen einlesen</h2>
+    <p class="sub">Screenshots oder Fotos von Hotel- und Flugbuchungen, Tickets oder Belegen. Bis zu 3 Bilder.</p>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept="image/*" multiple hidden>
+      <div id="thumbs" class="thumbs"></div>
+      <div class="big" id="drop-big">Bilder wählen</div>
+      <div class="small" id="drop-small">z. B. Screenshot aus booking.com oder Foto einer Bestätigung</div>
+    </label>
+    <div class="cf" id="captcha"></div>
+    <div class="actions">
+      <button class="btn btn-solid" id="go1" disabled>Reise anlegen</button>
+      <button class="btn btn-ghost" id="beispiel" type="button">Mit Beispielreise testen</button>
+    </div>
+    <div class="busy" id="busy1"><div class="spinner"></div>Die KI liest deine Buchungen …</div>
+    <div class="msg" id="msg1" role="alert"></div>
+  </section>
+
+  <!-- Ergebnis Schritt 1: Reiseplan -->
+  <section class="card hide" id="plan">
+    <h2 id="plan-title">Deine Reise</h2>
+    <div class="trip-head" id="plan-head"></div>
+    <div id="plan-list"></div>
+    <span class="badge" id="plan-badge"></span>
+  </section>
+
+  <!-- Schritt 2: Tag beschreiben -->
+  <section class="card hide" id="s2">
+    <h2>Einen Tag beschreiben</h2>
+    <p class="sub">Tippe ein paar Stichworte oder diktiere, was ihr erlebt habt. Die KI macht daraus den Eintrag für diesen Tag.</p>
+    <label class="f" for="tag">Tag</label>
+    <select id="tag"></select>
+    <label class="f" for="notes">Stichworte</label>
+    <textarea id="notes" maxlength="1200" placeholder="z. B. Morgens Schnorcheln am Riff, Wasser kälter als gedacht, mittags Fish &amp; Chips am Hafen, abends müde"></textarea>
+    <button class="btn btn-ghost dict" id="dict" type="button">🎤 Diktieren</button>
+    <div class="actions">
+      <button class="btn btn-solid" id="go2">Tagebuch schreiben</button>
+    </div>
+    <div class="busy" id="busy2"><div class="spinner"></div>Die KI schreibt deinen Eintrag …</div>
+    <div class="msg" id="msg2" role="alert"></div>
+  </section>
+
+  <!-- Ergebnis Schritt 2 -->
+  <section class="card hide" id="day">
+    <div class="day-meta" id="day-meta"></div>
+    <div class="entry" id="day-text"></div>
+    <span class="badge">Von der KI aus deinen Stichworten geschrieben</span>
+  </section>
+
+  <div class="next hide" id="next">
+    <p>Mit einem Konto wird daraus deine ganze Reise: Tagesplan, Karte mit Route, Fotos, Kosten, Gästebuch und Fotobuch.</p>
+    <div class="actions">
+      <a class="btn btn-solid" href="meine-reisen.html?neu=1">Konto anlegen und Reise starten</a>
+      <button class="btn btn-ghost" id="anderer" type="button">Anderen Tag beschreiben</button>
+    </div>
+  </div>
+
+  <p class="hint">Deine Bilder und Stichworte werden zur Auswertung an den KI-Dienst Anthropic gesendet und von Travona nicht gespeichert. Bitte keine Ausweis- oder Kartennummern zeigen. <a href="datenschutz.html#ki">Datenschutz</a></p>
+</main>
+
+<footer style="max-width:1200px;margin:0 auto;padding:40px 32px 60px;border-top:1px solid var(--rule);text-align:center;font-size:12px;letter-spacing:.04em;color:var(--fog);">
+  <a href="index.html" style="margin:0 12px;">Startseite</a><span style="opacity:.4">·</span>
+  <a href="impressum.html" style="margin:0 12px;">Impressum</a><span style="opacity:.4">·</span>
+  <a href="datenschutz.html" style="margin:0 12px;">Datenschutz</a>
+</footer>
+
+<script>
+var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+var TURNSTILE_SITEKEY='0x4AAAAAAFNEorarNp2DrKE8';
+var ICON={Unterkunft:'🏨',Flug:'✈️',Transport:'🚗',Ausflug:'🎟️',Sonstiges:'🧾'};
+var BEISPIEL=[
+  {kategorie:'Flug',label:'Flug München → Pisa',datum:'2026-05-12',bis:'',betrag:238,waehrung:'EUR',ort:'Pisa',uhrzeit:'07:15',details:'2 Personen'},
+  {kategorie:'Unterkunft',label:'Hotel Il Guelfo Bianco',datum:'2026-05-12',bis:'2026-05-15',betrag:486,waehrung:'EUR',ort:'Florenz',uhrzeit:'',details:''},
+  {kategorie:'Ausflug',label:'Weinprobe im Chianti',datum:'2026-05-14',bis:'',betrag:90,waehrung:'EUR',ort:'Greve in Chianti',uhrzeit:'15:00',details:''},
+  {kategorie:'Unterkunft',label:'Agriturismo Il Poggio',datum:'2026-05-15',bis:'2026-05-17',betrag:310,waehrung:'EUR',ort:'Siena',uhrzeit:'',details:''},
+  {kategorie:'Sonstiges',label:'Trattoria Sole',datum:'2026-05-16',bis:'',betrag:48.5,waehrung:'EUR',ort:'Siena',uhrzeit:'',details:'Mittagessen'}
+];
+var BEISPIEL_NOTES={'2026-05-16':'Morgens Markt auf dem Campo, viel zu voll. Mittags Pici in der Trattoria Sole, Wein günstiger als gedacht. Nachmittags hoch zum Dom, Füße platt. Abends nur noch Pizza auf dem Zimmer.'};
+var _bilder=[],_pos=[],_istBeispiel=false;
+
+function $(id){return document.getElementById(id);}
+function show(id,on){$(id).classList.toggle('hide',!on);}
+function E(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+function iso(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'')?s:'';}
+function dm(s){if(!iso(s))return '';var p=s.split('-');return p[2]+'.'+p[1]+'.';}
+function dmy(s){if(!iso(s))return '';var p=s.split('-');return p[2]+'.'+p[1]+'.'+p[0];}
+function addDay(s,n){var d=new Date(s+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10);}
+function nights(a,b){if(!iso(a)||!iso(b))return 0;var n=Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/864e5);return n>0?n:0;}
+function geld(b,w){var n=Number(b);if(!isFinite(n)||n<=0)return '';return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+(w||'EUR');}
+var WT=['So','Mo','Di','Mi','Do','Fr','Sa'];
+
+// Bilder verkleinern (spart Datenvolumen und KI-Kosten): längste Seite max. 1568 px, JPEG
+function shrink(file){
+  return new Promise(function(res,rej){
+    var url=URL.createObjectURL(file),im=new Image();
+    im.onload=function(){
+      var s=Math.min(1,1568/Math.max(im.naturalWidth,im.naturalHeight));
+      var c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*s);c.height=Math.round(im.naturalHeight*s);
+      var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      var d=c.toDataURL('image/jpeg',0.82);
+      res({vorschau:d,daten:d.split(',')[1],typ:'image/jpeg'});
+    };
+    im.onerror=function(){URL.revokeObjectURL(url);rej(new Error('Ein Bild kann der Browser nicht öffnen. Bitte JPG oder PNG wählen.'));};
+    im.src=url;
+  });
+}
+async function waehlen(files){
+  $('msg1').textContent='';
+  files=Array.prototype.filter.call(files||[],function(f){return /^image\//.test(f.type);});
+  if(!files.length)return;
+  if(files.length>3){$('msg1').textContent='Bitte höchstens 3 Bilder, die ersten 3 werden genommen.';files=files.slice(0,3);}
+  try{_bilder=await Promise.all(files.map(shrink));}catch(e){$('msg1').textContent=e.message;return;}
+  $('thumbs').innerHTML=_bilder.map(function(b){return '<img alt="" src="'+b.vorschau+'">';}).join('');
+  $('drop-big').textContent=_bilder.length+(_bilder.length===1?' Bild gewählt':' Bilder gewählt');
+  $('drop-small').textContent='Tippen, um andere Bilder zu wählen';
+  $('go1').disabled=false;
+}
+$('file').addEventListener('change',function(){waehlen(this.files);});
+['dragover','dragenter'].forEach(function(t){$('drop').addEventListener(t,function(e){e.preventDefault();this.classList.add('over');});});
+['dragleave','drop'].forEach(function(t){$('drop').addEventListener(t,function(e){e.preventDefault();this.classList.remove('over');});});
+$('drop').addEventListener('drop',function(e){waehlen(e.dataTransfer&&e.dataTransfer.files);});
+
+// Bot-Schutz: Cloudflare Turnstile (erscheint nur, wenn Cloudflare eine Prüfung braucht)
+var _cw;
+function captcha(){
+  return new Promise(function(resolve){
+    var n=0;
+    (function wait(){
+      if(window.turnstile)return go();
+      if(++n>40)return resolve('');
+      setTimeout(wait,100);
+    })();
+    function go(){
+      try{if(_cw!==undefined)turnstile.remove(_cw);}catch(e){}
+      $('captcha').innerHTML='';
+      _cw=turnstile.render($('captcha'),{sitekey:TURNSTILE_SITEKEY,language:'de',appearance:'interaction-only',
+        callback:function(t){resolve(t);},'error-callback':function(){resolve('');},'expired-callback':function(){resolve('');}});
+    }
+  });
+}
+async function ki(daten){
+  daten.captcha=await captcha();
+  var r=await fetch(SUPA_URL+'/functions/v1/ai-demo',{method:'POST',
+    headers:{'content-type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify(daten)});
+  var d=await r.json().catch(function(){return {};});
+  if(!r.ok)throw new Error(d.error||'Das hat nicht geklappt. Bitte später erneut versuchen.');
+  return d;
+}
+
+// ── Schritt 1: Buchungen → Reiseplan ──
+$('go1').addEventListener('click',async function(){
+  if(!_bilder.length)return;
+  var btn=this;$('msg1').textContent='';btn.disabled=true;$('busy1').classList.add('on');
+  try{
+    var d=await ki({modus:'buchung',bilder:_bilder.map(function(b){return {daten:b.daten,typ:b.typ};})});
+    var pos=(d.positionen||[]).filter(function(p){return p&&(p.label||p.betrag||p.datum);});
+    if(!pos.length)throw new Error('Auf den Bildern wurde keine Buchung erkannt. Versuch es mit einem Screenshot einer Buchungsbestätigung.');
+    _istBeispiel=false;zeigePlan(pos);
+  }catch(e){$('msg1').textContent=e.message;}
+  finally{$('busy1').classList.remove('on');btn.disabled=!_bilder.length;}
+});
+$('beispiel').addEventListener('click',function(){_istBeispiel=true;zeigePlan(BEISPIEL);});
+
+function zeigePlan(pos){
+  _pos=pos.slice().sort(function(a,b){return (iso(a.datum)||'9999')<(iso(b.datum)||'9999')?-1:1;});
+  var von='',bis='',summe={},n=0;
+  _pos.forEach(function(p){
+    var a=iso(p.datum),b=iso(p.bis)||a;
+    if(a&&(!von||a<von))von=a;
+    if(b&&(!bis||b>bis))bis=b;
+    if(p.kategorie==='Unterkunft')n+=nights(p.datum,p.bis);
+    var w=p.waehrung||'EUR',x=Number(p.betrag);if(isFinite(x)&&x>0)summe[w]=(summe[w]||0)+x;
+  });
+  var ort=(_pos.filter(function(p){return p.kategorie==='Unterkunft'&&p.ort;})[0]||_pos.filter(function(p){return p.ort;})[0]||{}).ort;
+  $('plan-title').textContent=_istBeispiel?'Beispielreise Toskana':(ort?'Deine Reise nach '+ort:'Deine Reise');
+  var kosten=Object.keys(summe).map(function(w){return geld(summe[w],w);}).join(' + ');
+  $('plan-head').innerHTML=[von?'<span><b>'+E(dmy(von))+(bis&&bis!==von?' – '+E(dmy(bis)):'')+'</b></span>':'',
+    n?'<span>'+n+(n===1?' Nacht':' Nächte')+'</span>':'',kosten?'<span>Kosten <b>'+E(kosten)+'</b></span>':''].filter(Boolean).join('');
+  $('plan-list').innerHTML=_pos.map(function(p){
+    var k=ICON[p.kategorie]?p.kategorie:'Sonstiges',meta=[];
+    if(iso(p.datum))meta.push(k==='Unterkunft'&&iso(p.bis)?dm(p.datum)+' – '+dm(p.bis)+' · '+nights(p.datum,p.bis)+' N.':dm(p.datum)+(p.uhrzeit?' · '+p.uhrzeit:''));
+    if(p.ort)meta.push(p.ort);
+    if(p.details)meta.push(p.details);
+    return '<div class="pos"><div class="ic">'+ICON[k]+'</div><div class="t"><div class="l">'+E(p.label||k)+'</div><div class="m">'+E(meta.join(' · '))+'</div></div><div class="b">'+E(geld(p.betrag,p.waehrung))+'</div></div>';
+  }).join('');
+  $('plan-badge').textContent=_istBeispiel?'Beispiel':'Von der KI aus deinen Buchungen angelegt';
+  // Tage für Schritt 2
+  var tage=[];
+  if(von){var e=bis||von,i=0;for(var t=von;t<=e&&i<60;t=addDay(t,1),i++)tage.push(t);}
+  $('tag').innerHTML=tage.length?tage.map(function(t,i){
+    var w=WT[new Date(t+'T12:00:00').getDay()],o=ortAm(t);
+    return '<option value="'+t+'">Tag '+(i+1)+' · '+w+' '+dm(t)+(o?' · '+E(o):'')+'</option>';
+  }).join(''):'<option value="">Ein Tag deiner Reise</option>';
+  var vor=_istBeispiel&&BEISPIEL_NOTES['2026-05-16']?'2026-05-16':'';
+  if(vor){$('tag').value=vor;$('notes').value=BEISPIEL_NOTES[vor];}
+  show('s1',false);show('plan',true);show('s2',true);
+  $('st1').classList.remove('on');$('st2').classList.add('on');
+  $('plan').scrollIntoView({behavior:'smooth',block:'start'});
+}
+// Ort eines Tages: Unterkunft dieser Nacht, sonst eine Position an dem Tag
+function ortAm(t){
+  var s=_pos.filter(function(p){return p.kategorie==='Unterkunft'&&iso(p.datum)&&t>=p.datum&&t<(iso(p.bis)||addDay(p.datum,1));})[0];
+  if(s&&s.ort)return s.ort;
+  var x=_pos.filter(function(p){return p.datum===t&&p.ort;})[0];
+  return x?x.ort:'';
+}
+
+// ── Schritt 2: Stichworte → Tagebuch ──
+$('go2').addEventListener('click',async function(){
+  var notes=$('notes').value.trim();$('msg2').textContent='';
+  if(notes.length<3){$('msg2').textContent='Bitte ein paar Stichworte eingeben oder diktieren.';return;}
+  stopDict();
+  var btn=this,t=$('tag').value;btn.disabled=true;$('busy2').classList.add('on');
+  try{
+    var d=await ki({modus:'tagebuch',stichpunkte:notes,ort:ortAm(t),datum:t});
+    if(!d.text)throw new Error('Das hat nicht geklappt. Bitte erneut versuchen.');
+    var sel=$('tag').options[$('tag').selectedIndex];
+    $('day-meta').textContent=sel&&t?sel.textContent:'Dein Reisetag';
+    $('day-text').textContent=d.text;
+    show('day',true);show('next',true);
+    $('day').scrollIntoView({behavior:'smooth',block:'start'});
+  }catch(e){$('msg2').textContent=e.message;}
+  finally{$('busy2').classList.remove('on');btn.disabled=false;}
+});
+$('anderer').addEventListener('click',function(){
+  $('notes').value='';show('day',false);show('next',false);
+  $('s2').scrollIntoView({behavior:'smooth',block:'start'});$('notes').focus();
+});
+
+// Diktieren wie in der Reisevorlage (Spracherkennung des Browsers)
+var _rec=null;
+function stopDict(){if(_rec){try{_rec.stop();}catch(e){}_rec=null;$('dict').textContent='🎤 Diktieren';}}
+$('dict').addEventListener('click',function(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){$('msg2').textContent='Diktieren geht in diesem Browser nicht. Nutze das Mikrofon auf der Tastatur.';return;}
+  if(_rec){stopDict();return;}
+  var ta=$('notes'),base=ta.value?ta.value.trim()+' ':'';
+  _rec=new SR();_rec.lang='de-DE';_rec.continuous=true;_rec.interimResults=true;
+  _rec.onstart=function(){$('dict').textContent='⏹ Stopp';};
+  _rec.onresult=function(e){var f='',i2='';for(var i=0;i<e.results.length;i++){var tx=e.results[i][0].transcript;if(e.results[i].isFinal)f+=tx+' ';else i2+=tx;}ta.value=(base+f+i2).trim();};
+  _rec.onerror=function(e){if(e.error==='not-allowed'||e.error==='service-not-allowed')$('msg2').textContent='Mikrofonzugriff verweigert.';};
+  _rec.onend=function(){_rec=null;$('dict').textContent='🎤 Diktieren';};
+  try{_rec.start();setTimeout(stopDict,60000);}catch(e){_rec=null;}
+});
+</script>
+</body>
+</html>

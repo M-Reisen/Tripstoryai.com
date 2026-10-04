@@ -386,6 +386,8 @@ function toggleAuthMode(){
   document.getElementById('auth-subtitle').textContent=(authMode==='login')?'Melde dich an, um deine Reisetagebücher zu sehen':'Erstelle ein Konto für deine Reisetagebücher';
   showAuthMsg('');
 }
+// Link von „Ohne Anmeldung testen“: gleich die Registrierung zeigen
+if(/[?&]neu=1/.test(location.search))document.addEventListener('DOMContentLoaded',function(){if(authMode==='login')toggleAuthMode();});
 // ── Bot-Schutz (Cloudflare Turnstile) ────────────────────────────────────
 // Supabase verlangt bei Anmeldung/Registrierung ein Captcha-Token, sobald der Schutz
 // dort eingeschaltet ist. Das Feld erscheint nur, wenn Cloudflare eine Prüfung braucht.

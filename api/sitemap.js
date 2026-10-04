@@ -5,7 +5,7 @@ const S = require('./_shared');
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 module.exports = async (req, res) => {
-  const urls = [S.BASE + '/', S.BASE + '/vorteile.html'];
+  const urls = [S.BASE + '/', S.BASE + '/vorteile.html', S.BASE + '/testen.html'];
   try {
     const rows = (await S.getTrips('visibility=eq.public&order=created_at.desc&limit=1000')) || [];
     const lands = new Set();

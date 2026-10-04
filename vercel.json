@@ -8,6 +8,7 @@
     { "source": "/reisetagebuch/:land/:slug", "destination": "/api/reisetagebuch?land=:land&slug=:slug" },
     { "source": "/reisetagebuch/:land", "destination": "/api/reisetagebuch?land=:land" },
     { "source": "/reisetagebuch", "destination": "/api/reisetagebuch" },
-    { "source": "/sitemap.xml", "destination": "/api/sitemap" }
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
+    { "source": "/testen", "destination": "/testen.html" }
   ]
 }

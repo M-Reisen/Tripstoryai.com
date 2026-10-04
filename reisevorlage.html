@@ -121,6 +121,20 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .day-entry-text{font-size:.9rem;line-height:1.8;color:#3a2d22;white-space:pre-wrap;margin-bottom:12px;}
 .entry-titel{font-family:'Playfair Display',serif;font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:6px;}
 .day-entry-empty{font-size:.85rem;color:var(--fog);font-style:italic;margin-bottom:12px;}
+.day-react{padding:14px 28px 16px;border-top:1px solid var(--rule);}
+.fj-react{padding:14px 0 0;margin-top:14px;}
+.day-react-title{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);margin-bottom:8px;}
+.day-react-row{display:flex;flex-wrap:wrap;gap:8px;}
+.react-btn{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:6px 12px;border:1px solid var(--rule);border-radius:999px;background:#fff;font:inherit;font-size:1.05rem;cursor:pointer;color:var(--ink);transition:transform .12s,background .15s,border-color .15s;}
+.react-btn .n{font-size:.8rem;color:var(--fog);}
+.react-btn .n:empty{display:none;}
+.react-btn.mine{background:#f6e9df;border-color:var(--terra);}
+.react-btn.mine .n{color:var(--terra);font-weight:600;}
+.react-btn:active{transform:scale(.92);}
+.react-btn.pop{animation:reactPop .35s ease;}
+.react-btn[disabled]{cursor:default;}
+@keyframes reactPop{40%{transform:scale(1.25);}100%{transform:scale(1);}}
+@media (prefers-reduced-motion:reduce){.react-btn.pop{animation:none;}}
 .day-program{display:flex;flex-wrap:wrap;gap:6px;padding:14px 28px;background:var(--paper);border-top:1px solid var(--rule);}
 .program-badge{font-size:.75rem;padding:4px 11px;border-radius:12px;font-weight:500;display:inline-flex;align-items:center;gap:4px;}
 .badge-Unterkunft{background:#dbeafe;color:#1d4ed8;}
@@ -1905,7 +1919,7 @@ async function saveTripHead(){
   if(!title){toast('Bitte einen Titel eingeben.');return;}
   const from=val('h-from'),to=val('h-to');
   if(from&&to&&to<from){toast('„Bis" liegt vor „Von".');return;}
-  tripHead={title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'};
+  tripHead=Object.assign({},tripHead,{title:title, sub:val('h-sub').trim(), from:from, to:to, emoji:val('h-emoji').trim()||'🌍'});
   await sbSaveHead();
   closeTripHead();
   renderHead();buildDaySlides();
@@ -2098,7 +2112,108 @@ function renderDayCard(days){
     +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
     +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
+    +'<div class="day-react" data-iso="'+iso+'"></div>'
     +'</div>';
+  renderReaktionen();
+}
+// ── GÄSTE-REAKTIONEN PRO TAG (Emojis, ohne Anmeldung) ─────────────────────────
+var REAKTIONEN=[['herz','❤️','Gefällt mir'],['verliebt','😍','Traumhaft'],['lachen','😂','Lustig'],['staunen','😮','Wow'],['applaus','👏','Respekt'],['fernweh','✈️','Fernweh']];
+var _reakt=null,_reaktLaden=null,_reaktBusy={};
+function reaktGeraet(){
+  try{
+    var d=localStorage.getItem('travona_dev');
+    if(!d){d=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',d);}
+    return d;
+  }catch(e){return '';}
+}
+function reaktOffen(){return !!REISE&&(tripVisibility==='public'||tripVisibility==='link');}
+async function loadReaktionen(){
+  if(_reakt)return _reakt;
+  if(_reaktLaden)return _reaktLaden;
+  _reaktLaden=(async function(){
+    var map={};
+    try{
+      var res=await sb.rpc('reaktionen_laden',{p_trip:REISE,p_geraet:reaktGeraet()});
+      (res.data||[]).forEach(function(r){
+        if(!map[r.tag])map[r.tag]={};
+        map[r.tag][r.emoji]={n:r.anzahl,mine:!!r.meine};
+      });
+    }catch(e){}
+    _reakt=map;_reaktLaden=null;return map;
+  })();
+  return _reaktLaden;
+}
+// Füllt alle Reaktions-Leisten der Seite (Tagebuch und Tageskarte)
+async function renderReaktionen(){
+  if(!document.querySelector('.day-react[data-iso]'))return;
+  // Private Reisen: keine Gäste, also keine Leiste
+  if(!reaktOffen()){document.querySelectorAll('.day-react[data-iso]').forEach(function(b){b.remove();});return;}
+  var map=await loadReaktionen();
+  document.querySelectorAll('.day-react[data-iso]').forEach(function(box){fillReaktion(box,map[box.getAttribute('data-iso')]||{});});
+}
+function fillReaktion(box,tag){
+  var iso=box.getAttribute('data-iso');
+  // Besitzer sehen die Reaktionen ihrer Gäste, setzen aber selbst keine
+  var nurLesen=canEdit&&!guestView;
+  var gesamt=0;
+  var btns=REAKTIONEN.map(function(r){
+    var v=tag[r[0]]||{n:0,mine:false};gesamt+=v.n;
+    if(nurLesen&&!v.n)return '';
+    return '<button type="button" class="react-btn'+(v.mine?' mine':'')+'" data-e="'+r[0]+'"'
+      +(nurLesen?' disabled':' onclick="toggleReaktion(\''+iso+'\',\''+r[0]+'\',this)"')
+      +' aria-pressed="'+(v.mine?'true':'false')+'" aria-label="'+r[2]+(v.n?' ('+v.n+')':'')+'" title="'+r[2]+'">'
+      +'<span aria-hidden="true">'+r[1]+'</span><span class="n">'+(v.n||'')+'</span></button>';
+  }).join('');
+  var titel=nurLesen?(gesamt?'Reaktionen deiner Gäste':'Noch keine Reaktionen deiner Gäste'):'Wie gefällt dir dieser Tag?';
+  box.innerHTML='<div class="day-react-title">'+titel+'</div><div class="day-react-row">'+btns+'</div>';
+}
+function refreshReaktion(iso,popEmoji){
+  document.querySelectorAll('.day-react[data-iso="'+iso+'"]').forEach(function(box){
+    fillReaktion(box,(_reakt&&_reakt[iso])||{});
+    if(popEmoji){var b=box.querySelector('.react-btn[data-e="'+popEmoji+'"]');if(b)b.classList.add('pop');}
+  });
+}
+async function toggleReaktion(iso,emoji,btn){
+  var key=iso+'|'+emoji;
+  if(_reaktBusy[key])return;
+  var geraet=reaktGeraet();
+  if(!geraet){toast('Reaktionen brauchen gespeicherte Browserdaten.');return;}
+  _reaktBusy[key]=true;
+  var map=_reakt||{};
+  if(!map[iso])map[iso]={};
+  var v=map[iso][emoji]||{n:0,mine:false};
+  var vorher={n:v.n,mine:v.mine};
+  // Sofort anzeigen, danach mit dem Server abgleichen
+  v.mine=!v.mine;v.n=Math.max(0,v.n+(v.mine?1:-1));map[iso][emoji]=v;_reakt=map;
+  refreshReaktion(iso,v.mine?emoji:null);
+  var ziel=v.mine,fehler=null;
+  // Bis zu 2 Versuche (Mobilnetz kann einen Aufruf verlieren)
+  for(var versuch=0;versuch<2;versuch++){
+    try{
+      var res=await sb.rpc('reaktion_umschalten',{p_trip:REISE,p_tag:iso,p_emoji:emoji,p_geraet:geraet});
+      if(res.error)throw res.error;
+      fehler=null;
+      if(_reakt!==map){_reakt=null;try{await loadReaktionen();}catch(e4){}refreshReaktion(iso);break;}
+      if(res.data!==ziel){v.mine=!!res.data;v.n=Math.max(0,vorher.n+(v.mine===vorher.mine?0:(v.mine?1:-1)));refreshReaktion(iso);}
+      break;
+    }catch(e){
+      fehler=e;
+      if(/zu viele|ungueltig|oeffentlich/.test((e&&e.message)||''))break;
+      // Kam der Klick trotz Fehler beim Server an? Dann ist alles gut.
+      try{
+        _reakt=null;var frisch=await loadReaktionen();
+        var s=(frisch[iso]||{})[emoji];
+        if(!!(s&&s.mine)===ziel){fehler=null;refreshReaktion(iso);break;}
+      }catch(e2){}
+    }
+  }
+  if(fehler){
+    try{if(window.travonaFehler)travonaFehler('Reaktion: '+((fehler&&(fehler.message||fehler.code))||fehler),'toggleReaktion '+iso+' '+emoji);}catch(e3){}
+    if(_reakt){if(!_reakt[iso])_reakt[iso]={};_reakt[iso][emoji]=vorher;}
+    refreshReaktion(iso);
+    toast(/zu viele/.test((fehler&&fehler.message)||'')?'Kurz durchatmen – zu viele Klicks.':'Reaktion konnte nicht gespeichert werden. Bitte nochmal tippen.');
+  }
+  _reaktBusy[key]=false;
 }
 function stayColor(iso){
   // Stabile Farbe je Tag aus einer kleinen Palette
@@ -3629,10 +3744,11 @@ async function renderJournal(){
     var text='<div class="fj-text"><p class="fj-day">Tag '+e.tag+((!editMode&&isNewEntry(e.at))?'<span class="fj-new">Neu</span>':'')+'</p>'
       +'<h3 class="fj-loc">'+esc(e.titel||e.ort||(e.leer?(ortFuerTag(e.iso)||('Tag '+e.tag)):('Tag '+e.tag)))+'</h3>'
       +'<p class="fj-date">'+dateStr+(e.ort?' · '+esc(e.ort):'')+'</p>'
-      +(e.leer?'<p class="fj-body fj-none">Noch kein Eintrag für diesen Tag.</p><button type="button" class="fj-write" onclick="openEntry(\''+e.iso+'\')">Eintrag schreiben</button></div>':'<p class="fj-body">'+esc(e.text)+'</p></div>');
+      +(e.leer?'<p class="fj-body fj-none">Noch kein Eintrag für diesen Tag.</p><button type="button" class="fj-write" onclick="openEntry(\''+e.iso+'\')">Eintrag schreiben</button></div>':'<p class="fj-body">'+esc(e.text)+'</p><div class="day-react fj-react" data-iso="'+e.iso+'"></div></div>');
     return '<div class="fig-journal-entry'+rev+(e.leer?' fj-empty':'')+'" data-jiso="'+e.iso+'">'+img+text+'</div>';
   }).join('')+'</div>';
   bindJournalCounters();
+  renderReaktionen();
   }
 }
 function bindJournalCounters(){
@@ -4484,7 +4600,7 @@ init();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Bearbeiten',row('eckdaten','notiz','Reise-Eckdaten bearbeiten')+row('titelbild','foto','Titelbild ändern'));
@@ -4502,6 +4618,8 @@ init();
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
+    else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
+    else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
@@ -5720,5 +5838,7 @@ init();
 })();
 
 </script>
+<script src="/reise-in-zahlen.js" defer></script>
+<script src="/nachbuchen.js" defer></script>
 </body>
 </html>

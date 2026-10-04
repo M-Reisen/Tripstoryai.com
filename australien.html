@@ -754,6 +754,21 @@ html.app-guestview body{padding-top:48px;}
 .fig-journal-entry .fj-day,.fig-journal-entry .fj-loc,.fig-journal-entry .fj-date{cursor:pointer;}
 .fig-journal-entry .fj-loc{padding-right:44px;}
 .fig-journal-entry.jr-collapsed .fj-img{display:none !important;}
+.day-react{padding:14px 28px 16px;border-top:1px solid var(--rule);}
+.fj-react{padding:14px 0 0;margin-top:14px;}
+.day-react-title{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);margin-bottom:8px;}
+.day-react-row{display:flex;flex-wrap:wrap;gap:8px;}
+.react-btn{display:inline-flex;align-items:center;gap:5px;min-height:40px;padding:6px 12px;border:1px solid var(--rule);border-radius:999px;background:#fff;font:inherit;font-size:1.05rem;cursor:pointer;color:var(--ink);transition:transform .12s,background .15s,border-color .15s;}
+.react-btn .n{font-size:.8rem;color:var(--fog);}
+.react-btn .n:empty{display:none;}
+.react-btn.mine{background:#f6e9df;border-color:var(--terra);}
+.react-btn.mine .n{color:var(--terra);font-weight:600;}
+.react-btn:active{transform:scale(.92);}
+.react-btn.pop{animation:reactPop .35s ease;}
+.react-btn[disabled]{cursor:default;}
+@keyframes reactPop{40%{transform:scale(1.25);}100%{transform:scale(1);}}
+@media (prefers-reduced-motion:reduce){.react-btn.pop{animation:none;}}
+.fig-journal-entry.jr-collapsed .fj-react{display:none !important;}
 .fig-journal-entry.jr-collapsed .fj-body,.fig-journal-entry.jr-collapsed .fj-write{display:none !important;}
 .fig-journal-entry.jr-collapsed .fj-text{border-radius:22px !important;padding-bottom:14px !important;}
 .fig-journal.jr-in-r{animation:jrinr .28s ease;}
@@ -2391,11 +2406,112 @@ async function renderJournal(){
       +(tagNr?'<p class="fj-day">Tag '+tagNr+((!editMode&&isNewEntry(e.at))?'<span class="fj-new">Neu</span>':'')+'</p>':'')
       +'<h3 class="fj-loc">'+esc(titel)+'</h3>'
       +(dateStr?'<p class="fj-date">'+dateStr+'</p>':'')
-      +'<p class="fj-body">'+esc(e.text.trim())+'</p></div>';
+      +'<p class="fj-body">'+esc(e.text.trim())+'</p>'
+      +(/^\d{4}-\d{2}-\d{2}$/.test(iso||'')?'<div class="day-react fj-react" data-iso="'+iso+'"></div>':'')+'</div>';
     return '<div class="fig-journal-entry'+rev+'" data-jiso="'+iso+'">'+img+text+'</div>';
   }).join('')+'</div>';
   bindJournalCounters();
+  renderReaktionen();
   }
+}
+// ── GÄSTE-REAKTIONEN PRO TAG (Emojis, ohne Anmeldung) ─────────────────────────
+var REAKTIONEN=[['herz','❤️','Gefällt mir'],['verliebt','😍','Traumhaft'],['lachen','😂','Lustig'],['staunen','😮','Wow'],['applaus','👏','Respekt'],['fernweh','✈️','Fernweh']];
+var _reakt=null,_reaktLaden=null,_reaktBusy={};
+function reaktGeraet(){
+  try{
+    var d=localStorage.getItem('travona_dev');
+    if(!d){d=Date.now().toString(36)+Math.random().toString(36).slice(2,8);localStorage.setItem('travona_dev',d);}
+    return d;
+  }catch(e){return '';}
+}
+function reaktOffen(){return (tripVisibility==='public'||tripVisibility==='link');}
+async function loadReaktionen(){
+  if(_reakt)return _reakt;
+  if(_reaktLaden)return _reaktLaden;
+  _reaktLaden=(async function(){
+    var map={};
+    try{
+      var res=await sb.rpc('reaktionen_laden',{p_trip:REISE_ID,p_geraet:reaktGeraet()});
+      (res.data||[]).forEach(function(r){
+        if(!map[r.tag])map[r.tag]={};
+        map[r.tag][r.emoji]={n:r.anzahl,mine:!!r.meine};
+      });
+    }catch(e){}
+    _reakt=map;_reaktLaden=null;return map;
+  })();
+  return _reaktLaden;
+}
+// Füllt alle Reaktions-Leisten der Seite (Tagebuch und Tageskarte)
+async function renderReaktionen(){
+  if(!document.querySelector('.day-react[data-iso]'))return;
+  // Private Reisen: keine Gäste, also keine Leiste
+  if(!reaktOffen()){document.querySelectorAll('.day-react[data-iso]').forEach(function(b){b.remove();});return;}
+  var map=await loadReaktionen();
+  document.querySelectorAll('.day-react[data-iso]').forEach(function(box){fillReaktion(box,map[box.getAttribute('data-iso')]||{});});
+}
+function fillReaktion(box,tag){
+  var iso=box.getAttribute('data-iso');
+  // Besitzer sehen die Reaktionen ihrer Gäste, setzen aber selbst keine
+  var nurLesen=canEdit&&!guestView;
+  var gesamt=0;
+  var btns=REAKTIONEN.map(function(r){
+    var v=tag[r[0]]||{n:0,mine:false};gesamt+=v.n;
+    if(nurLesen&&!v.n)return '';
+    return '<button type="button" class="react-btn'+(v.mine?' mine':'')+'" data-e="'+r[0]+'"'
+      +(nurLesen?' disabled':' onclick="toggleReaktion(\''+iso+'\',\''+r[0]+'\',this)"')
+      +' aria-pressed="'+(v.mine?'true':'false')+'" aria-label="'+r[2]+(v.n?' ('+v.n+')':'')+'" title="'+r[2]+'">'
+      +'<span aria-hidden="true">'+r[1]+'</span><span class="n">'+(v.n||'')+'</span></button>';
+  }).join('');
+  var titel=nurLesen?(gesamt?'Reaktionen deiner Gäste':'Noch keine Reaktionen deiner Gäste'):'Wie gefällt dir dieser Tag?';
+  box.innerHTML='<div class="day-react-title">'+titel+'</div><div class="day-react-row">'+btns+'</div>';
+}
+function refreshReaktion(iso,popEmoji){
+  document.querySelectorAll('.day-react[data-iso="'+iso+'"]').forEach(function(box){
+    fillReaktion(box,(_reakt&&_reakt[iso])||{});
+    if(popEmoji){var b=box.querySelector('.react-btn[data-e="'+popEmoji+'"]');if(b)b.classList.add('pop');}
+  });
+}
+async function toggleReaktion(iso,emoji,btn){
+  var key=iso+'|'+emoji;
+  if(_reaktBusy[key])return;
+  var geraet=reaktGeraet();
+  if(!geraet){toast('Reaktionen brauchen gespeicherte Browserdaten.');return;}
+  _reaktBusy[key]=true;
+  var map=_reakt||{};
+  if(!map[iso])map[iso]={};
+  var v=map[iso][emoji]||{n:0,mine:false};
+  var vorher={n:v.n,mine:v.mine};
+  // Sofort anzeigen, danach mit dem Server abgleichen
+  v.mine=!v.mine;v.n=Math.max(0,v.n+(v.mine?1:-1));map[iso][emoji]=v;_reakt=map;
+  refreshReaktion(iso,v.mine?emoji:null);
+  var ziel=v.mine,fehler=null;
+  // Bis zu 2 Versuche (Mobilnetz kann einen Aufruf verlieren)
+  for(var versuch=0;versuch<2;versuch++){
+    try{
+      var res=await sb.rpc('reaktion_umschalten',{p_trip:REISE_ID,p_tag:iso,p_emoji:emoji,p_geraet:geraet});
+      if(res.error)throw res.error;
+      fehler=null;
+      if(_reakt!==map){_reakt=null;try{await loadReaktionen();}catch(e4){}refreshReaktion(iso);break;}
+      if(res.data!==ziel){v.mine=!!res.data;v.n=Math.max(0,vorher.n+(v.mine===vorher.mine?0:(v.mine?1:-1)));refreshReaktion(iso);}
+      break;
+    }catch(e){
+      fehler=e;
+      if(/zu viele|ungueltig|oeffentlich/.test((e&&e.message)||''))break;
+      // Kam der Klick trotz Fehler beim Server an? Dann ist alles gut.
+      try{
+        _reakt=null;var frisch=await loadReaktionen();
+        var s=(frisch[iso]||{})[emoji];
+        if(!!(s&&s.mine)===ziel){fehler=null;refreshReaktion(iso);break;}
+      }catch(e2){}
+    }
+  }
+  if(fehler){
+    try{if(window.travonaFehler)travonaFehler('Reaktion: '+((fehler&&(fehler.message||fehler.code))||fehler),'toggleReaktion '+iso+' '+emoji);}catch(e3){}
+    if(_reakt){if(!_reakt[iso])_reakt[iso]={};_reakt[iso][emoji]=vorher;}
+    refreshReaktion(iso);
+    toast(/zu viele/.test((fehler&&fehler.message)||'')?'Kurz durchatmen – zu viele Klicks.':'Reaktion konnte nicht gespeichert werden. Bitte nochmal tippen.');
+  }
+  _reaktBusy[key]=false;
 }
 function bindJournalCounters(){
   var c=document.getElementById('journal-entries');
@@ -3339,6 +3455,19 @@ initApp();
   }
   buildCosts();
 
+  /* „Diese Reise nachbuchen“ (nachbuchen.js): Unterkünfte aus den festen Daten, Preise für Flüge, Transfers und Ausflüge aus den Plankosten */
+  W.travonaNachbuchenQuelle=function(){
+    var out=BOOKINGS.map(function(b){return {id:'s'+b.id,cat:'Unterkunft',label:b.name,loc:b.loc,info:'',datum:b.datum,nights:b.nights,amount:b.price||0,cur:'EUR'};});
+    var plan=(typeof planCosts!=='undefined'&&planCosts.length)?planCosts:PLAN_SEED;
+    plan.forEach(function(p,i){
+      if(p.cat==='Unterkunft')return;
+      var d=p.datum||'',m=!d&&String(p.info||'').match(/(\d{1,2})\.(\d{1,2})\./);
+      if(m)d='2026-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2);
+      out.push({id:p.id!=null?'p'+p.id:'seed'+i,cat:p.cat,label:p.label,info:p.info||'',datum:d,amount:p.amount,cur:p.cur||'EUR'});
+    });
+    return out;
+  };
+
   W.stayForDay=function(iso){
     var C=W.costs;
     for(var i=0;i<C.length;i++){
@@ -4075,7 +4204,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4092,6 +4221,8 @@ initApp();
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
+    else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
+    else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
@@ -5303,5 +5434,7 @@ initApp();
 })();
 
 </script>
+<script src="/reise-in-zahlen.js" defer></script>
+<script src="/nachbuchen.js" defer></script>
 </body>
 </html>
