@@ -3877,9 +3877,9 @@ async function createPhotobook(){
       const k=o.toLowerCase().replace(/[^a-zäöüß]/g,'');if(seen[k])return;
       seen[k]=1;stations.push(o);
     });
-    // Deckblatt = Startbild der Reise (wie oben in der Übersicht), sonst erstes Foto der Reise
-    let cover='';
-    try{cover=window.tvCoverURL?(window.tvCoverURL()||''):'';}catch(e){}
+    // Deckblatt = Bild der Reisekarte aus „Meine Reisen“, sonst Startbild der Übersicht, sonst erstes Foto
+    let cover=window.__tripImg||'';
+    try{if(!cover&&window.tvCoverURL)cover=window.tvCoverURL()||'';}catch(e){}
     if(!cover){const heroEl=document.getElementById('hero-bg-img');if(heroEl&&heroEl.src.indexOf('/titelbilder/')>=0)cover=heroEl.src;}
     if(!cover){const d=items.find(it=>it.type==='day'&&it.photos.length);if(d)cover=d.photos[0].url;}
     let coverPhotos=[];

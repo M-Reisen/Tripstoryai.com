@@ -46,6 +46,11 @@
   // Foto genau in Rahmengröße anfordern (wMm × hMm bei pxPerMm)
   function sized(u,wMm,hMm,pxPerMm,fit,q){
     var o=original(u),m=o.match(RX);
+    // Unsplash-Bilder (z. B. Bild der Reisekarte) in passender Größe anfordern
+    if(/^https:\/\/images\.unsplash\.com\//.test(o)){
+      var uw=Math.min(4000,Math.round(wMm*pxPerMm)),uh=Math.min(4000,Math.round(hMm*pxPerMm));
+      return o.split('?')[0]+'?w='+uw+'&h='+uh+'&fit=crop&auto=format&q='+(q||75);
+    }
     if(!m||/^Reisefotos\/Logo\//.test(m[2])||thumbsOff(o))return o;
     var w=wMm*pxPerMm,h=hMm*pxPerMm,k=Math.min(1,MAX_PX/Math.max(w,h));
     w=Math.max(16,Math.round(w*k));h=Math.max(16,Math.round(h*k));

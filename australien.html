@@ -3364,7 +3364,9 @@ async function createPhotobook(){
         photos:pics.map((u,i)=>({url:u,cap:photoComments[day.iso+'_'+i]||''}))});
     }
     await TvFotobuch.open({title:'Australien',sub:'Queensland & Great Barrier Reef',dates:'13. September – 10. Oktober 2026',
-      stations:BOOKINGS.map(b=>b.loc.split(',')[0]),cover:'',items:items});
+      stations:BOOKINGS.map(b=>b.loc.split(',')[0]),
+      // Deckblatt = Bild der Reisekarte aus „Meine Reisen“
+      cover:window.__tripImg||HERO_IMG_URL,items:items});
   }catch(e){
     console.error('Fotobuch:',e);TvFotobuch.unbusy();toast('Das Fotobuch konnte nicht erstellt werden.');
   }
