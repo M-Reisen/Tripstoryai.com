@@ -385,7 +385,7 @@
       +'@media print{html,body{background:#fff !important;height:auto !important;overflow:visible !important;margin:0 !important;padding:0 !important}'
       +'body>*:not(#pb-viewer){display:none !important}'
       +'#pb-viewer{position:static !important;display:block !important;background:#fff !important;height:auto !important;overflow:visible !important}'
-      +'#pb-viewer .pb-bar{display:none !important}#pb-scroll{overflow:visible !important;height:auto !important;padding:0 !important}#pb-zwrap{zoom:1 !important;width:auto !important;margin:0 !important}}';
+      +'#pb-viewer .pb-bar,#pb-viewer .pb-help{display:none !important}#pb-scroll{overflow:visible !important;height:auto !important;padding:0 !important}#pb-zwrap{zoom:1 !important;width:auto !important;margin:0 !important}}';
   }
   function setMode(mode){
     S.mode=mode;
@@ -411,6 +411,33 @@
   }
   function close(){removeViewer();}
   function backOrClose(){if(history.state&&history.state.pb)history.back();else close();}
+
+  // Hilfe zum Antippen (funktioniert am Handy und mit der Maus): Unterschied der Ausgaben + Anbieter
+  var PROVIDERS=[
+    ['Saal Digital','https://www.saal-digital.com/service/professional-zone/upload-your-pdf-in-the-online-shop/','PDF-Upload im Shop („PDF Upload“). Umschlag und Innenseiten als zwei Dateien; den Umschlag am einfachsten im Saal-Designer gestalten.'],
+    ['CEWE','https://www.cewe.de/cewe-fotobuch-von-pdf-bestellen.html','„CEWE Fotobuch von PDF“. Maße kommen aus der CEWE-Vorlage, Umschlag separat.'],
+    ['Fotofabrik','https://www.fotofabrik.de/fotobuch-als-pdf/','Fotobuch direkt aus einer PDF bestellen.'],
+    ['Prodigi','https://www.prodigi.com/products/photo-books/softcover-photo-book/','A4 quer, eine PDF mit Deckblatt. Dort „Drucken / PDF“ nehmen, der Beschnitt wird selbst ergänzt. Versand aus UK/EU.']
+  ];
+  function helpPanel(){
+    var d=document.createElement('div');d.className='pb-help';d.style.display='none';
+    d.style.cssText+=';flex:0 0 auto;max-height:55vh;overflow:auto;background:#FBF8F3;border-bottom:1px solid #D8D0C4;padding:14px 16px 16px;font-size:14px;line-height:1.5;color:#1A1714;';
+    var a='color:#B5714A;font-weight:500;';
+    d.innerHTML='<div style="max-width:720px;margin:0 auto">'
+      +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Welche Ausgabe brauche ich?</div>'
+      +'<p style="margin:0 0 6px"><b>Drucken / PDF</b>: A4 quer für zu Hause. Ausdrucken oder als PDF speichern und teilen.</p>'
+      +'<p style="margin:0 0 12px"><b>Druckdatei</b>: für Fotobuch-Anbieter. Jede Seite ist 3 mm größer (wird beim Zuschneiden entfernt, so gibt es keine weißen Kanten), Fotos in Druckqualität, gerade Seitenzahl.</p>'
+      +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">So bestellst du ein echtes Buch</div>'
+      +'<ol style="margin:0 0 12px;padding-left:20px"><li>Am Computer in Chrome oder Edge öffnen (Handys ändern das Seitenformat).</li>'
+      +'<li><b>Druckdatei</b> tippen und warten, bis alle Fotos geladen sind.</li>'
+      +'<li>Im Druckdialog: „Als PDF speichern“, Ränder „Keine“, Skalierung 100 %, Hintergrundgrafiken an.</li>'
+      +'<li>Die PDF beim Anbieter hochladen.</li></ol>'
+      +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:6px">Anbieter mit PDF-Upload</div>'
+      +PROVIDERS.map(function(p){return '<p style="margin:0 0 8px"><a href="'+p[1]+'" target="_blank" rel="noopener" style="'+a+'">'+esc(p[0])+' ↗</a><br><span style="color:#6B6560">'+esc(p[2])+'</span></p>';}).join('')
+      +'<p style="margin:10px 0 0;font-size:12.5px;color:#6B6560">Jeder Anbieter hat eigene Endformate. Vor der Bestellung kurz prüfen, ob A4 quer angeboten wird. Bei Pixum ist kein PDF-Upload möglich.</p>'
+      +'</div>';
+    return d;
+  }
 
   async function doPrint(mode){
     if(mode==='pro')toast('Druckdatei: Im Druckdialog „Als PDF speichern“, Ränder „Keine“, Skalierung 100 % wählen.');
@@ -459,11 +486,17 @@
         var u=URL.createObjectURL(new Blob([standalone()],{type:'text/html'}));
         window.open(u,'_blank');setTimeout(function(){URL.revokeObjectURL(u);},60000);
       },false));
+      var help=helpPanel();
+      var hb=btn('ⓘ Hilfe','Was ist der Unterschied? Wo bestelle ich das Buch?',function(){
+        var open=help.style.display==='none';help.style.display=open?'block':'none';hb.setAttribute('aria-expanded',open?'true':'false');
+      },false);
+      hb.setAttribute('aria-expanded','false');
+      bar.appendChild(hb);
       var sc=document.createElement('div');sc.id='pb-scroll';
       sc.style.cssText='flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 8px;';
       var zw=document.createElement('div');zw.id='pb-zwrap';zw.style.margin='0 auto';
       var host=document.createElement('div');
-      zw.appendChild(host);sc.appendChild(zw);v.appendChild(bar);v.appendChild(sc);
+      zw.appendChild(host);sc.appendChild(zw);v.appendChild(bar);v.appendChild(help);v.appendChild(sc);
       document.body.appendChild(v);
       document.documentElement.style.overflow='hidden';
       S.host=host;S.root=host.attachShadow({mode:'open'});
