@@ -1,3 +1,4 @@
+-- Live eingespielt am 2026-10-04.
 -- Admin-Übersicht (/admin): Kennzahlen zu Nutzern, Besuchen, KI, Speicher und Fehlern.
 -- Nur Ramonas Konto darf sie abrufen. Die Prüfung passiert hier in der Datenbank,
 -- nicht im Browser: jeder andere bekommt „kein zugriff“, auch wenn er /admin aufruft.
