@@ -2484,14 +2484,34 @@ async function toggleReaktion(iso,emoji,btn){
   // Sofort anzeigen, danach mit dem Server abgleichen
   v.mine=!v.mine;v.n=Math.max(0,v.n+(v.mine?1:-1));map[iso][emoji]=v;_reakt=map;
   refreshReaktion(iso,v.mine?emoji:null);
-  try{
-    var res=await sb.rpc('reaktion_umschalten',{p_trip:REISE_ID,p_tag:iso,p_emoji:emoji,p_geraet:geraet});
-    if(res.error)throw res.error;
-    if(res.data!==v.mine){v.mine=!!res.data;v.n=Math.max(0,vorher.n+(v.mine===vorher.mine?0:(v.mine?1:-1)));refreshReaktion(iso);}
-  }catch(e){
-    map[iso][emoji]=vorher;refreshReaktion(iso);
-    toast(/zu viele/.test((e&&e.message)||'')?'Kurz durchatmen – zu viele Klicks.':'Reaktion konnte nicht gespeichert werden.');
-  }finally{_reaktBusy[key]=false;}
+  var ziel=v.mine,fehler=null;
+  // Bis zu 2 Versuche (Mobilnetz kann einen Aufruf verlieren)
+  for(var versuch=0;versuch<2;versuch++){
+    try{
+      var res=await sb.rpc('reaktion_umschalten',{p_trip:REISE_ID,p_tag:iso,p_emoji:emoji,p_geraet:geraet});
+      if(res.error)throw res.error;
+      fehler=null;
+      if(_reakt!==map){_reakt=null;try{await loadReaktionen();}catch(e4){}refreshReaktion(iso);break;}
+      if(res.data!==ziel){v.mine=!!res.data;v.n=Math.max(0,vorher.n+(v.mine===vorher.mine?0:(v.mine?1:-1)));refreshReaktion(iso);}
+      break;
+    }catch(e){
+      fehler=e;
+      if(/zu viele|ungueltig|oeffentlich/.test((e&&e.message)||''))break;
+      // Kam der Klick trotz Fehler beim Server an? Dann ist alles gut.
+      try{
+        _reakt=null;var frisch=await loadReaktionen();
+        var s=(frisch[iso]||{})[emoji];
+        if(!!(s&&s.mine)===ziel){fehler=null;refreshReaktion(iso);break;}
+      }catch(e2){}
+    }
+  }
+  if(fehler){
+    try{if(window.travonaFehler)travonaFehler('Reaktion: '+((fehler&&(fehler.message||fehler.code))||fehler),'toggleReaktion '+iso+' '+emoji);}catch(e3){}
+    if(_reakt){if(!_reakt[iso])_reakt[iso]={};_reakt[iso][emoji]=vorher;}
+    refreshReaktion(iso);
+    toast(/zu viele/.test((fehler&&fehler.message)||'')?'Kurz durchatmen – zu viele Klicks.':'Reaktion konnte nicht gespeichert werden. Bitte nochmal tippen.');
+  }
+  _reaktBusy[key]=false;
 }
 function bindJournalCounters(){
   var c=document.getElementById('journal-entries');
