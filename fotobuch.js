@@ -19,12 +19,12 @@
   var W=297,H=210,BLEED=3,M=15,GAP=4; // Seitenmaße in mm, Rand, Fotoabstand
   var MAX_PX=2500;                   // Obergrenze der Supabase-Bildumwandlung
   var MAX_PER_PAGE=8,MAX_PAGES_PER_DAY=3,LONG_TEXT=400,TEXT_PER_PAGE=3300;
-  var FONTS='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap';
+  var FONTS='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Caveat:wght@400;600&display=swap';
   var MODES={
     home:{bleed:0,dpi:200,label:'Drucken / PDF'},
     pro:{bleed:BLEED,dpi:300,label:'Druckdatei'}
   };
-  var S={root:null,host:null,mode:'home',book:null,cancel:false,arr:{order:{},v:{}},dayPhotos:{},sel:null};
+  var S={root:null,host:null,mode:'home',design:'klassik',book:null,cancel:false,arr:{order:{},v:{}},dayPhotos:{},sel:null};
 
   // ── Eigene Anordnung (pro Reise auf diesem Gerät gespeichert) ─────────────
   function arrKey(){return 'tv_fotobuch_'+String((S.book&&S.book.key)||'');}
@@ -40,6 +40,58 @@
     var out=[];o.forEach(function(u){if(by[u]){out.push(by[u]);delete by[u];}});
     photos.forEach(function(p){if(by[original(p.url)])out.push(p);});
     return out;
+  }
+
+
+  // ── Designs: Farben, Schrift und Motiv (pro Reise auf diesem Gerät gespeichert) ──
+  var SERIF={playfair:'"Playfair Display",Georgia,serif',cormorant:'"Cormorant Garamond",Georgia,serif',caveat:'Caveat,"Segoe Print",cursive',sans:'"DM Sans",system-ui,sans-serif'};
+  // Motive als kleine Strichzeichnungen (24×24), werden in der Akzentfarbe gezeichnet
+  var MOTIFS={
+    kompass:'<circle cx="12" cy="12" r="9"/><path d="M12 4.5l2.2 7.5L12 19.5 9.8 12z"/><path d="M12 1.5v1.5M12 21v1.5M1.5 12H3M21 12h1.5"/>',
+    wellen:'<path d="M2 8.5c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.6 5-1.2M2 13.5c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.6 5-1.2M2 18.5c2.5-2 5-2 7.5 0s5 2 7.5 0 3.5-1.6 5-1.2"/>',
+    palme:'<path d="M12.5 22c.4-4 .2-7.5-.5-11"/><path d="M12 11C9.5 6.5 5.5 6 2.5 8.5M12 11c2.5-4.5 6.5-5 9.5-2.5M12 11c-.8-4-3.5-7-7.5-7.5M12 11c.8-4 3.5-7 7.5-7.5M12 11c-3 0-6 2-7 5.5M12 11c3 0 6 2 7 5.5"/>',
+    sonne:'<circle cx="12" cy="12" r="4.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+    berge:'<path d="M1.5 20l7-12 4.5 7 3-4.5 6.5 9.5z"/><path d="M6.6 11.2l1.9 1.6 1.8-1.5"/>',
+    kachel:'<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M12 3l9 9-9 9-9-9z"/><circle cx="12" cy="12" r="2.5"/>',
+    sterne:'<path d="M10 4l1.8 5.2H17l-4.2 3.2 1.6 5.2L10 14.4l-4.4 3.2 1.6-5.2L3 9.2h5.2z"/><path d="M19 2.5v4M17 4.5h4M19.5 15v3M18 16.5h3"/>',
+    bluete:'<circle cx="12" cy="6.6" r="3.4"/><circle cx="17.1" cy="10.3" r="3.4"/><circle cx="15.2" cy="16.4" r="3.4"/><circle cx="8.8" cy="16.4" r="3.4"/><circle cx="6.9" cy="10.3" r="3.4"/><circle cx="12" cy="12" r="1.6"/>',
+    flieger:'<path d="M22 2.5L2 10.5l7.5 3 3 8z"/><path d="M22 2.5L9.5 13.5"/><path d="M3 20c2-1 3.5-1 5 .5" stroke-dasharray="1.5 1.8"/>'
+  };
+  var DOTS='radial-gradient(circle,rgba(60,50,40,.2) .3mm,transparent .36mm)';
+  // name, Papier, Schrift, Fließtext, gedämpft, Linie, Akzent, Fotogrund, Deckblatt, Deckblatt-Akzent, Seitenzahl, Titelschrift, Motiv
+  var THEMES=[
+    {id:'klassik',name:'Terrakotta',paper:'#F6F1EA',ink:'#1A1714',txt:'#3A352E',muted:'#6B6560',line:'#D8D0C4',accent:'#B5714A',ph:'#E8E0D3',cover:'#2A2622',coverAcc:'#E9C9B3',folio:'#9A938A',serif:'playfair',motif:'kompass'},
+    {id:'meer',name:'Meeresbrise',paper:'#F2F5F6',ink:'#14283A',txt:'#2E4050',muted:'#5F7180',line:'#C9D6DE',accent:'#2F7F9E',ph:'#DCE6EB',cover:'#10293B',coverAcc:'#A9D6E5',folio:'#8DA0AD',serif:'playfair',motif:'wellen'},
+    {id:'tropen',name:'Tropengrün',paper:'#F3F6EE',ink:'#1D2A1F',txt:'#33402F',muted:'#5F6B5A',line:'#CBD5C1',accent:'#3F8A5A',ph:'#DDE5D2',cover:'#1C2E22',coverAcc:'#B9DEC2',folio:'#8E9A88',serif:'cormorant',motif:'palme'},
+    {id:'wueste',name:'Wüstensand',paper:'#F4EBDC',ink:'#2B2016',txt:'#45372A',muted:'#7A6A58',line:'#DCCBB2',accent:'#C27A2C',ph:'#E6D7BF',cover:'#2E2216',coverAcc:'#F2C98E',folio:'#A08D74',serif:'playfair',motif:'sonne'},
+    {id:'berge',name:'Bergluft',paper:'#F2F3F1',ink:'#1F2528',txt:'#353D41',muted:'#66707A',line:'#CDD3D6',accent:'#4E6E7E',ph:'#DDE2E4',cover:'#1E2A30',coverAcc:'#C5D8E0',folio:'#919AA0',serif:'cormorant',motif:'berge'},
+    {id:'mittelmeer',name:'Mittelmeer',paper:'#FBF7EC',ink:'#1E3354',txt:'#2F4060',muted:'#66708A',line:'#D9D3C0',accent:'#C98E0E',ph:'#E9E2CF',cover:'#1A2F52',coverAcc:'#F5CF6B',folio:'#9A9580',serif:'playfair',motif:'kachel'},
+    {id:'nacht',name:'Sternennacht',paper:'#1C1B21',ink:'#F1ECE2',txt:'#D9D3C8',muted:'#A39D93',line:'#3A3842',accent:'#C9A45C',ph:'#2A2931',cover:'#121117',coverAcc:'#E3C98E',folio:'#7D7870',serif:'cormorant',motif:'sterne'},
+    {id:'rose',name:'Rosé',paper:'#FBF1EE',ink:'#3A2327',txt:'#54393E',muted:'#8A6E72',line:'#E5CFCB',accent:'#C06C7A',ph:'#F0DEDA',cover:'#3A2327',coverAcc:'#F4C3CB',folio:'#B0959A',serif:'cormorant',motif:'bluete'},
+    {id:'purist',name:'Purist',paper:'#FFFFFF',ink:'#111111',txt:'#2A2A2A',muted:'#6E6E6E',line:'#DDDDDD',accent:'#111111',ph:'#EEEEEE',cover:'#111111',coverAcc:'#FFFFFF',folio:'#9A9A9A',serif:'sans',ital:'normal',motif:''},
+    {id:'skizze',name:'Skizzenbuch',paper:'#FAF6EA',ink:'#2E2A25',txt:'#3D3832',muted:'#77706A',line:'#D8CFBE',accent:'#B0432E',ph:'#EDE5D3',cover:'#2E2A25',coverAcc:'#F2C2A8',folio:'#A39B8E',serif:'caveat',ital:'normal',motif:'flieger',pattern:DOTS}
+  ];
+  function theme(id){for(var i=0;i<THEMES.length;i++)if(THEMES[i].id===id)return THEMES[i];return THEMES[0];}
+  function motifURL(name,color,w){
+    if(!MOTIFS[name])return 'none';
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="'+(w||1.3)+'" stroke-linecap="round" stroke-linejoin="round">'+MOTIFS[name]+'</svg>';
+    return 'url("data:image/svg+xml,'+encodeURIComponent(svg).replace(/'/g,'%27')+'")';
+  }
+  function themeVars(t){
+    return {'--paper':t.paper,'--ink':t.ink,'--txt':t.txt,'--muted':t.muted,'--line':t.line,'--terra':t.accent,'--ph':t.ph,
+      '--cover':t.cover,'--cover-acc':t.coverAcc,'--folio':t.folio,'--serif':SERIF[t.serif],'--ital':t.ital||'italic',
+      '--motif':motifURL(t.motif,t.accent),'--motif-d':t.motif?'block':'none','--pattern':t.pattern||'none'};
+  }
+  function designKey(){return 'tv_fotobuch_design_'+String((S.book&&S.book.key)||'');}
+  function loadDesign(){
+    try{return localStorage.getItem(designKey())||localStorage.getItem('tv_fotobuch_design')||'klassik';}catch(e){return 'klassik';}
+  }
+  function applyDesign(id,save){
+    var t=theme(id),v=themeVars(t);S.design=t.id;
+    var r=S.root&&S.root.querySelector('.pb-root');
+    if(r)Object.keys(v).forEach(function(k){r.style.setProperty(k,v[k]);});
+    if(save){try{localStorage.setItem(designKey(),t.id);localStorage.setItem('tv_fotobuch_design',t.id);}catch(e){}}
+    if(S.root){fitTexts(S.root);try{document.fonts.ready.then(function(){if(S.root)fitTexts(S.root);});}catch(e){}}
   }
 
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -249,33 +301,39 @@
 
   var CSS=''
     +':host{all:initial;display:block}'
-    +'.pb-root{--b:0mm;--ink:#1A1714;--paper:#F6F1EA;--terra:#B5714A;--muted:#6B6560;--line:#D8D0C4;font-family:"DM Sans",system-ui,-apple-system,sans-serif;color:var(--ink);width:calc(297mm + 2*var(--b));}'
+    +'.pb-root{--b:0mm;--ink:#1A1714;--paper:#F6F1EA;--terra:#B5714A;--muted:#6B6560;--line:#D8D0C4;--txt:#3A352E;--ph:#E8E0D3;--cover:#2A2622;--cover-acc:#E9C9B3;--folio:#9A938A;--serif:"Playfair Display",Georgia,serif;--ital:italic;--motif:none;--motif-d:none;--pattern:none;font-family:"DM Sans",system-ui,-apple-system,sans-serif;color:var(--ink);width:calc(297mm + 2*var(--b));}'
     +'.pb-root.pro{--b:3mm}'
     +'.pb-root *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.pb-page{position:relative;width:calc(297mm + 2*var(--b));height:calc(210mm + 2*var(--b));overflow:hidden;background:var(--paper);break-after:page;page-break-after:always;break-inside:avoid}'
     +'.pb-page:last-child{break-after:auto;page-break-after:auto}'
     +'.pb-root:not(.pro) .pb-pad{display:none}'
     +'.pb-trim{position:absolute;left:var(--b);top:var(--b);width:297mm;height:210mm}'
+    +'.pb-page:not(.pb-cover),.pb-cover.noimg{background-image:var(--pattern);background-size:6mm 6mm;background-position:center}'
+    // Motiv: neben der Überschrift, groß und blass auf Textseiten, über der Schlussseite
+    +'.pb-hd .pb-eyebrow:before,.pb-hotel-txt .pb-eyebrow:before{content:"";display:var(--motif-d);float:left;width:3.4mm;height:3.4mm;margin:-.6mm 2mm 0 0;background:var(--motif) center/contain no-repeat}'
+    +'.pb-hotel-txt.solo .pb-eyebrow:before{float:none;margin:0 auto 3mm;width:8mm;height:8mm}'
+    +'.pb-textpage .pb-trim:before,.pb-cover.noimg .pb-trim:before{content:"";display:var(--motif-d);position:absolute;right:10mm;bottom:10mm;width:62mm;height:62mm;opacity:.08;background:var(--motif) center/contain no-repeat}'
+    +'.pb-end-in:before{content:"";display:var(--motif-d);width:13mm;height:13mm;margin-bottom:6mm;background:var(--motif) center/contain no-repeat}'
     // Fotos
-    +'.pb-ph{position:absolute;overflow:hidden;background:#E8E0D3}'
+    +'.pb-ph{position:absolute;overflow:hidden;background:var(--ph)}'
     +'.pb-ph img{display:block;width:100%;height:100%;object-fit:cover}'
     +'.pb-ph.has-cap img{height:calc(100% - 6mm)}'
-    +'.pb-ph.has-cap{background:transparent}.pb-ph.has-cap img{background:#E8E0D3}'
+    +'.pb-ph.has-cap{background:transparent}.pb-ph.has-cap img{background:var(--ph)}'
     +'.pb-ph.contain{background:transparent}.pb-ph.contain img{object-fit:contain}'
     +'.pb-ph figcaption{height:6mm;padding-top:1.6mm;font-size:7.5pt;line-height:1.2;color:var(--muted);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
         // Kopfzeile
     +'.pb-hd{position:absolute;left:15mm;right:15mm;top:15mm;height:21mm;display:flex;align-items:flex-end;justify-content:space-between;gap:10mm;border-bottom:.3mm solid var(--line);padding-bottom:3mm}'
     +'.pb-hd.slim{height:10mm;padding-bottom:2.5mm}'
     +'.pb-eyebrow{font-size:7.5pt;letter-spacing:.28em;text-transform:uppercase;color:var(--terra);font-weight:500;margin-bottom:1.5mm}'
-    +'.pb-date{font-family:"Playfair Display",Georgia,serif;font-size:21pt;line-height:1.1}'
-    +'.pb-date-s{font-family:"Playfair Display",Georgia,serif;font-size:11pt}'
+    +'.pb-date{font-family:var(--serif);font-size:21pt;line-height:1.1}'
+    +'.pb-date-s{font-family:var(--serif);font-size:11pt}'
     +'.pb-ort{font-size:8pt;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);text-align:right;max-width:130mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
-    +'.pb-folio{position:absolute;left:0;right:0;bottom:10mm;text-align:center;font-size:7pt;letter-spacing:.1em;color:#9A938A}'
+    +'.pb-folio{position:absolute;left:0;right:0;bottom:10mm;text-align:center;font-size:7pt;letter-spacing:.1em;color:var(--folio)}'
     +'.pb-hotel .pb-folio{left:160mm}'
     // Texte
-    +'.pb-title{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:400;font-size:13pt;line-height:1.25;margin-bottom:2mm;color:var(--ink)}'
+    +'.pb-title{font-family:var(--serif);font-style:var(--ital);font-weight:400;font-size:13pt;line-height:1.25;margin-bottom:2mm;color:var(--ink)}'
     +'.pb-textbox{position:absolute;left:15mm;right:15mm;bottom:15mm;overflow:hidden;border-top:.3mm solid var(--terra);padding-top:3mm}'
-    +'.pb-txt,.pb-cols{font-size:9.5pt;line-height:1.55;color:#3A352E;text-align:justify;hyphens:auto;-webkit-hyphens:auto}'
+    +'.pb-txt,.pb-cols{font-size:9.5pt;line-height:1.55;color:var(--txt);text-align:justify;hyphens:auto;-webkit-hyphens:auto}'
     +'.pb-txt.two{column-count:2;column-gap:10mm}'
     +'.pb-longtext{position:absolute;left:15mm;right:15mm;top:44mm;bottom:15mm;overflow:hidden}'
     +'.pb-longtext .pb-title{font-size:17pt;margin-bottom:5mm}'
@@ -283,17 +341,17 @@
     +'.pb-cols.one{column-count:1;max-width:170mm}'
     +'.pb-txt p+p,.pb-cols p+p{margin-top:2.5mm}'
     // Deckblatt
-    +'.pb-cover{background:#2A2622;color:#fff}'
-    +'.pb-cover .pb-ph{background:#2A2622}'
+    +'.pb-cover{background:var(--cover);color:#fff}'
+    +'.pb-cover .pb-ph{background:var(--cover)}'
     +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(180deg,rgba(26,23,20,0) 35%,rgba(26,23,20,.25) 55%,rgba(26,23,20,.78) 100%)}'
     +'.pb-cover-in{position:absolute;left:20mm;right:20mm;bottom:24mm}'
-    +'.pb-cover .pb-eyebrow{color:#E9C9B3;font-size:10pt;margin-bottom:3mm}'
-    +'.pb-cover-title{font-family:"Playfair Display",Georgia,serif;font-weight:400;font-size:80pt;line-height:.98;letter-spacing:-.015em;text-shadow:0 1mm 6mm rgba(0,0,0,.25)}'
-    +'.pb-cover-sub{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:22pt;margin-top:4mm;opacity:.95}'
+    +'.pb-cover .pb-eyebrow{color:var(--cover-acc);font-size:10pt;margin-bottom:3mm}'
+    +'.pb-cover-title{font-family:var(--serif);font-weight:400;font-size:80pt;line-height:.98;letter-spacing:-.015em;text-shadow:0 1mm 6mm rgba(0,0,0,.25)}'
+    +'.pb-cover-sub{font-family:var(--serif);font-style:var(--ital);font-size:22pt;margin-top:4mm;opacity:.95}'
     +'.pb-rule{width:28mm;height:.6mm;background:var(--terra);margin:7mm 0}'
     +'.pb-cover-dates{font-size:12pt;letter-spacing:.12em;opacity:.95}'
     +'.pb-cover-route{font-size:9.5pt;line-height:1.9;letter-spacing:.06em;opacity:.82;margin-top:3mm}'
-    +'.pb-cover-route span{margin:0 2.2mm;color:#E9C9B3}'
+    +'.pb-cover-route span{margin:0 2.2mm;color:var(--cover-acc)}'
     +'.pb-cover-brand{position:absolute;right:15mm;bottom:15mm;font-size:7.5pt;letter-spacing:.3em;text-transform:uppercase;opacity:.85;text-shadow:0 0 3mm rgba(0,0,0,.45)}'
     +'.pb-cover.noimg .pb-cover-brand{text-shadow:none}'
     +'.pb-cover.noimg{background:var(--paper);color:var(--ink)}'
@@ -303,17 +361,17 @@
     +'.pb-hotel-txt{position:absolute;left:175mm;right:15mm;top:15mm;bottom:22mm;display:flex;flex-direction:column;justify-content:center}'
     +'.pb-hotel-txt.solo{left:40mm;right:40mm;align-items:center;text-align:center}'
     +'.pb-hotel-txt .pb-ort{text-align:inherit;white-space:normal;margin-top:2.5mm}'
-    +'.pb-hotel-name{font-family:"Playfair Display",Georgia,serif;font-weight:400;font-size:24pt;line-height:1.15}'
+    +'.pb-hotel-name{font-family:var(--serif);font-weight:400;font-size:24pt;line-height:1.15}'
     +'.pb-stars{color:var(--terra);font-size:13pt;letter-spacing:.2em;margin-top:5mm}'
-    +'.pb-quote{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:12.5pt;line-height:1.5;color:#3A352E;margin-top:5mm}'
+    +'.pb-quote{font-family:var(--serif);font-style:var(--ital);font-size:12.5pt;line-height:1.5;color:var(--txt);margin-top:5mm}'
     +'.pb-extra{margin-top:6mm}.pb-extra svg,.pb-extra img{display:block;max-width:100%;max-height:85mm;width:auto;height:auto}'
     // Schlussseite
     +'.pb-end-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}'
     +'.pb-stats{display:flex;gap:22mm;margin-top:6mm}'
-    +'.pb-stat-n{font-family:"Playfair Display",Georgia,serif;font-size:40pt;line-height:1}'
+    +'.pb-stat-n{font-family:var(--serif);font-size:40pt;line-height:1}'
     +'.pb-stat-l{font-size:8pt;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:2.5mm}'
     +'.pb-end-in .pb-rule{margin:12mm auto 8mm}'
-    +'.pb-end-brand{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:13pt}'
+    +'.pb-end-brand{font-family:var(--serif);font-style:var(--ital);font-size:13pt}'
     +'.pb-end-url{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;color:var(--terra);margin-top:2mm}'
     // Anordnen-Modus (nur Bildschirm)
     +'.pb-lay{display:none}'
@@ -464,6 +522,8 @@
       +'<li><b>⟳ Layout</b> oben rechts auf jeder Fotoseite wechselt die Aufteilung (bis zu vier Varianten). Bei einem Einzelfoto: ganz sichtbar oder seitenfüllend.</li>'
       +'<li><b>✓ Fertig</b> beendet das Anordnen. <b>Zurücksetzen</b> stellt die ursprüngliche Reihenfolge wieder her.</li></ol>'
       +'<p style="margin:0 0 12px;color:#6B6560">Die Anordnung wird auf diesem Gerät gespeichert. Am besten am Computer anordnen, mit dem du auch druckst.</p>'
+      +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Design ändern</div>'
+      +'<p style="margin:0 0 12px"><b>🎨 Design</b> tippen und einen der 10 Vorschläge wählen. Farben, Schrift und Motiv wechseln sofort im ganzen Buch, die Wahl wird für diese Reise gespeichert.</p>'
       +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">So bestellst du ein echtes Buch</div>'
       +'<ol style="margin:0 0 12px;padding-left:20px"><li>Am Computer in Chrome oder Edge öffnen (Handys ändern das Seitenformat).</li>'
       +'<li><b>Druckdatei</b> tippen und warten, bis alle Fotos geladen sind.</li>'
@@ -473,6 +533,35 @@
       +PROVIDERS.map(function(p){return '<p style="margin:0 0 8px"><a href="'+p[1]+'" target="_blank" rel="noopener" style="'+a+'">'+esc(p[0])+' ↗</a><br><span style="color:#6B6560">'+esc(p[2])+'</span></p>';}).join('')
       +'<p style="margin:10px 0 0;font-size:12.5px;color:#6B6560">Jeder Anbieter hat eigene Endformate. Vor der Bestellung kurz prüfen, ob A4 quer angeboten wird. Bei Pixum ist kein PDF-Upload möglich.</p>'
       +'</div>';
+    return d;
+  }
+
+
+  // Design-Auswahl: 10 Vorschläge als kleine Musterseiten
+  function designPanel(){
+    var d=document.createElement('div');d.className='pb-help pb-design';d.style.display='none';
+    d.style.cssText+=';flex:0 0 auto;max-height:55vh;overflow:auto;background:#FBF8F3;border-bottom:1px solid #D8D0C4;padding:14px 16px 16px;font-size:14px;line-height:1.5;color:#1A1714;';
+    var wrap=document.createElement('div');wrap.style.cssText='max-width:900px;margin:0 auto';
+    wrap.innerHTML='<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:2px">Design wählen</div>'
+      +'<p style="margin:0 0 12px;color:#6B6560">Farben, Schrift und Motiv gelten für das ganze Buch. Fotos und Anordnung bleiben, wie sie sind.</p>';
+    var grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px';
+    THEMES.forEach(function(t){
+      var b=document.createElement('button');b.type='button';b.setAttribute('data-design',t.id);b.title='Design „'+t.name+'“';
+      b.style.cssText='display:block;padding:0;border-radius:10px;overflow:hidden;cursor:pointer;text-align:left;font-family:inherit;background:#fff;border:2px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.12)';
+      b.innerHTML='<div style="height:76px;position:relative;background:'+t.paper+';'+(t.pattern?'background-image:radial-gradient(circle,rgba(60,50,40,.16) 1px,transparent 1.3px);background-size:9px 9px;':'')+'">'
+        +'<div style="position:absolute;left:0;top:0;bottom:0;width:38%;background:'+t.cover+'"></div>'
+        +'<div style="position:absolute;left:45%;top:12px;font:'+(t.ital?'normal':'italic')+' 400 22px/1 '+SERIF[t.serif].replace(/"/g,"'")+';color:'+t.ink+'">Aa</div>'
+        +'<div style="position:absolute;left:45%;top:44px;width:30%;height:3px;background:'+t.accent+'"></div>'
+        +'<div style="position:absolute;left:45%;top:54px;width:42%;height:2px;background:'+t.line+'"></div>'
+        +(t.motif?'<div style="position:absolute;right:8px;top:10px;width:22px;height:22px;background:'+motifURL(t.motif,t.accent,1.6).replace(/"/g,"'")+' center/contain no-repeat"></div>':'')
+        +'</div><div style="padding:6px 10px 8px;font-size:13px;font-weight:500;color:#1A1714">'+esc(t.name)+'</div>';
+      b.onclick=function(){applyDesign(t.id,true);mark();toast('Design „'+t.name+'“ gewählt.');};
+      grid.appendChild(b);
+    });
+    function mark(){grid.querySelectorAll('[data-design]').forEach(function(b){b.style.borderColor=b.getAttribute('data-design')===S.design?'#1A1714':'transparent';});}
+    d._mark=mark;
+    wrap.appendChild(grid);d.appendChild(wrap);
     return d;
   }
 
@@ -564,23 +653,29 @@
       },false);
       resetBtn.style.display='none';
       bar.appendChild(arrBtn);bar.appendChild(resetBtn);
-      var help=helpPanel();
-      var hb=btn('ⓘ Hilfe','Was ist der Unterschied? Wo bestelle ich das Buch?',function(){
-        var open=help.style.display==='none';help.style.display=open?'block':'none';hb.setAttribute('aria-expanded',open?'true':'false');
-      },false);
-      hb.setAttribute('aria-expanded','false');
-      bar.appendChild(hb);
+      var help=helpPanel(),des=designPanel();
+      // Hilfe und Design teilen sich den Platz unter der Leiste: immer nur eines offen
+      var toggle=function(panel,b,other,ob){
+        var open=panel.style.display==='none';panel.style.display=open?'block':'none';b.setAttribute('aria-expanded',open?'true':'false');
+        if(open){other.style.display='none';ob.setAttribute('aria-expanded','false');}
+        if(open&&panel._mark)panel._mark();
+      };
+      var db=btn('🎨 Design','Farben, Schrift und Motiv wählen',function(){toggle(des,db,help,hb);},false);
+      var hb=btn('ⓘ Hilfe','Was ist der Unterschied? Wo bestelle ich das Buch?',function(){toggle(help,hb,des,db);},false);
+      db.setAttribute('aria-expanded','false');hb.setAttribute('aria-expanded','false');
+      bar.appendChild(db);bar.appendChild(hb);
       var sc=document.createElement('div');sc.id='pb-scroll';
       sc.style.cssText='flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px 8px;';
       var zw=document.createElement('div');zw.id='pb-zwrap';zw.style.margin='0 auto';
       var host=document.createElement('div');
-      zw.appendChild(host);sc.appendChild(zw);v.appendChild(bar);v.appendChild(help);v.appendChild(sc);
+      zw.appendChild(host);sc.appendChild(zw);v.appendChild(bar);v.appendChild(des);v.appendChild(help);v.appendChild(sc);
       document.body.appendChild(v);
       document.documentElement.style.overflow='hidden';
       S.host=host;S.root=host.attachShadow({mode:'open'});
       S.root.addEventListener('error',onImgError,true);
       S.root.addEventListener('click',onArrangeClick);
       S.root.innerHTML='<style>'+CSS+'</style><div class="pb-root" lang="de">'+buildPages(book)+'</div>';
+      applyDesign(loadDesign(),false);
       setMode('home');
       setPreviewSources();
       window.addEventListener('resize',fitZoom);
@@ -605,5 +700,5 @@
   }
 
   window.TvFotobuch={open:open,busy:function(t){busy(t,false);},unbusy:unbusy,pool:pool,original:original,
-    _build:buildPages,_sized:sized};
+    _build:buildPages,_sized:sized,themes:THEMES};
 })();
