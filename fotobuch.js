@@ -24,7 +24,23 @@
     home:{bleed:0,dpi:200,label:'Drucken / PDF'},
     pro:{bleed:BLEED,dpi:300,label:'Druckdatei'}
   };
-  var S={root:null,host:null,mode:'home',book:null,cancel:false};
+  var S={root:null,host:null,mode:'home',book:null,cancel:false,arr:{order:{},v:{}},dayPhotos:{},sel:null};
+
+  // ── Eigene Anordnung (pro Reise auf diesem Gerät gespeichert) ─────────────
+  function arrKey(){return 'tv_fotobuch_'+String((S.book&&S.book.key)||'');}
+  function loadArr(){
+    try{var a=JSON.parse(localStorage.getItem(arrKey())||'null');if(a&&a.order&&a.v)return a;}catch(e){}
+    return {order:{},v:{}};
+  }
+  function saveArr(){try{localStorage.setItem(arrKey(),JSON.stringify(S.arr));}catch(e){}}
+  // gespeicherte Reihenfolge anwenden; neue Fotos hinten anhängen, gelöschte fallen weg
+  function savedOrder(day,photos){
+    var o=S.arr.order[day];if(!o||!o.length)return photos.slice();
+    var by={};photos.forEach(function(p){by[original(p.url)]=p;});
+    var out=[];o.forEach(function(u){if(by[u]){out.push(by[u]);delete by[u];}});
+    photos.forEach(function(p){if(by[original(p.url)])out.push(p);});
+    return out;
+  }
 
   function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function toast(t){try{window.toast(t);}catch(e){}}
@@ -69,15 +85,30 @@
     7:[[0,0,.4,1],[.4,0,.2,.5],[.6,0,.2,.5],[.8,0,.2,.5],[.4,.5,.2,.5],[.6,.5,.2,.5],[.8,.5,.2,.5]],
     8:[[0,0,.25,.5],[.25,0,.25,.5],[.5,0,.25,.5],[.75,0,.25,.5],[0,.5,.25,.5],[.25,.5,.25,.5],[.5,.5,.25,.5],[.75,.5,.25,.5]]
   };
-  function rects(n,ax,ay,aw,ah,mirror){
-    return (LAYOUTS[n]||LAYOUTS[8]).map(function(f){
+  // weitere Raster zur Auswahl beim Anordnen
+  var ALT={
+    2:[[0,0,.62,1],[.62,0,.38,1]],
+    3:[[0,0,1/3,1],[1/3,0,1/3,1],[2/3,0,1/3,1]],
+    4:[[0,0,.6,1],[.6,0,.4,1/3],[.6,1/3,.4,1/3],[.6,2/3,.4,1/3]],
+    5:[[0,0,.5,.5],[.5,0,.5,.5],[0,.5,1/3,.5],[1/3,.5,1/3,.5],[2/3,.5,1/3,.5]],
+    6:[[0,0,.5,2/3],[.5,0,.5,2/3],[0,2/3,.25,1/3],[.25,2/3,.25,1/3],[.5,2/3,.25,1/3],[.75,2/3,.25,1/3]]
+  };
+  // Varianten je Fotoanzahl: Raster, gespiegelt, Alternative (1 Foto: ganz oder randfüllend)
+  function variants(n){
+    if(n===1)return [{set:LAYOUTS,fit:'contain'},{set:LAYOUTS,fit:'cover'}];
+    var v=[{set:LAYOUTS},{set:LAYOUTS,mirror:true}];
+    if(ALT[n])v.push({set:ALT},{set:ALT,mirror:true});
+    return v;
+  }
+  function rects(n,ax,ay,aw,ah,mirror,set){
+    return ((set||LAYOUTS)[n]||LAYOUTS[8]).map(function(f){
       var fx=mirror?1-f[0]-f[2]:f[0],fy=f[1],fw=f[2],fh=f[3];
       var l=fx>0.001?GAP/2:0,r=fx+fw<0.999?GAP/2:0,t=fy>0.001?GAP/2:0,b=fy+fh<0.999?GAP/2:0;
       return {x:ax+fx*aw+l,y:ay+fy*ah+t,w:fw*aw-l-r,h:fh*ah-t-b};
     });
   }
   // Ein Foto: Position in mm (Beschnittzugabe über --b); data-* für die Druckauflösung
-  function photo(p,r,fit,bleedEdges){
+  function photo(p,r,fit,bleedEdges,day){
     var cap=p.cap?String(p.cap):'';
     var capH=cap?6:0;
     var e=bleedEdges||'';
@@ -87,7 +118,7 @@
     var ht='calc('+mm(r.h)+(e.indexOf('t')>=0?' + var(--b)':'')+(e.indexOf('b')>=0?' + var(--b)':'')+')';
     var bw=r.w+(e.indexOf('l')>=0?BLEED:0)+(e.indexOf('r')>=0?BLEED:0);
     var bh=r.h-capH+(e.indexOf('t')>=0?BLEED:0)+(e.indexOf('b')>=0?BLEED:0);
-    return '<figure class="pb-ph'+(fit==='contain'?' contain':'')+(cap?' has-cap':'')+'" style="left:'+left+';top:'+top+';width:'+wd+';height:'+ht+'">'
+    return '<figure class="pb-ph'+(fit==='contain'?' contain':'')+(cap?' has-cap':'')+'"'+(day?' data-day="'+esc(day)+'" data-url="'+esc(original(p.url))+'"':'')+' style="left:'+left+';top:'+top+';width:'+wd+';height:'+ht+'">'
       +'<img alt="" loading="lazy" decoding="async" data-src="'+esc(original(p.url))+'" data-w="'+bw.toFixed(1)+'" data-h="'+bh.toFixed(1)+'" data-fit="'+(fit||'cover')+'">'
       +(cap?'<figcaption>'+esc(cap)+'</figcaption>':'')+'</figure>';
   }
@@ -130,25 +161,14 @@
     return out;
   }
 
-  // Deckblatt-Collage: Fotos über die ganze Seite, Ränder laufen in den Beschnitt
-  function coverCollage(urls){
-    var rs=rects(urls.length,0,0,W,H,false);
-    return rs.map(function(r,i){
-      var e=(r.x<0.01?'l':'')+(r.y<0.01?'t':'')+(r.x+r.w>W-0.01?'r':'')+(r.y+r.h>H-0.01?'b':'');
-      return photo({url:urls[i]},r,'cover',e);
-    }).join('');
-  }
   function buildPages(book){
     var pages=[],folio=1,tag=0,nPhotos=0,mirror=false;
     var next=function(){return ++folio;};
     // Deckblatt
     var cov=book.cover?original(book.cover):'';
-    // Collage aus den Ortsfotos der Stationen (wie in der Übersicht), max. 8
-    var coll=(book.coverPhotos||[]).map(original).filter(function(u,i,arr){return u&&arr.indexOf(u)===i;}).slice(0,8);
-    if(coll.length>1)cov=coll[0];
     var stations=(book.stations||[]).filter(Boolean);
-    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+(coll.length>1?' collage':'')+'"><div class="pb-trim">'
-      +(coll.length>1?coverCollage(coll)+'<div class="pb-veil"></div>':cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
+    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+'"><div class="pb-trim">'
+      +(cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
       +'<div class="pb-cover-in">'
       +'<div class="pb-eyebrow">Reisetagebuch</div>'
       +'<h1 class="pb-cover-title">'+esc(book.title||'Unsere Reise')+'</h1>'
@@ -175,7 +195,10 @@
         return;
       }
       var text=String(it.text||'').trim(),titel=String(it.titel||'').trim();
-      var chunks=chunkPhotos(it.photos||[]);
+      var dayId=String(it.id||it.date||'');
+      var pics=savedOrder(dayId,it.photos||[]);
+      S.dayPhotos[dayId]=pics;
+      var chunks=chunkPhotos(pics);
       if(!text&&!chunks.length)return;
       tag++;
       var eyebrow='Tag '+tag;
@@ -194,12 +217,15 @@
         var top=first?42:30;
         var th=showText?textBoxHeight(titel,text):0;
         var bottom=H-M-(th?th+5:0);
-        var fit=ch.length===1?'contain':'cover';
-        var rs=rects(ch.length,M,top,W-2*M,bottom-top,mirror);
+        var key=dayId+'#'+i,vs=variants(ch.length);
+        var vi=S.arr.v[key];if(vi==null||vi>=vs.length)vi=(mirror&&ch.length>1)?1:0;
+        var va=vs[vi];
+        var rs=rects(ch.length,M,top,W-2*M,bottom-top,!!va.mirror,va.set);
         mirror=!mirror;
         nPhotos+=ch.length;
         var body=(first?header(eyebrow,it.date,it.ort):slimHeader(it.date,it.ort))
-          +ch.map(function(p,k){return photo(p,rs[k],fit);}).join('')
+          +ch.map(function(p,k){return photo(p,rs[k],va.fit||'cover',null,dayId);}).join('')
+          +(vs.length>1?'<button type="button" class="pb-lay" data-key="'+esc(key)+'" data-n="'+vs.length+'" data-v="'+vi+'">⟳ Layout '+(vi+1)+'/'+vs.length+'</button>':'')
           +(showText?'<div class="pb-textbox fit" style="height:'+mm(th)+'">'+(titel?'<h3 class="pb-title">'+esc(titel)+'</h3>':'')
             +'<div class="pb-txt'+(text.length>180?' two':'')+'"><p>'+textHtml(text)+'</p></div></div>':'');
         pages.push(page('pb-day',body,next()));
@@ -258,7 +284,7 @@
     +'.pb-txt p+p,.pb-cols p+p{margin-top:2.5mm}'
     // Deckblatt
     +'.pb-cover{background:#2A2622;color:#fff}'
-    +'.pb-cover .pb-ph{background:#2A2622}.pb-cover.collage{background:#F6F1EA}'
+    +'.pb-cover .pb-ph{background:#2A2622}'
     +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(180deg,rgba(26,23,20,0) 35%,rgba(26,23,20,.25) 55%,rgba(26,23,20,.78) 100%)}'
     +'.pb-cover-in{position:absolute;left:20mm;right:20mm;bottom:24mm}'
     +'.pb-cover .pb-eyebrow{color:#E9C9B3;font-size:10pt;margin-bottom:3mm}'
@@ -289,6 +315,11 @@
     +'.pb-end-in .pb-rule{margin:12mm auto 8mm}'
     +'.pb-end-brand{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:13pt}'
     +'.pb-end-url{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;color:var(--terra);margin-top:2mm}'
+    // Anordnen-Modus (nur Bildschirm)
+    +'.pb-lay{display:none}'
+    +'@media screen{.pb-root.arrange .pb-lay{display:block;position:absolute;right:15mm;top:4mm;z-index:6;font:500 12pt "DM Sans",sans-serif;padding:1.5mm 4mm;border-radius:99mm;border:.3mm solid #B5714A;background:#fff;color:#B5714A;cursor:pointer}'
+    +'.pb-root.arrange .pb-ph[data-day]{cursor:pointer;outline:.4mm dashed rgba(181,113,74,.7);outline-offset:-.4mm}'
+    +'.pb-root.arrange .pb-ph.sel{outline:1.4mm solid #B5714A;outline-offset:-1.4mm;z-index:4}}'
     // Bildschirm: Seiten als Blätter, im Druckdatei-Modus Schnittkante andeuten
     +'@media screen{.pb-page{margin:0 auto 14px;box-shadow:0 2px 14px rgba(0,0,0,.25)}'
     +'.pb-root.pro .pb-trim:after{content:"";position:absolute;inset:0;outline:1px dashed rgba(181,113,74,.9);pointer-events:none;z-index:5}}';
@@ -461,8 +492,35 @@
       +'@page{size:'+(W+2*b)+'mm '+(H+2*b)+'mm;margin:0}@media print{body{background:#fff}}</style></head><body>'+r.outerHTML+'</body></html>';
   }
 
+  // Seiten neu aufbauen (nach Tauschen oder Layoutwechsel), Scrollposition bleibt
+  function rerender(){
+    var r=S.root&&S.root.querySelector('.pb-root');if(!r)return;
+    S.sel=null;S.dayPhotos={};
+    r.innerHTML=buildPages(S.book);
+    setPreviewSources();fitTexts(S.root);
+  }
+  function onArrangeClick(ev){
+    var r=S.root.querySelector('.pb-root');if(!r||!r.classList.contains('arrange'))return;
+    var lay=ev.target.closest&&ev.target.closest('.pb-lay');
+    if(lay){
+      var k=lay.getAttribute('data-key'),n=+lay.getAttribute('data-n');
+      var cur=+lay.getAttribute('data-v')||0;
+      S.arr.v[k]=(cur+1)%n;saveArr();rerender();return;
+    }
+    var fig=ev.target.closest&&ev.target.closest('.pb-ph[data-day]');if(!fig)return;
+    if(!S.sel){S.sel=fig;fig.classList.add('sel');return;}
+    if(S.sel===fig){fig.classList.remove('sel');S.sel=null;return;}
+    var d1=S.sel.getAttribute('data-day'),d2=fig.getAttribute('data-day');
+    if(d1!==d2){S.sel.classList.remove('sel');S.sel=fig;fig.classList.add('sel');toast('Tauschen geht innerhalb eines Tages. Neues Foto gewählt.');return;}
+    var list=(S.dayPhotos[d1]||[]).map(function(p){return original(p.url);});
+    var a=list.indexOf(S.sel.getAttribute('data-url')),b=list.indexOf(fig.getAttribute('data-url'));
+    if(a<0||b<0)return;
+    var t=list[a];list[a]=list[b];list[b]=t;
+    S.arr.order[d1]=list;saveArr();rerender();
+  }
+
   async function open(book){
-    S.book=book;
+    S.book=book;S.arr=loadArr();S.dayPhotos={};S.sel=null;
     try{
       ensureFonts();
       removeViewer();
@@ -486,6 +544,20 @@
         var u=URL.createObjectURL(new Blob([standalone()],{type:'text/html'}));
         window.open(u,'_blank');setTimeout(function(){URL.revokeObjectURL(u);},60000);
       },false));
+      var arrBtn=btn('✥ Anordnen','Fotos tauschen und Layout je Seite wählen',function(){
+        var r=S.root.querySelector('.pb-root'),on=!r.classList.contains('arrange');
+        r.classList.toggle('arrange',on);
+        arrBtn.textContent=on?'✓ Fertig':'✥ Anordnen';
+        resetBtn.style.display=on?'':'none';
+        if(!on&&S.sel){S.sel.classList.remove('sel');S.sel=null;}
+        if(on)toast('Tippe ein Foto und dann ein zweites vom selben Tag, um sie zu tauschen. „⟳ Layout“ wechselt die Aufteilung der Seite.');
+      },false);
+      var resetBtn=btn('Zurücksetzen','Eigene Anordnung verwerfen',function(){
+        if(!confirm('Eigene Anordnung für dieses Fotobuch verwerfen?'))return;
+        S.arr={order:{},v:{}};saveArr();rerender();
+      },false);
+      resetBtn.style.display='none';
+      bar.appendChild(arrBtn);bar.appendChild(resetBtn);
       var help=helpPanel();
       var hb=btn('ⓘ Hilfe','Was ist der Unterschied? Wo bestelle ich das Buch?',function(){
         var open=help.style.display==='none';help.style.display=open?'block':'none';hb.setAttribute('aria-expanded',open?'true':'false');
@@ -501,7 +573,8 @@
       document.documentElement.style.overflow='hidden';
       S.host=host;S.root=host.attachShadow({mode:'open'});
       S.root.addEventListener('error',onImgError,true);
-      S.root.innerHTML='<style>'+CSS+'</style><div class="pb-root">'+buildPages(book)+'</div>';
+      S.root.addEventListener('click',onArrangeClick);
+      S.root.innerHTML='<style>'+CSS+'</style><div class="pb-root" lang="de">'+buildPages(book)+'</div>';
       setMode('home');
       setPreviewSources();
       window.addEventListener('resize',fitZoom);
