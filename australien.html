@@ -29,10 +29,8 @@
 <script>try{if(localStorage.getItem('au26_admin')==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600&family=Sora:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1114,7 +1112,7 @@ html.app-guestview body{padding-top:48px;}
   <div id="gb-list" style="margin-bottom:32px"><div class="sb-loading">Lädt…</div></div>
   <div class="gb-form">
     <input type="text" id="gb-name" placeholder="Dein Name" maxlength="50">
-    <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3"></textarea>
+    <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3" maxlength="1000"></textarea>
     <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
   </div>
 </div>
@@ -1632,7 +1630,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
+    entries=db.filter(e=>e.name!=='visit'&&!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -2572,7 +2570,7 @@ async function loadGuestbook(){
   if(!box)return;
   var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   try{
-    var {data,error}=await sb.from('kommentare').select('*').like('ort','gaestebuch_'+REISE_ID+'%').order('created_at',{ascending:false});
+    var {data,error}=await sb.from('kommentare').select('*').like('ort','gaestebuch_'+REISE_ID+'_%').order('created_at',{ascending:false});
     if(error){box.innerHTML='<div class="gb-empty">Konnte Nachrichten nicht laden.</div>';return;}
     if(!data||!data.length){box.innerHTML='<div class="gb-empty">Noch keine Nachrichten – sei die erste Person, die einen Gruß hinterlässt!</div>';return;}
     box.innerHTML=data.map(function(c){

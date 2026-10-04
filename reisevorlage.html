@@ -32,11 +32,9 @@ try{var _m=location.pathname.match(/^\/reisetagebuch\/([a-z0-9-]+)\/([a-z0-9-]+)
 <script>try{var _rk=(window.__REISE_ID||new URLSearchParams(location.search).get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');if(localStorage.getItem('tv_admin_'+_rk)==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&family=Caveat:wght@500;600;700&family=Sora:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 <style>
@@ -367,6 +365,9 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .gb-entry-name{font-family:'Playfair Display',serif;font-size:18px;color:var(--ink);margin-bottom:4px;}
 .gb-entry-date{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);margin-bottom:10px;}
 .gb-entry-text{font-size:15px;line-height:1.7;color:var(--ink);opacity:.85;white-space:pre-wrap;}
+.gb-entry{position:relative;}
+.gb-del{position:absolute;top:12px;right:12px;border:0;background:transparent;color:var(--fog);font-size:14px;line-height:1;padding:6px;cursor:pointer;border-radius:50%;}
+.gb-del:hover{color:#b3261e;background:rgba(179,38,30,.08);}
 .gb-empty{padding:30px 0;color:var(--fog);font-size:14px;font-style:italic;}
 .fig-journal{display:flex;flex-direction:column;gap:2px;}
 .fig-journal-entry{display:grid;grid-template-columns:1fr 1fr;gap:2px;}
@@ -1016,7 +1017,7 @@ html.app-guestview body{padding-top:48px;}
     <div id="gb-list" style="margin-bottom:32px"><div class="sb-loading">Lädt…</div></div>
     <div class="gb-form">
       <input type="text" id="gb-name" placeholder="Dein Name" maxlength="50">
-      <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3"></textarea>
+      <textarea id="gb-text" placeholder="Deine Nachricht…" rows="3" maxlength="1000"></textarea>
       <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
     </div>
   </div>
@@ -1442,7 +1443,7 @@ async function sbDeleteHotelPhoto(url){
 let _heroInput=null;
 async function sbLoadHeroImage(){
   try{
-    const {data,error}=await sb.storage.from('Reisefotos').list('titelbilder',{limit:200});
+    const {data,error}=await sb.storage.from('Reisefotos').list('titelbilder',{limit:100,search:REISE+'_',sortBy:{column:'name',order:'desc'}});
     if(error||!data)return null;
     const match=data.filter(f=>f.name.indexOf(REISE+'_')===0).sort((a,b)=>a.name<b.name?1:-1)[0];
     if(!match)return null;
@@ -1546,8 +1547,12 @@ let _lbIso=null;
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function fmt(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});}
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function isISODate(s){return /^\d{4}-\d{2}-\d{2}$/.test(s||'');}
+// Währungscode aus gespeicherten Daten: nur 3 Großbuchstaben, sonst EUR
+// Bildadresse sicher für style="background-image:url('…')"
+function cssUrl(u){return esc(String(u==null?'':u).replace(/["'()\\\s<>]/g,function(c){return '%'+c.charCodeAt(0).toString(16).toUpperCase().padStart(2,'0');}));}
+function safeCur(c){c=String(c||'').trim().toUpperCase();return /^[A-Z]{3}$/.test(c)?c:'EUR';}
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2600);}
 function val(id){var e=document.getElementById(id);return e?e.value:'';}
 function setVal(id,v){var e=document.getElementById(id);if(e)e.value=v;}
@@ -1606,7 +1611,7 @@ async function sbLoadCosts(){
     const label=np.slice(1).join('|')||'Position';
     const mp=(r.nachricht||'').split('|');
     const amount=parseFloat(mp[0])||0;
-    const cur=mp[1]||'EUR';
+    const cur=safeCur(mp[1]);
     let datum='',info='';
     if(mp.length>=4){datum=isISODate(mp[2])?mp[2]:'';info=mp.slice(3).join('|');if(!datum&&mp[2])info=mp.slice(2).join('|');}
     else if(mp.length===3){if(isISODate(mp[2]))datum=mp[2];else info=mp[2];}
@@ -1784,7 +1789,8 @@ async function sbLoadFX(){
   try{
     const {data,error}=await sb.from('kommentare').select('*').eq('ort',PFX+'fx').limit(1);
     if(error||!data||!data.length)return;
-    FX=Object.assign(FX,JSON.parse(data[0].nachricht||'{}'));
+    const fx=JSON.parse(data[0].nachricht||'{}')||{};
+    Object.keys(fx).forEach(function(k){var v=Number(fx[k]);if(/^[A-Z]{3}$/.test(k)&&isFinite(v)&&v>0)FX[k]=v;});
   }catch(e){console.error('FX laden:',e);}
 }
 async function sbSaveFX(){
@@ -1814,13 +1820,14 @@ async function sbLoadExpenses(){
   (data||[]).forEach(function(r){
     const rest=r.ort.substring((PFX+'ausgabe_').length);
     const m=rest.match(/^(\d{4}-\d{2}-\d{2})/);
-    const iso=m?m[1]:rest;
+    if(!m)return;   // nur Einträge mit gültigem Datum
+    const iso=m[1];
     const parts=(r.name||'').split('|');
     const cat=parts[0]||'💶';
     const label=parts.slice(1).join('|')||'Ausgabe';
     const np=(r.nachricht||'').split('|');
     const amount=parseFloat(np[0])||0;
-    const cur=np[1]||'EUR';
+    const cur=safeCur(np[1]);
     if(!dayExpenses[iso])dayExpenses[iso]=[];
     dayExpenses[iso].push({id:r.id,cat:cat,label:label,amount:amount,cur:cur});
   });
@@ -1885,7 +1892,7 @@ function renderHead(){
   }catch(e){}
   try{updateCountdown();}catch(e){console.error('Countdown:',e);}
   document.getElementById('hero-title').innerHTML = tripHead.title
-    ? (tripHead.emoji?tripHead.emoji+' ':'')+esc(tripHead.title)
+    ? (tripHead.emoji?esc(tripHead.emoji)+' ':'')+esc(tripHead.title)
     : 'Deine <em>Reise</em>';
   document.getElementById('hero-eyebrow').textContent = tripHead.sub || 'Reisetagebuch';
   // Datum
@@ -1994,7 +2001,7 @@ function renderDayCard(days){
     sbLoadHotelPhotos(stay.datum).then(function(list){if(list&&list.length){hotelPhotos[stay.datum]=list;if(buildDays()[currentDay]===iso)renderDayCard(buildDays());}}).catch(function(){});
   }
   const loc=stay?stay.label:(dayCosts.length?'Programm':'–');
-  const badges=dayCosts.map(c=>`<span class="program-badge badge-${c.cat}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
+  const badges=dayCosts.map(c=>`<span class="program-badge badge-${esc(c.cat)}">${CAT_EMOJI[c.cat]||'•'} ${esc(c.label.split('·')[0].trim())}</span>`).join('');
   document.getElementById('day-nav-title').innerHTML=`Tag ${currentDay+1} von ${days.length}<small>${d.toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'long'})}</small>`;
   document.getElementById('btn-prev').disabled=currentDay===0;
   document.getElementById('btn-next').disabled=currentDay===days.length-1;
@@ -2101,7 +2108,7 @@ function renderDayCard(days){
     let rows=exps.map(function(e,ei){
       const amtStr=(e.cur!=='EUR')?`${fmt(e.amount)} ${e.cur}`:`EUR ${fmt(e.amount)}`;
       const del=editMode?`<button class="exp-del" onclick="delExpense('${iso}',${ei})">✕</button>`:'';
-      return `<div class="exp-row"><span>${e.cat} ${esc(e.label)}</span><span style="display:flex;align-items:center;gap:6px"><span>${amtStr}</span>${del}</span></div>`;
+      return `<div class="exp-row"><span>${esc(e.cat)} ${esc(e.label)}</span><span style="display:flex;align-items:center;gap:6px"><span>${amtStr}</span>${del}</span></div>`;
     }).join('');
     const dayT=exps.reduce((s,e)=>s+toEUR(e.amount,e.cur),0);
     const totalRow=exps.length?`<div class="exp-total"><span>Summe</span><span>EUR ${fmt(dayT)}</span></div>`:'';
@@ -2990,7 +2997,7 @@ var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🎫','Eintritt'],['🛍','S
 function expCatLabel(k){
   for(var i=0;i<EXP_CAT_NAMES.length;i++){
     var pre=EXP_CAT_NAMES[i][0],name=EXP_CAT_NAMES[i][1];
-    if(String(k).indexOf(pre)===0)return name?(k+' '+name):k;
+    if(String(k).indexOf(pre)===0)return name?(esc(k)+' '+name):esc(k);
   }
   return esc(k);
 }
@@ -3635,18 +3642,29 @@ async function loadGuestbook(){
   if(!box)return;
   var esc=function(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   try{
-    var res=await sb.from('kommentare').select('*').like('ort','gaestebuch_'+REISE+'%').order('created_at',{ascending:false});
+    var res=await sb.from('kommentare').select('*').like('ort','gaestebuch_'+REISE+'_%').order('created_at',{ascending:false});
     if(res.error){box.innerHTML='<div class="gb-empty">Konnte Nachrichten nicht laden.</div>';return;}
     var data=res.data||[];
     if(!data.length){box.innerHTML='<div class="gb-empty">Noch keine Nachrichten – sei die erste Person, die einen Gruß hinterlässt!</div>';return;}
     box.innerHTML=data.map(function(c){
       var d=c.created_at?new Date(c.created_at):null;
       var ds=d?d.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'}):'';
-      return '<div class="gb-entry"><div class="gb-entry-name">'+esc(c.name||'Gast')+'</div>'
+      return '<div class="gb-entry">'+(canEdit&&editMode?'<button type="button" class="gb-del" title="Eintrag löschen" aria-label="Eintrag löschen" onclick="delGuestbook('+Number(c.id)+')">✕</button>':'')+'<div class="gb-entry-name">'+esc(c.name||'Gast')+'</div>'
         +(ds?'<div class="gb-entry-date">'+ds+'</div>':'')
         +'<div class="gb-entry-text">'+esc(c.nachricht||'')+'</div></div>';
     }).join('');
   }catch(e){box.innerHTML='<div class="gb-empty">Konnte Nachrichten nicht laden.</div>';}
+}
+// Besitzer der Reise kann Gästebuch-Einträge entfernen (z. B. Spam)
+async function delGuestbook(id){
+  if(!canEdit||!id)return;
+  if(!confirm('Diesen Gästebuch-Eintrag löschen?'))return;
+  try{
+    var res=await sb.from('kommentare').delete().eq('id',id).like('ort','gaestebuch_'+REISE+'_%').select('id');
+    if(res.error||!res.data||!res.data.length){toast('Eintrag konnte nicht gelöscht werden.');return;}
+    toast('Eintrag gelöscht.');
+    loadGuestbook();
+  }catch(e){toast('Eintrag konnte nicht gelöscht werden.');}
 }
 async function submitGuestbook(){
   var name=document.getElementById('gb-name').value.trim();
@@ -4484,7 +4502,7 @@ init();
         +'<div class="ah-sub">'+E(sub.join(' · '))+(ort?'<br>Gerade: '+E(ort):'')+'</div>';
       var shareBtn='<button type="button" class="ah-share" data-go="teilen" aria-label="Teilen">'+ic('teilen',22,1.8)+'</button>';
       var cover=coverURL();
-      if(cover)html+='<div class="ah-cover" style="background-image:linear-gradient(to top,rgba(26,23,20,.74),rgba(26,23,20,.06) 62%),url(\''+esc(cover)+'\')">'+shareBtn+'<div class="ac-in">'+titleHtml+'</div></div>';
+      if(cover)html+='<div class="ah-cover" style="background-image:linear-gradient(to top,rgba(26,23,20,.74),rgba(26,23,20,.06) 62%),url(\''+cssUrl(cover)+'\')">'+shareBtn+'<div class="ac-in">'+titleHtml+'</div></div>';
       else html+='<div class="ah-head"><div>'+titleHtml+'</div>'+shareBtn+'</div>';
       html+=map;
       var s1=ph.p==='before'?[ph.total,'Tage geplant']:(ph.p==='during'?[ph.n,'Tage unterwegs']:[ph.total,'Tage']);
@@ -4507,7 +4525,7 @@ init();
     }
     if(cs){
       var cph=photoFor(cs.iso);
-      html+='<div class="st-card ah-stay" data-ort-iso="'+E(cs.iso)+'" data-ort-n="'+cs.nights+'"><div class="st-ph"'+(cph?' style="background-image:url(\''+esc(tvThumb(cph,320))+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
+      html+='<div class="st-card ah-stay" data-ort-iso="'+E(cs.iso)+'" data-ort-n="'+cs.nights+'"><div class="st-ph"'+(cph?' style="background-image:url(\''+cssUrl(tvThumb(cph,320))+'\')"':'')+'>'+(cph?'':'<span class="st-ini">'+E((cs.name||cs.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(csIdx+1)+'</span></div>'
         +'<div class="st-tx"><small>'+(ph.p==='during'?'Heute in':(ph.p==='after'?'Zuletzt in':'Station'))+'</small><b>'+E(cs.name||cs.label)+'</b>'+(nightTxt?'<small>'+E(nightTxt)+'</small>':'')+'<small class="ah-edit">Ort ändern</small></div></div>';
     }
     var o1=ph.p==='before'?[ph.n,'Tage bis zur Abreise']:(ph.p==='during'?[ph.total-ph.n,'Tage noch']:[ph.total,'Tage']);
@@ -4793,7 +4811,7 @@ init();
   }
   function pm(url,k){
     var size=url?(k==='c'?56:(k==='d'?42:38)):(k==='c'?30:(k==='d'?15:14));
-    var st='width:'+size+'px;height:'+size+'px;'+(url?"background-image:url('"+String(tvThumb(url,200)).replace(/'/g,'%27')+"');":'');
+    var st='width:'+size+'px;height:'+size+'px;'+(url?"background-image:url('"+cssUrl(tvThumb(url,200))+"');":'');
     return {html:'<div class="pm pm-'+k+(url?'':' pm-none')+'" style="'+st+'"></div>',size:size};
   }
   function stStatus(sts,i){
@@ -4819,7 +4837,7 @@ init();
       var url=photoFor(st.iso),next=sts[i+1];
       var when=shortDate(st.iso)+(st.bis?' – '+shortDate(st.bis):'');
       var chip=st.nights>0?'<span class="st-chip">'+st.nights+(st.nights===1?' Nacht':' Nächte')+'</span>':'';
-      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'" data-st-i="'+i+'"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
+      html+='<div class="st-card'+(stStatus(sts,i)==='c'?' now':'')+'" data-st-i="'+i+'"><div class="st-ph"'+(url?' style="background-image:url(\''+cssUrl(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||st.label||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
         +'<div class="st-tx"><b>'+E(st.name||st.label)+'</b><small>'+E(when)+'</small>'+(function(){var c=entryDaysOf(st).length;return c?'<small class="ah-edit">'+c+(c===1?' Tagebucheintrag':' Tagebucheinträge')+' ansehen</small>':'';})()+'</div>'+chip+'</div>';
       if(next)html+='<div class="st-km" data-a="'+esc(st.iso)+'" data-b="'+esc(next.iso)+'"><span>…</span></div>';
     });
@@ -4904,7 +4922,7 @@ init();
       var st=sts[i],url=photoFor(st.iso),cnt=entryDaysOf(st).length;
       var when=shortDate(st.iso)+(st.nights>1?' – '+shortDate(addIso(st.iso,st.nights-1)):'');
       var info=cnt?cnt+(cnt===1?' Tagebucheintrag':' Tagebucheinträge'):'Noch kein Tagebucheintrag';
-      h+='<div class="ss-blk"><div class="ss-row"><div class="st-ph"'+(url?' style="background-image:url(\''+esc(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
+      h+='<div class="ss-blk"><div class="ss-row"><div class="st-ph"'+(url?' style="background-image:url(\''+cssUrl(tvThumb(url,320))+'\')"':'')+'>'+(url?'':'<span class="st-ini">'+E((st.name||'?').charAt(0).toUpperCase())+'</span>')+'<span class="st-num">'+(i+1)+'</span></div>'
         +'<div class="st-tx"><b>'+E(st.name)+'</b><small>'+E(when)+(st.nights>0?' · '+st.nights+(st.nights===1?' Nacht':' Nächte'):'')+'</small><small>'+E(info)+'</small></div></div>'
         +'<div class="ss-acts">'
         +'<button type="button" class="ao-btn ss-go" data-ss-go="'+E(st.iso)+'|'+st.nights+'"'+((!cnt&&!owner)?' disabled':'')+'>'+(cnt?'Zum Tagebuch':(owner?'Eintrag schreiben':'Kein Eintrag vorhanden'))+'</button>'

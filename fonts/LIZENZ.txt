@@ -1,0 +1,4 @@
+Schriften: Playfair Display, DM Sans, Inter, Caveat, Sora, Cormorant Garamond
+Quelle: Google Fonts (fonts.google.com), nur die Zeichensätze latin und latin-ext.
+Lizenz: SIL Open Font License 1.1 (https://openfontlicense.org) – freie Nutzung, auch kommerziell.
+Eingebunden über /fonts/fonts.css, damit beim Seitenaufruf keine Verbindung zu Google entsteht.

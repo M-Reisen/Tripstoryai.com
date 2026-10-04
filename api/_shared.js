@@ -185,7 +185,7 @@ function listPage({ title, desc, path, robots, crumbs, h1, lead, inner, script }
     '<title>' + esc(title) + '</title>\n' +
     shareTags({ title, desc, image: BASE + '/og-default.png', url, robots }) + '\n' +
     '<link rel="apple-touch-icon" href="/apple-touch-icon.png">\n<meta name="theme-color" content="#F4EFE8">\n' +
-    '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">\n' +
+    '<link href="/fonts/fonts.css" rel="stylesheet">\n' +
     '<style>' + LIST_CSS + '</style>\n</head>\n<body>\n' +
     '<header><div class="hi"><a href="/index.html" aria-label="Zur Startseite"><img class="brand" src="' +
     SUPABASE_URL + '/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona"></a>' +

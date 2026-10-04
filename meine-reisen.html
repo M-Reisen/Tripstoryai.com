@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="Meine Reisen">
 <meta name="theme-color" content="#F4EFE8">
 <script src="/install.js" defer data-banner="1"></script>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="/fonts/fonts.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
@@ -462,7 +462,7 @@ function showAuthScreen(){
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('logout-btn').style.display='none';
   var dl2=document.getElementById('del-link');if(dl2)dl2.style.display='none';
-  document.getElementById('user-email').textContent='';
+  var ue=document.getElementById('user-email');if(ue)ue.textContent='';
 }
 
 // ── REISEN AUS DB ────────────────────────────────────────────────────────
@@ -600,8 +600,8 @@ function cardHTML(t){
   var st = effectiveStatus(t);
   var cover = t.img
     ? '<img src="'+escapeAttr(t.img)+'" alt=""><div class="trip-cover-grad"></div>'
-    : '<div class="trip-cover-fallback" style="background:'+coverGradient(st)+'"><span class="big">'+(t.emoji||'🌍')+'</span></div>';
-  var emojiBadge = t.img ? '<span class="trip-cover-emoji">'+(t.emoji||'🌍')+'</span>' : '';
+    : '<div class="trip-cover-fallback" style="background:'+coverGradient(st)+'"><span class="big">'+escapeHTML(t.emoji||'🌍')+'</span></div>';
+  var emojiBadge = t.img ? '<span class="trip-cover-emoji">'+escapeHTML(t.emoji||'🌍')+'</span>' : '';
   var admin = adminMode
     ? '<div class="trip-admin-btns show">'
       +'<button class="icon-btn" title="Bearbeiten" onclick="editTrip(event,\''+t.id+'\')">✏️</button>'
@@ -697,14 +697,25 @@ function editTrip(ev,id){
   pickVis(t.visibility||'private');
   document.getElementById('trip-modal').classList.add('open');
 }
-function delTrip(ev,id){
+async function delTrip(ev,id){
   ev.preventDefault(); ev.stopPropagation();
   var t = trips.find(function(x){return x.id===id;});
   if(!t) return;
-  if(!confirm('Reise „'+(t.name||'')+'" wirklich löschen?')) return;
+  if(!confirm('Reise „'+(t.name||'')+'“ wirklich löschen?\n\nTagebuch, Kosten und Fotos dieser Reise werden endgültig entfernt.')) return;
+  // Fotos vorher einsammeln (Sonderseiten haben eigene Ordner und bleiben unangetastet)
+  var files=[];
+  if(!Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id)){
+    try{files=await tripFiles(id);}catch(e){console.error(e);}
+  }
+  if(!(await deleteTripDB(id))) return;   // Fehlermeldung kommt aus deleteTripDB
   trips = trips.filter(function(x){return x.id!==id;});
-  deleteTripDB(id); render();
+  render();
   toast('Reise gelöscht.');
+  // Aufräumen: eigene Einträge und Fotos der Reise (sonst bleiben sie verwaist im Speicher)
+  try{await sb.from('kommentare').delete().eq('trip_id',id).eq('owner',currentUser.id);}catch(e){console.error(e);}
+  for(var j=0;j<files.length;j+=100){
+    try{await sb.storage.from('Reisefotos').remove(files.slice(j,j+100));}catch(e){console.error(e);}
+  }
 }
 function closeTripModal(){ document.getElementById('trip-modal').classList.remove('open'); }
 
