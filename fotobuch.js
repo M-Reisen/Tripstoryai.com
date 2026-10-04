@@ -46,6 +46,11 @@
   // Foto genau in Rahmengröße anfordern (wMm × hMm bei pxPerMm)
   function sized(u,wMm,hMm,pxPerMm,fit,q){
     var o=original(u),m=o.match(RX);
+    // Unsplash-Bilder (z. B. Bild der Reisekarte) in passender Größe anfordern
+    if(/^https:\/\/images\.unsplash\.com\//.test(o)){
+      var uw=Math.min(4000,Math.round(wMm*pxPerMm)),uh=Math.min(4000,Math.round(hMm*pxPerMm));
+      return o.split('?')[0]+'?w='+uw+'&h='+uh+'&fit=crop&auto=format&q='+(q||75);
+    }
     if(!m||/^Reisefotos\/Logo\//.test(m[2])||thumbsOff(o))return o;
     var w=wMm*pxPerMm,h=hMm*pxPerMm,k=Math.min(1,MAX_PX/Math.max(w,h));
     w=Math.max(16,Math.round(w*k));h=Math.max(16,Math.round(h*k));
@@ -125,14 +130,25 @@
     return out;
   }
 
+  // Deckblatt-Collage: Fotos über die ganze Seite, Ränder laufen in den Beschnitt
+  function coverCollage(urls){
+    var rs=rects(urls.length,0,0,W,H,false);
+    return rs.map(function(r,i){
+      var e=(r.x<0.01?'l':'')+(r.y<0.01?'t':'')+(r.x+r.w>W-0.01?'r':'')+(r.y+r.h>H-0.01?'b':'');
+      return photo({url:urls[i]},r,'cover',e);
+    }).join('');
+  }
   function buildPages(book){
     var pages=[],folio=1,tag=0,nPhotos=0,mirror=false;
     var next=function(){return ++folio;};
     // Deckblatt
     var cov=book.cover?original(book.cover):'';
+    // Collage aus den Ortsfotos der Stationen (wie in der Übersicht), max. 8
+    var coll=(book.coverPhotos||[]).map(original).filter(function(u,i,arr){return u&&arr.indexOf(u)===i;}).slice(0,8);
+    if(coll.length>1)cov=coll[0];
     var stations=(book.stations||[]).filter(Boolean);
-    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+'"><div class="pb-trim">'
-      +(cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
+    pages.push('<section class="pb-page pb-cover'+(cov?'':' noimg')+(coll.length>1?' collage':'')+'"><div class="pb-trim">'
+      +(coll.length>1?coverCollage(coll)+'<div class="pb-veil"></div>':cov?photo({url:cov},{x:0,y:0,w:W,h:H},'cover','ltrb')+'<div class="pb-veil"></div>':'')
       +'<div class="pb-cover-in">'
       +'<div class="pb-eyebrow">Reisetagebuch</div>'
       +'<h1 class="pb-cover-title">'+esc(book.title||'Unsere Reise')+'</h1>'
@@ -242,15 +258,15 @@
     +'.pb-txt p+p,.pb-cols p+p{margin-top:2.5mm}'
     // Deckblatt
     +'.pb-cover{background:#2A2622;color:#fff}'
-    +'.pb-cover .pb-ph{background:#2A2622}'
-    +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(90deg,rgba(26,23,20,.72) 0%,rgba(26,23,20,.42) 45%,rgba(26,23,20,0) 75%)}'
-    +'.pb-cover-in{position:absolute;left:24mm;bottom:28mm;max-width:170mm}'
-    +'.pb-cover .pb-eyebrow{color:#E9C9B3}'
-    +'.pb-cover-title{font-family:"Playfair Display",Georgia,serif;font-weight:400;font-size:50pt;line-height:1.02;letter-spacing:-.01em}'
-    +'.pb-cover-sub{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:17pt;margin-top:3mm;opacity:.92}'
+    +'.pb-cover .pb-ph{background:#2A2622}.pb-cover.collage{background:#F6F1EA}'
+    +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(180deg,rgba(26,23,20,0) 35%,rgba(26,23,20,.25) 55%,rgba(26,23,20,.78) 100%)}'
+    +'.pb-cover-in{position:absolute;left:20mm;right:20mm;bottom:24mm}'
+    +'.pb-cover .pb-eyebrow{color:#E9C9B3;font-size:10pt;margin-bottom:3mm}'
+    +'.pb-cover-title{font-family:"Playfair Display",Georgia,serif;font-weight:400;font-size:80pt;line-height:.98;letter-spacing:-.015em;text-shadow:0 1mm 6mm rgba(0,0,0,.25)}'
+    +'.pb-cover-sub{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:22pt;margin-top:4mm;opacity:.95}'
     +'.pb-rule{width:28mm;height:.6mm;background:var(--terra);margin:7mm 0}'
-    +'.pb-cover-dates{font-size:10.5pt;letter-spacing:.1em;opacity:.92}'
-    +'.pb-cover-route{font-size:8.5pt;line-height:1.9;letter-spacing:.06em;opacity:.82;margin-top:3mm}'
+    +'.pb-cover-dates{font-size:12pt;letter-spacing:.12em;opacity:.95}'
+    +'.pb-cover-route{font-size:9.5pt;line-height:1.9;letter-spacing:.06em;opacity:.82;margin-top:3mm}'
     +'.pb-cover-route span{margin:0 2.2mm;color:#E9C9B3}'
     +'.pb-cover-brand{position:absolute;right:15mm;bottom:15mm;font-size:7.5pt;letter-spacing:.3em;text-transform:uppercase;opacity:.85;text-shadow:0 0 3mm rgba(0,0,0,.45)}'
     +'.pb-cover.noimg .pb-cover-brand{text-shadow:none}'
