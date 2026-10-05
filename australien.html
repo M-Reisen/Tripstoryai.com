@@ -1230,7 +1230,7 @@ html.app-guestview body{padding-top:48px;}
       <label style="font-size:.72rem;color:var(--fog);text-transform:uppercase;display:block;margin-bottom:4px;">Kategorie</label>
       <select id="exp-cat" style="width:100%;padding:9px 12px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;background:var(--paper);">
         <option>🍽️ Essen &amp; Trinken</option><option>Eintritt</option>
-        <option>🛍️ Shopping</option><option>🚕 Taxi / Transport</option>
+        <option>🛍️ Shopping</option><option>🚕 Transport</option>
         <option>🏖️ Aktivität</option><option>💆 Sonstiges</option>
       </select>
     </div>
@@ -2148,7 +2148,7 @@ function ausflugSortKey(p){
 }
 var _openCostDays={};
 // Gespeichert wird nur das Symbol der Kategorie – für die Anzeige den Namen dazusetzen
-var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🛍','Shopping'],['🚕','Taxi / Transport'],['🏖','Aktivität'],['💆','Sonstiges'],['Eintritt','']];
+var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🛍','Shopping'],['🚕','Transport'],['🏖','Aktivität'],['💆','Sonstiges'],['Eintritt','']];
 function expCatLabel(k){
   for(var i=0;i<EXP_CAT_NAMES.length;i++){
     var pre=EXP_CAT_NAMES[i][0],name=EXP_CAT_NAMES[i][1];
@@ -3074,7 +3074,7 @@ function closeExpenseModal(){document.getElementById('expense-modal').style.disp
 
 // ── SCHNELLERFASSUNG FÜR TAGESAUSGABEN (Knopf „＋ Ausgabe“ und ?schnell=1) ─────
 function qxTrip(){return REISE_ID;}
-var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Taxi','🚕'],['Eintritt','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
+var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Transport','🚕'],['Eintritt','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
 var QX_DEFCUR='AUD';
 var _qxCat='',_qxBusy=false,_qxAuthDone=false;
 function qxDays(){return DAYS.map(function(d){return d.iso;});}
