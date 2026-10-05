@@ -3941,7 +3941,8 @@ initApp();
     flug:'<path d="M2.5 12.5l19-8.5-7 17-3-7.5z"/>',
     auto:'<path d="M5 16h14"/><path d="M6 16v2"/><path d="M18 16v2"/><path d="M5 16l1.5-5h11L19 16"/><path d="M8 13.5h8"/>',
     boot:'<path d="M3 15l2 4h14l2-4z"/><path d="M12 4v9"/><path d="M12 5l6 7h-6"/>',
-    ticket:'<path d="M4 9a2 2 0 0 0 0 6v2h16v-2a2 2 0 0 1 0-6V7H4z"/>'
+    ticket:'<path d="M4 9a2 2 0 0 0 0 6v2h16v-2a2 2 0 0 1 0-6V7H4z"/>',
+    video:'<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><path d="M10 9.2v5.6l4.8-2.8z"/>'
   };
   function ic(n,s,w){return '<svg width="'+(s||24)+'" height="'+(s||24)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||1.7)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(IC[n]||'')+'</svg>';}
   function E(s){return (typeof esc==='function')?esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -4218,7 +4219,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('video','video','Reise-Rückblick als Video')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4236,6 +4237,7 @@ initApp();
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
     else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
+    else if(a==='video'&&window.travonaRueckblickVideo)window.travonaRueckblickVideo();
     else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
     else if(a==='ausgaben')location.href='/ausgaben.html?reise='+encodeURIComponent(REISE_ID);
     else if(a==='wa')waOpenLatest();
@@ -5450,6 +5452,7 @@ initApp();
 
 </script>
 <script src="/reise-in-zahlen.js" defer></script>
+<script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
 </body>
 </html>
