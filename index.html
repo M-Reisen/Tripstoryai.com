@@ -28,6 +28,10 @@
 <meta name="twitter:description" content="Belege rein, Reisebericht raus: Travona legt aus Buchungen und Belegen deine Reise mit Route und Kosten an und schreibt aus deinen Stichworten das Tagebuch.">
 <meta name="twitter:image" content="https://www.travona.de/og-default.png">
 <link href="/fonts/fonts.css" rel="stylesheet">
+<script>
+// Links aus Supabase-E-Mails (Passwort zurücksetzen) landen evtl. auf der Startseite: weiter zu „Meine Reisen“
+if(/(^|[#&])type=recovery(&|$)|(^|[#&])error_code=/.test(location.hash))location.replace('/meine-reisen.html'+location.hash);
+</script>
 <script src="/vendor/supabase-js-2.117.2.js"></script>
 <style>
 :root{

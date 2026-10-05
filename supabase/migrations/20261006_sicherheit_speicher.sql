@@ -1,5 +1,5 @@
 -- Sicherheitsprüfung 2026-10-06: Foto-Speicher absichern
--- NOCH NICHT LIVE. Wird erst nach Freigabe durch Ramona eingespielt.
+-- Live eingespielt am 2026-10-06 nach Freigabe durch Ramona.
 
 -- 1) Nur Bilder bis 15 MB im Bucket "Reisefotos" zulassen.
 --    Fotos werden im Browser verkleinert; das größte vorhandene Foto hat 13 MB.
@@ -13,11 +13,14 @@ update storage.buckets
 -- 2) Alte Regeln für einen Bucket "reisefotos" (klein geschrieben) entfernen.
 --    Diesen Bucket gibt es nicht; die Regeln erlaubten dort jedem (auch ohne Anmeldung)
 --    Hochladen und Löschen. Würde der Bucket je angelegt, wäre er sofort offen.
-drop policy if exists "p2" on storage.objects;
-drop policy if exists "p3" on storage.objects;
-drop policy if exists "reisefotos_delete" on storage.objects;
-drop policy if exists "reisefotos_insert" on storage.objects;
-drop policy if exists "reisefotos_select" on storage.objects;
+--    DROP POLICY läuft über die Supabase-Schnittstelle in eine Zeitüberschreitung,
+--    deshalb werden die Regeln auf "false" gesetzt (wirkungslos). Endgültig löschen
+--    kann man sie im Dashboard unter Storage > Policies.
+alter policy "p2" on storage.objects with check (false);
+alter policy "reisefotos_insert" on storage.objects with check (false);
+alter policy "p3" on storage.objects using (false);
+alter policy "reisefotos_delete" on storage.objects using (false);
+alter policy "reisefotos_select" on storage.objects using (false);
 
 -- 3) Reise-Kennungen nur aus Kleinbuchstaben, Ziffern, "-" und "_".
 --    Die Kennung landet auf den Reise-Seiten im HTML; mit Sonderzeichen wie "</script>"

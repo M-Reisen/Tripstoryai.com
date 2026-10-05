@@ -212,7 +212,20 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
     <button class="btn btn-primary" style="width:100%;margin-bottom:14px;font-size:1rem;padding:13px;" id="auth-action-btn" onclick="doAuth()">Anmelden</button>
     <div style="text-align:center;">
       <a href="#" onclick="toggleAuthMode();return false;" id="auth-toggle" style="font-size:.85rem;color:var(--ocean);">Neu hier? Konto erstellen</a>
+      <div style="margin-top:10px;"><a href="#" onclick="doPasswordReset();return false;" id="auth-forgot" style="font-size:.8rem;color:var(--fog);">Passwort vergessen?</a></div>
     </div>
+  </div>
+</div>
+
+<!-- NEUES PASSWORT (nach Klick auf den Link in der E-Mail „Passwort zurücksetzen“) -->
+<div id="pw-screen" style="display:none;position:fixed;inset:0;z-index:1001;background:#2C5F6A;align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
+  <div style="background:var(--white);border-radius:20px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(26,23,20,.18);margin:auto;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;text-align:center;margin-bottom:6px;">Neues Passwort</div>
+    <div style="font-size:.85rem;color:var(--fog);text-align:center;margin-bottom:18px;">Wähle ein neues Passwort für dein Konto.</div>
+    <div class="field"><label>Neues Passwort</label><input type="password" id="pw-new" placeholder="mindestens 8 Zeichen" autocomplete="new-password"></div>
+    <div class="field"><label>Passwort wiederholen</label><input type="password" id="pw-new2" autocomplete="new-password"></div>
+    <div id="pw-msg" style="font-size:.8rem;min-height:18px;margin:4px 0 12px;text-align:center;"></div>
+    <button class="btn btn-primary" style="width:100%;font-size:1rem;padding:13px;" id="pw-go" onclick="saveNewPassword()">Passwort speichern</button>
   </div>
 </div>
 
@@ -364,6 +377,9 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
 // ── SUPABASE ─────────────────────────────────────────────────────────────
 var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+// Kommt der Besucher über den Link „Passwort zurücksetzen“? (vor createClient lesen, das den Link auswertet)
+var PW_RECOVERY=/(^|[#&])type=recovery(&|$)/.test(location.hash);
+var PW_LINK_ERROR=/(^|[#&?])error_code=/.test(location.hash+location.search);
 var sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 var STORAGE_KEY='mreisen_trips_v1'; // nur noch für einmalige Migration
 var authMode='login'; // 'login' oder 'signup'
@@ -387,8 +403,54 @@ function toggleAuthMode(){
   document.getElementById('auth-action-btn').textContent=(authMode==='login')?'Anmelden':'Konto erstellen';
   document.getElementById('auth-toggle').textContent=(authMode==='login')?'Neu hier? Konto erstellen':'Ich habe schon ein Konto';
   document.getElementById('auth-subtitle').textContent=(authMode==='login')?'Melde dich an, um deine Reisetagebücher zu sehen':'Erstelle ein Konto für deine Reisetagebücher';
+  document.getElementById('auth-forgot').style.display=(authMode==='login')?'':'none';
   showAuthMsg('');
 }
+// ── Passwort vergessen ───────────────────────────────────────────────────
+// Schickt eine E-Mail mit Link. Die Antwort ist immer gleich, damit niemand
+// herausfinden kann, ob zu einer Adresse ein Konto existiert.
+var _resetBusy=false;
+async function doPasswordReset(){
+  if(_resetBusy)return;
+  var email=document.getElementById('auth-email').value.trim();
+  if(!email||email.indexOf('@')<1){showAuthMsg('Bitte oben deine E-Mail-Adresse eintragen und dann erneut auf „Passwort vergessen?“ tippen.');return;}
+  _resetBusy=true;
+  showAuthMsg('Einen Moment …',true);
+  try{
+    var token;try{token=await captchaToken('auth-captcha');}catch(e){showAuthMsg(e.message);return;}
+    var res=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/meine-reisen.html',captchaToken:token});
+    if(res.error&&/rate|limit|seconds/i.test(res.error.message||'')){showAuthMsg('Bitte warte kurz, bevor du eine weitere E-Mail anforderst.');return;}
+    showAuthMsg('Falls es zu dieser Adresse ein Konto gibt, haben wir dir eine E-Mail mit einem Link zum Zurücksetzen geschickt. Schau auch im Spam-Ordner nach.',true);
+  }finally{_resetBusy=false;}
+}
+function showPwScreen(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('pw-screen').style.display='flex';
+  setTimeout(function(){try{document.getElementById('pw-new').focus();}catch(e){}},50);
+}
+function pwMsg(txt,ok){var m=document.getElementById('pw-msg');m.textContent=txt||'';m.style.color=ok?'var(--reef)':'#dc2626';}
+async function saveNewPassword(){
+  var a=document.getElementById('pw-new').value,b=document.getElementById('pw-new2').value;
+  if(a.length<8){pwMsg('Das Passwort muss mindestens 8 Zeichen haben.');return;}
+  if(a!==b){pwMsg('Die beiden Passwörter stimmen nicht überein.');return;}
+  var go=document.getElementById('pw-go');go.disabled=true;pwMsg('Wird gespeichert …',true);
+  var res=await sb.auth.updateUser({password:a});
+  go.disabled=false;
+  if(res.error){
+    var m=res.error.message||'';
+    if(/pwned|leaked|breach|compromised/i.test(m))pwMsg('Dieses Passwort ist aus Datenlecks bekannt. Bitte wähle ein anderes.');
+    else if(/same|different/i.test(m))pwMsg('Bitte wähle ein anderes Passwort als bisher.');
+    else if(/session|jwt|expired/i.test(m))pwMsg('Der Link ist abgelaufen. Bitte fordere über „Passwort vergessen?“ einen neuen an.');
+    else pwMsg('Fehler: '+m);
+    return;
+  }
+  PW_RECOVERY=false;
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+  document.getElementById('pw-screen').style.display='none';
+  toast('Dein neues Passwort ist gespeichert.');
+  onLoggedIn(res.data.user);
+}
+sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){PW_RECOVERY=true;showPwScreen();}});
 // Link von „Ohne Anmeldung testen“: gleich die Registrierung zeigen
 if(/[?&]neu=1/.test(location.search))document.addEventListener('DOMContentLoaded',function(){if(authMode==='login')toggleAuthMode();});
 // ── Bot-Schutz (Cloudflare Turnstile) ────────────────────────────────────
@@ -1034,10 +1096,16 @@ async function deleteAccount(){
 // ── INIT ─────────────────────────────────────────────────────────────────
 async function initApp(){
   var res=await sb.auth.getSession();
-  if(res.data.session && res.data.session.user){
+  if(PW_RECOVERY && res.data.session && res.data.session.user){
+    showPwScreen();
+  } else if(res.data.session && res.data.session.user){
     onLoggedIn(res.data.session.user);
   } else {
     showAuthScreen();
+    if(PW_LINK_ERROR){
+      showAuthMsg('Der Link ist abgelaufen oder wurde schon benutzt. Tippe auf „Passwort vergessen?“, um einen neuen zu bekommen.');
+      try{history.replaceState(null,'',location.pathname);}catch(e){}
+    }
   }
 }
 initApp();
