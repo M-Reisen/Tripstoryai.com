@@ -225,6 +225,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
       <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">Startseite</a>
       <a class="btn btn-ghost btn-sm" id="ausgaben-btn" href="ausgaben.html" style="display:none;text-decoration:none;">Ausgaben</a>
       <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">Bearbeiten</button>
+      <a class="btn btn-ghost btn-sm" id="admin-btn" href="/admin" style="display:none;text-decoration:none;">Admin</a>
       <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none;">Abmelden</button>
     </div>
   </div>
@@ -459,12 +460,15 @@ function onLoggedIn(user){
   document.getElementById('ausgaben-btn').style.display='inline-flex';
   document.getElementById('edit-btn').style.display='inline-flex';
   var dl=document.getElementById('del-link');if(dl)dl.style.display='inline';
+  // Admin-Knopf nur für die Betreiberin (Prüfung in der Datenbank, die Admin-Seite prüft selbst nochmal)
+  sb.rpc('ist_admin').then(function(r){if(r&&r.data===true)document.getElementById('admin-btn').style.display='inline-flex';});
   loadTripsFromDB();
 }
 function showAuthScreen(){
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('logout-btn').style.display='none';
   document.getElementById('ausgaben-btn').style.display='none';
+  document.getElementById('admin-btn').style.display='none';
   var dl2=document.getElementById('del-link');if(dl2)dl2.style.display='none';
   var ue=document.getElementById('user-email');if(ue)ue.textContent='';
 }
