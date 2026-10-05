@@ -877,8 +877,17 @@ async function saveTripInner(){
     weitere: landSlug ? _weitere.filter(function(w){return w.slug!==landSlug;}) : []
   };
 
+  var prev = editingId ? trips.find(function(x){return x.id===editingId;}) : null;
+  var prevVis = prev ? (prev.visibility||'private') : 'private';
   var ok = await saveTripDB(data);   // kann data.slug anpassen (bei doppeltem Namen)
   if(!ok) return;                    // Formular bleibt offen
+  // War die Reise geteilt und ist jetzt privat: Fotos bekommen neue, zufällige Namen,
+  // damit früher geteilte Foto-Adressen nicht mehr funktionieren
+  var renamePending=false;try{renamePending=localStorage.getItem('tv_rename_'+data.id)==='1';}catch(e){}
+  if(data.visibility==='private' && (prevVis==='public'||prevVis==='link'||renamePending)
+     && !Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,data.id)){
+    await renamePhotosForPrivacy(data);
+  }
   if(editingId){
     var i = trips.findIndex(function(x){return x.id===editingId;});
     if(i>=0) trips[i] = data;
@@ -1041,6 +1050,65 @@ async function tripFiles(id){
   ts.forEach(function(t){if(t.id&&t.name.indexOf(id+'_')===0)acc.push('titelbilder/'+t.name);});
   return acc;
 }
+// ── Fotos beim Umstellen auf „Privat“ neu benennen ──────────────────────
+// Der Foto-Speicher ist öffentlich: Wer früher eine Foto-Adresse gesehen hat, könnte sie
+// sonst weiter öffnen. Ablauf, der bei Abbruch nichts kaputt macht:
+// 1) jedes Foto unter neuem Namen kopieren, 2) alle Verweise der Reise (Fotoreihenfolge,
+// Hotels, Titelbild) auf die neuen Namen umstellen, 3) erst dann die alten Dateien löschen.
+function randomToken(){
+  var a=new Uint8Array(12);crypto.getRandomValues(a);
+  return Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');
+}
+function privateName(path,tripId){
+  var slash=path.lastIndexOf('/'),dir=path.slice(0,slash+1),file=path.slice(slash+1);
+  var dot=file.lastIndexOf('.'),ext=dot>0?file.slice(dot):'';
+  var ts=(file.match(/^(?:[a-z0-9-]+_)?(\d{10,})/)||[])[1]||String(Date.now());   // Zeitstempel für die Sortierung behalten
+  if(dir==='titelbilder/')return dir+tripId+'_'+ts+'_'+randomToken()+ext;     // Ordner-Zuordnung über "<reise>_"
+  return dir+ts+'_'+randomToken()+ext;
+}
+async function renamePhotosForPrivacy(t){
+  var mark=function(on){try{if(on)localStorage.setItem('tv_rename_'+t.id,'1');else localStorage.removeItem('tv_rename_'+t.id);}catch(e){}};
+  mark(true);   // bleibt gesetzt, falls etwas schiefgeht: beim nächsten Speichern als „Privat“ geht es weiter
+  try{
+    toast('Fotos werden für „Privat“ neu benannt …');
+    var files=(await tripFiles(t.id)).filter(function(f){return !/\.emptyFolderPlaceholder$/.test(f);});
+    if(!files.length){mark(false);return;}
+    // 1) Kopieren
+    var moved=[];
+    for(var i=0;i<files.length;i++){
+      var neu=privateName(files[i],t.id);
+      var c=await sb.storage.from('Reisefotos').copy(files[i],neu);
+      if(!c.error)moved.push([files[i],neu]);
+    }
+    if(!moved.length){toast('Die Fotos konnten nicht neu benannt werden.');return;}
+    var swap=function(txt){
+      if(!txt)return txt;
+      for(var k=0;k<moved.length;k++)txt=txt.split('/Reisefotos/'+moved[k][0]).join('/Reisefotos/'+moved[k][1]);
+      return txt;
+    };
+    // 2) Verweise umstellen: Einträge der Reise und Titelbild in den Reise-Daten
+    var rows=await sb.from('kommentare').select('id,nachricht').eq('trip_id',t.id).eq('owner',currentUser.id).like('nachricht','%/Reisefotos/%');
+    if(rows.error)throw rows.error;
+    for(var r=0;r<(rows.data||[]).length;r++){
+      var row=rows.data[r],nn=swap(row.nachricht);
+      if(nn!==row.nachricht){
+        var u=await sb.from('kommentare').update({nachricht:nn}).eq('id',row.id);
+        if(u.error)throw u.error;
+      }
+    }
+    var img2=swap(t.img);
+    if(img2!==t.img){t.img=img2;if(!(await saveTripDB(t)))throw new Error('Titelbild');}
+    // 3) Alte Dateien löschen
+    var old=moved.map(function(m){return m[0];});
+    for(var j=0;j<old.length;j+=100)await sb.storage.from('Reisefotos').remove(old.slice(j,j+100));
+    if(moved.length===files.length)mark(false);
+    toast(moved.length+' Fotos neu benannt. Alte Foto-Links funktionieren nicht mehr.');
+  }catch(e){
+    console.error('Fotos neu benennen:',e);
+    toast('Fotos konnten nicht vollständig neu benannt werden. Bitte die Reise erneut als „Privat“ speichern.');
+  }
+}
+
 async function deleteAccount(){
   if(_delBusy||!currentUser)return;
   var conf=(document.getElementById('del-confirm').value||'').trim().toUpperCase();
