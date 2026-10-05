@@ -200,4 +200,5 @@
     };
   }
   window.travonaReiseInZahlen=open;
+  open.daten=collect;   // auch vom Rückblick-Video (rueckblick-video.js) genutzt
 })();
