@@ -333,7 +333,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
           <div class="status-opt" data-v="link" onclick="pickVis('link')">🔗 Per Link</div>
           <div class="status-opt" data-v="public" onclick="pickVis('public')">🌍 Öffentlich</div>
         </div>
-        <div class="help" id="vis-help">Privat: nur du. Per Link: jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
+        <div class="help" id="vis-help">Privat: nur du. Per Link: nicht öffentlich gelistet, jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
         <div id="share-box" style="display:none;margin-top:10px;">
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="text" id="share-link" readonly style="flex:1;min-width:0;min-height:46px;font-size:.78rem;background:var(--paper);">
@@ -824,10 +824,10 @@ function updateShareBox(){
     help.textContent='Privat: nur du siehst diese Reise.';
   }else{
     var id=val('t-id');
-    if(!id){ box.style.display='none'; help.textContent=(pickedVis==='public'?'Öffentlich: für alle sichtbar.':'Per Link: jeder mit dem Link kann sie ansehen.')+' Der Teilen-Link erscheint nach dem ersten Speichern.'; return; }
+    if(!id){ box.style.display='none'; help.textContent=(pickedVis==='public'?'Öffentlich: für alle sichtbar.':'Per Link: nicht öffentlich gelistet, jeder mit dem Link kann sie ansehen. Für Vertrauliches bitte „Privat“ wählen.')+' Der Teilen-Link erscheint nach dem ersten Speichern.'; return; }
     box.style.display='block';
     document.getElementById('share-link').value=tripShareUrl();
-    help.textContent=(pickedVis==='public')?'Öffentlich: für alle sichtbar und im Community-Bereich auffindbar.':'Per Link: nur wer den Link hat, kann die Reise ansehen.';
+    help.textContent=(pickedVis==='public')?'Öffentlich: für alle sichtbar und im Community-Bereich auffindbar.':'Per Link: nicht öffentlich gelistet, jeder mit dem Link kann sie ansehen. Für Vertrauliches bitte „Privat“ wählen.';
   }
 }
 function copyShareLink(){
