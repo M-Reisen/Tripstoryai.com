@@ -4687,8 +4687,8 @@ initApp();
       if(typeof u!=='string'||thumbOff())return u;
       var m=u.match(/^(https:\/\/[^\/]+)\/storage\/v1\/object\/public\/(Reisefotos\/[^?]+\.(?:jpe?g|png|webp))$/i);
       if(!m||/^Reisefotos\/Logo\//.test(m[2]))return u;
-      var t=m[1]+'/storage/v1/render/image/public/'+m[2]+'?width='+w+'&quality=75';
-      thumbProbe(m[1]+'/storage/v1/render/image/public/'+m[2]+'?width=64&quality=60');
+      var t=m[1]+'/storage/v1/render/image/public/'+m[2]+'?width='+w+'&height='+w+'&resize=contain&quality=75';
+      thumbProbe(m[1]+'/storage/v1/render/image/public/'+m[2]+'?width=64&height=64&resize=contain&quality=60');
       return t;
     }catch(e){return u;}
   }
