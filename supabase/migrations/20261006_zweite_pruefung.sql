@@ -1,5 +1,5 @@
 -- Zweite Sicherheitsprüfung 2026-10-06 (Angreifer-Sicht)
--- Wird erst nach Freigabe durch Ramona live eingespielt.
+-- Live eingespielt am 2026-10-06 nach Freigabe durch Ramona.
 
 -- 1) Fotos nur in EIGENE Reisen hochladen oder verschieben
 --    Bisher prüfte die Upload-Regel nur "Datei gehört mir", nicht "Ordner gehört zu meiner Reise".
