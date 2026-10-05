@@ -19,7 +19,7 @@
   var W=297,H=210,BLEED=3,M=15,GAP=4; // Seitenmaße in mm, Rand, Fotoabstand
   var MAX_PX=2500;                   // Obergrenze der Supabase-Bildumwandlung
   var MAX_PER_PAGE=8,MAX_PAGES_PER_DAY=3,LONG_TEXT=400,TEXT_PER_PAGE=3300;
-  var FONTS='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Caveat:wght@400;600&display=swap';
+  var FONTS=location.origin+'/fonts/fonts.css';   // eigene Schriften, keine Verbindung zu Google
   var MODES={
     home:{bleed:0,dpi:200,label:'Drucken / PDF'},
     pro:{bleed:BLEED,dpi:300,label:'Druckdatei'}

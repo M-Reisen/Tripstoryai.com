@@ -32,12 +32,11 @@ try{var _m=location.pathname.match(/^\/reisetagebuch\/([a-z0-9-]+)\/([a-z0-9-]+)
 </script>
 <script>try{var _rk=(window.__REISE_ID||new URLSearchParams(location.search).get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');if(localStorage.getItem('tv_admin_'+_rk)==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/vendor/supabase-js-2.117.2.js"></script>
 <link href="/fonts/fonts.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+<link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css"></noscript>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -2020,7 +2019,7 @@ function renderDayCard(days){
       const cap=captionFor(iso,url);
       const hid=isHiddenPhoto(iso,url);
       let html='<div class="photo-cell'+(hid?' photo-hidden':'')+'">'
-        +'<img src="'+tvT(url,480)+'" data-orig="'+url+'" decoding="async" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="if(tvImgErr(this))return;this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
+        +'<img src="'+esc(tvT(url,480))+'" data-orig="'+esc(url)+'" decoding="async" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="if(tvImgErr(this))return;this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
       if(editMode&&hid)html+='<div class="photo-hidden-tag">Für Gäste ausgeblendet</div>';
       if(editMode){
         html+='<button class="photo-hide-btn" title="'+(hid?'Für Gäste einblenden':'Für Gäste ausblenden')+'" onclick="toggleHidden(\''+iso+'\','+pi+')">'+(hid?'🚫':'👁')+'</button>';
@@ -4046,7 +4045,7 @@ function ensureLeaflet(){
   if(window.L)return Promise.resolve();
   if(_leafletLoading)return _leafletLoading;
   _leafletLoading=new Promise(function(res,rej){
-    var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    var sc=document.createElement('script');sc.src='/vendor/leaflet-1.9.4/leaflet.js';
     sc.onload=res;sc.onerror=function(){_leafletLoading=null;rej(new Error('Leaflet konnte nicht geladen werden'));};
     document.head.appendChild(sc);
   });

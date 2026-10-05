@@ -16,7 +16,7 @@
 <meta name="theme-color" content="#F4EFE8">
 <script src="/install.js" defer data-banner="1"></script>
 <link href="/fonts/fonts.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/vendor/supabase-js-2.117.2.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -453,7 +453,7 @@ function onLoggedIn(user){
   // Kommt der Besucher von einer Reise-Seite („weiter“), nach der Anmeldung dorthin zurück (nur Adressen dieser Seite)
   try{
     var w=new URLSearchParams(location.search).get('weiter');
-    if(w&&/^\/(?!\/)/.test(w)&&w.indexOf('\\')<0){location.replace(w);return;}
+    if(w){var u=new URL(w,location.origin);if(u.origin===location.origin&&/^\/(?!\/)/.test(w)){location.replace(u.pathname+u.search+u.hash);return;}}
   }catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('logout-btn').style.display='inline-flex';
@@ -1005,11 +1005,7 @@ async function deleteAccount(){
     var ids=(tr.data||[]).map(function(x){return x.id;}).filter(function(id){return !Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id);});
     var files=[];
     for(var i=0;i<ids.length;i++){try{files=files.concat(await tripFiles(ids[i]));}catch(e){console.error(e);}}
-    // 4) Konto und Daten in der Datenbank löschen
-    delStatus('Konto und Daten werden gelöscht …');
-    var rp=await sb.rpc('delete_my_account',{p_pruefen:false});
-    if(rp.error){fail('Löschen fehlgeschlagen: '+(rp.error.message||'Fehler')+'. Es wurde nichts gelöscht.');return;}
-    // 5) Fotos entfernen (Anmeldedaten sind noch kurz gültig)
+    // 4) Fotos entfernen, solange das Konto noch besteht (sonst bleiben sie verwaist im Speicher)
     var bad=0;
     for(var j=0;j<files.length;j+=100){
       delStatus('Fotos werden gelöscht … '+Math.min(j+100,files.length)+' von '+files.length);
@@ -1019,6 +1015,10 @@ async function deleteAccount(){
       }catch(e){bad+=Math.min(100,files.length-j);}
     }
     if(bad)console.warn(bad+' Fotos konnten nicht entfernt werden');
+    // 5) Konto und Daten in der Datenbank löschen
+    delStatus('Konto und Daten werden gelöscht …');
+    var rp=await sb.rpc('delete_my_account',{p_pruefen:false});
+    if(rp.error){fail('Löschen fehlgeschlagen: '+(rp.error.message||'Fehler')+'. Bitte versuche es erneut oder schreib an info@travona.de.');return;}
     // 6) Abmelden, lokale Daten entfernen, zur Startseite
     try{await sb.auth.signOut();}catch(e){}
     try{

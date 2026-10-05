@@ -92,6 +92,11 @@ function tripDesc(meta, row) {
 }
 
 // Vorhandene Vorschau-/Such-Angaben entfernen und neue vor </head> einsetzen
+// JSON für ein Inline-<script>: "<" escapen, damit ein Wert nie "</script>" schließen kann
+function jsonScript(v) {
+  return JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
 function injectHead(html, { title, tags, id, route }) {
   html = html
     .replace(/<meta\s+property="og:[^>]*>\s*/gi, '')
@@ -99,11 +104,12 @@ function injectHead(html, { title, tags, id, route }) {
     .replace(/<meta\s+name="description"[^>]*>\s*/gi, '')
     .replace(/<meta\s+name="robots"[^>]*>\s*/gi, '')
     .replace(/<link\s+rel="canonical"[^>]*>\s*/gi, '');
-  if (title) html = html.replace(/<title>[\s\S]*?<\/title>/i, '<title>' + esc(title) + '</title>');
-  if (id) html = html.replace(/<head>/i, '<head>\n<script>window.__REISE_ID=' + JSON.stringify(id) + ';</script>');
+  // Ersetzungen als Funktion, damit "$&" oder "$'" in Titeln nicht als Muster gelesen werden
+  if (title) html = html.replace(/<title>[\s\S]*?<\/title>/i, () => '<title>' + esc(title) + '</title>');
+  if (id) html = html.replace(/<head>/i, () => '<head>\n<script>window.__REISE_ID=' + jsonScript(id) + ';</script>');
   // Reise vom Server nicht auffindbar (z. B. privat): die Seite schlägt sie mit der Anmeldung des Besuchers selbst nach
-  else if (route) html = html.replace(/<head>/i, '<head>\n<script>window.__ROUTE=' + JSON.stringify(route) + ';</script>');
-  return html.replace('</head>', tags + '\n</head>');
+  else if (route) html = html.replace(/<head>/i, () => '<head>\n<script>window.__ROUTE=' + jsonScript(route) + ';</script>');
+  return html.replace('</head>', () => tags + '\n</head>');
 }
 
 function shareTags({ title, desc, image, url, robots }) {

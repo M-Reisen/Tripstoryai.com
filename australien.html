@@ -29,12 +29,11 @@
 <meta name="twitter:image" content="https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1200&amp;h=630&amp;fit=crop&amp;auto=format">
 <script>try{if(localStorage.getItem('au26_admin')==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
 <link href="/fonts/fonts.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css"></noscript>
+<script src="/vendor/supabase-js-2.117.2.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -2286,7 +2285,7 @@ var AU_STOPS=[
 var _leafletWait=false;
 function ensureLeaflet(){
   return window.L?Promise.resolve():new Promise(function(res,rej){
-    var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    var sc=document.createElement('script');sc.src='/vendor/leaflet-1.9.4/leaflet.js';
     sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);
   });
 }
@@ -3507,7 +3506,7 @@ initApp();
     if(W.L)return Promise.resolve();
     if(_lfP)return _lfP;
     _lfP=new Promise(function(res,rej){
-      var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      var sc=document.createElement('script');sc.src='/vendor/leaflet-1.9.4/leaflet.js';
       sc.onload=res;sc.onerror=function(){_lfP=null;rej(new Error('Leaflet konnte nicht geladen werden'));};
       document.head.appendChild(sc);
     });
