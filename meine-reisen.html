@@ -221,8 +221,9 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
     <a class="logo" href="index.html" style="text-decoration:none;">
       <img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona – Travel. Share. Remember." style="height:42px;width:auto;max-width:58vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:10px;box-shadow:0 0 14px rgba(108,92,231,.35);">
     </a>
-    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;">
+    <div style="display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
       <a class="btn btn-ghost btn-sm" href="index.html" style="text-decoration:none;">Startseite</a>
+      <a class="btn btn-ghost btn-sm" id="ausgaben-btn" href="ausgaben.html" style="display:none;text-decoration:none;">Ausgaben</a>
       <button class="btn btn-ghost btn-sm" id="edit-btn" onclick="toggleAdmin()" style="display:none;">Bearbeiten</button>
       <button class="btn btn-ghost btn-sm" id="logout-btn" onclick="doLogout()" style="display:none;">Abmelden</button>
     </div>
@@ -455,6 +456,7 @@ function onLoggedIn(user){
   }catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('logout-btn').style.display='inline-flex';
+  document.getElementById('ausgaben-btn').style.display='inline-flex';
   document.getElementById('edit-btn').style.display='inline-flex';
   var dl=document.getElementById('del-link');if(dl)dl.style.display='inline';
   loadTripsFromDB();
@@ -462,6 +464,7 @@ function onLoggedIn(user){
 function showAuthScreen(){
   document.getElementById('auth-screen').style.display='flex';
   document.getElementById('logout-btn').style.display='none';
+  document.getElementById('ausgaben-btn').style.display='none';
   var dl2=document.getElementById('del-link');if(dl2)dl2.style.display='none';
   var ue=document.getElementById('user-email');if(ue)ue.textContent='';
 }

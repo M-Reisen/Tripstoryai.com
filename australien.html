@@ -908,6 +908,7 @@ html.app-guestview body{padding-top:48px;}
           <a class="fnav-link" href="#section-route" onclick="jumpTo(event,'route')"><span class="fmenu-t">Route</span><span class="fmenu-sub">Alle Stationen</span></a>
           <a class="fnav-link" href="#section-journal" onclick="jumpTo(event,'journal')"><span class="fmenu-t">Tagebuch</span><span class="fmenu-sub">Ausgewählte Momente</span></a>
           <a class="fnav-link" href="#section-kosten" onclick="jumpTo(event,'kosten')"><span class="fmenu-t">Kosten</span><span class="fmenu-sub">Gesamtübersicht</span></a>
+          <a class="fnav-link" href="/ausgaben.html" id="fnav-ausgaben" onclick="this.href='/ausgaben.html?reise='+encodeURIComponent(REISE_ID)"><span class="fmenu-t">Ausgabenstatistik</span><span class="fmenu-sub">Kosten im Blick</span></a>
           <a class="fnav-link" href="#section-gaestebuch" onclick="jumpTo(event,'gaestebuch')"><span class="fmenu-t">Gästebuch</span><span class="fmenu-sub">Nachricht hinterlassen</span></a>
         </div>
         <aside class="fmenu-meta">
@@ -1381,7 +1382,7 @@ function applyViewMode(){
   // Nav-Links entsprechend ein-/ausblenden
   document.querySelectorAll('.fnav-link').forEach(function(a){
     var h=a.getAttribute('href');
-    if(h==='#section-tage'||h==='#section-kosten')a.style.display=isAdmin?'':'none';
+    if(h==='#section-tage'||h==='#section-kosten'||a.id==='fnav-ausgaben')a.style.display=isAdmin?'':'none';
   });
 }
 async function doLogout(){
@@ -1631,7 +1632,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>e.name!=='visit'&&!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
+    entries=db.filter(e=>e.name!=='visit'&&!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&!e.ort.startsWith('budget_')&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -4216,7 +4217,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4235,6 +4236,7 @@ initApp();
     else if(a==='teilen')shareTrip();
     else if(a==='zahlen'&&window.travonaReiseInZahlen)window.travonaReiseInZahlen();
     else if(a==='nachbuchen'&&window.travonaNachbuchen)window.travonaNachbuchen();
+    else if(a==='ausgaben')location.href='/ausgaben.html?reise='+encodeURIComponent(REISE_ID);
     else if(a==='wa')waOpenLatest();
     else if(a==='waask')waToggleAsk();
     else if(a==='aicap')aiCapToggle();
