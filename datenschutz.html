@@ -70,11 +70,14 @@ footer{max-width:760px;margin:0 auto;padding:0 32px 60px;font-size:12px;color:va
   <h3>Reichweitenmessung (Vercel Web Analytics)</h3>
   <p>Um zu sehen, wie viele Besucher welche Seiten aufrufen, nutze ich Vercel Web Analytics. Dabei werden die aufgerufene Seite, die verweisende Seite, Land, Gerätetyp, Betriebssystem und Browser erfasst. Es werden keine Cookies gesetzt und keine Daten auf deinem Gerät gespeichert. Besucher werden nur über einen Hash-Wert aus der Anfrage wiedererkannt, der täglich verworfen wird; ein Rückschluss auf deine Person oder ein seitenübergreifendes Profil ist nicht möglich. Rechtsgrundlage ist mein berechtigtes Interesse an der Verbesserung des Angebots (Art. 6 Abs. 1 lit. f DSGVO). Weitere Informationen: <a href="https://vercel.com/docs/analytics/privacy-policy" target="_blank" rel="noopener">vercel.com/docs/analytics/privacy-policy</a>.</p>
   <h3>Supabase</h3>
-  <p>Für die Anmeldung, die Speicherung der Reisedaten, Fotos, Gästebuch-Einträge und weiterer Inhalte nutze ich Supabase (Supabase Inc.). Dort werden Nutzerkonten, die von dir eingegebenen Inhalte und die hochgeladenen Fotos gespeichert. Weitere Informationen: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
+  <p>Für die Anmeldung, die Speicherung der Reisedaten, Fotos, Gästebuch-Einträge und weiterer Inhalte nutze ich Supabase (Supabase Inc.). Dort werden Nutzerkonten, die von dir eingegebenen Inhalte und die hochgeladenen Fotos gespeichert. Die Datenbank und der Foto-Speicher liegen in einem Rechenzentrum in der EU (Irland). Weitere Informationen: <a href="https://supabase.com/privacy" target="_blank" rel="noopener">supabase.com/privacy</a>.</p>
   <p>Soweit dabei Daten in Länder außerhalb der EU/des EWR (z. B. die USA) übermittelt werden, stützt sich die Übermittlung auf die von den Anbietern bereitgestellten Garantien, etwa EU-Standardvertragsklauseln oder eine Zertifizierung nach dem EU-US Data Privacy Framework.</p>
 
   <h2>4. Server-Logfiles</h2>
   <p>Beim Besuch der Website werden durch den Hosting-Anbieter automatisch Informationen erfasst, die dein Browser übermittelt. Dazu gehören insbesondere IP-Adresse, Datum und Uhrzeit des Zugriffs, die aufgerufene Seite sowie Browser- und Geräteinformationen. Diese Daten dienen der technischen Bereitstellung und Sicherheit der Website und lassen keine unmittelbaren Rückschlüsse auf deine Person zu.</p>
+
+  <h3>Technische Fehlermeldungen</h3>
+  <p>Tritt beim Benutzen der Website ein technischer Fehler auf, sendet die Seite eine kurze Fehlermeldung an die Datenbank: den Fehlertext, die Stelle im Programm, die aufgerufene Seite (ohne Anmelde-Codes) und die Browser-Kennung (User-Agent). Es werden weder deine IP-Adresse noch dein Konto oder deine E-Mail-Adresse gespeichert. Die Meldungen dienen nur dazu, Fehler zu finden und zu beheben (Art. 6 Abs. 1 lit. f DSGVO), und werden nach 30 Tagen automatisch gelöscht.</p>
 
   <h2>5. Nutzerkonto und Anmeldung</h2>
   <p>Wenn du eigene Reisetagebücher anlegen möchtest, kannst du dich mit E-Mail-Adresse und Passwort registrieren. Gespeichert werden deine E-Mail-Adresse, dein Passwort (ausschließlich in verschlüsselter Form), eine Konto-Kennung, der Zeitpunkt der Registrierung und der letzten Anmeldung sowie, falls von dir angegeben, ein Anzeigename. Die Daten dienen ausschließlich dazu, dich anzumelden und deinen Reisen zuzuordnen. Die Anmeldung wird über Supabase abgewickelt (siehe Abschnitt 3). Deine Anmeldung bleibt in deinem Browser gespeichert (siehe Abschnitt 11), bis du dich abmeldest.</p>
@@ -99,9 +102,11 @@ footer{max-width:760px;margin:0 auto;padding:0 32px 60px;font-size:12px;color:va
   <h2>8. Externe Dienste &amp; Inhalte</h2>
   <p>Zur Darstellung der Website werden Inhalte und Programmbibliotheken von Drittanbietern geladen. Dabei wird technisch bedingt deine IP-Adresse an den jeweiligen Anbieter übermittelt.</p>
   <h3>Schriftarten</h3>
-  <p>Die Schriftarten liegen auf dem Server dieser Website und werden von dort geladen. Beim Seitenaufruf wird keine Verbindung zu Google Fonts aufgebaut. Ausnahme: Die Fotobuch-Ansicht lädt ihre Schriften derzeit noch von Google Fonts (Google Ireland Limited); dabei wird deine IP-Adresse an Google übermittelt. Informationen: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a>.</p>
-  <h3>Programmbibliotheken (jsDelivr, unpkg)</h3>
-  <p>Für die Anmeldung und Datenbankanbindung (Supabase) wird eine Programmbibliothek über das Content-Delivery-Network jsDelivr geladen, für die Kartenfunktion die Bibliothek Leaflet über unpkg. Beim Laden wird deine IP-Adresse an den jeweiligen Anbieter übermittelt.</p>
+  <p>Die Schriftarten liegen auf dem Server dieser Website und werden von dort geladen. Beim Seitenaufruf wird keine Verbindung zu Google Fonts aufgebaut. Das gilt auch für die Fotobuch-Ansicht.</p>
+  <h3>Programmbibliotheken</h3>
+  <p>Die Programmbibliotheken für die Anmeldung und Datenbankanbindung (Supabase) und für die Kartenfunktion (Leaflet) liegen ebenfalls auf dem Server dieser Website. Dafür wird keine Verbindung zu einem fremden Content-Delivery-Network aufgebaut.</p>
+  <h3>Schutz vor Missbrauch (Cloudflare Turnstile)</h3>
+  <p>Bei der Anmeldung, der Registrierung, dem Löschen des Kontos und auf der Seite „Ohne Anmeldung testen“ nutze ich Cloudflare Turnstile (Cloudflare Inc., USA), um automatisierte Zugriffe durch Bots zu verhindern. Dabei werden deine IP-Adresse sowie technische Merkmale deines Browsers und Geräts an Cloudflare übermittelt und dort ausgewertet. Es werden keine Werbe-Cookies gesetzt. Rechtsgrundlage ist mein berechtigtes Interesse am Schutz der Website und der Nutzerkonten vor Missbrauch (Art. 6 Abs. 1 lit. f DSGVO). Cloudflare ist nach dem EU-US Data Privacy Framework zertifiziert. Informationen: <a href="https://www.cloudflare.com/turnstile-privacy-policy/" target="_blank" rel="noopener">cloudflare.com/turnstile-privacy-policy</a>.</p>
   <h3>Kartendarstellung (OpenStreetMap)</h3>
   <p>Zur Anzeige der Reisekarten werden Kartenkacheln von OpenStreetMap geladen. Beim Laden der Karte wird deine IP-Adresse an die OpenStreetMap Foundation übermittelt. Informationen: <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">OpenStreetMap Datenschutz</a>.</p>
   <h3>Geocoding (Nominatim)</h3>
@@ -148,7 +153,7 @@ footer{max-width:760px;margin:0 auto;padding:0 32px 60px;font-size:12px;color:va
   <p>Ich behalte mir vor, diese Datenschutzerklärung anzupassen, damit sie stets den aktuellen rechtlichen Anforderungen entspricht oder um Änderungen meiner Leistungen umzusetzen.</p>
 
   <div class="small">
-    Stand: September 2026 · Diese Datenschutzerklärung gilt für die Website travona.de.
+    Stand: Oktober 2026 · Diese Datenschutzerklärung gilt für die Website travona.de.
   </div>
 </div>
 
