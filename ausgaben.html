@@ -245,7 +245,7 @@ function render(items){
     +'<div class="tile"><small>Vorab gebucht</small><b>'+eur(planSum)+'</b><span>'+plan.length+' Positionen</span></div>'
     +'<div class="tile"><small>Vor Ort</small><b>'+eur(tagSum)+'</b><span>'+tag.length+' Ausgaben</span></div>'
     +(nDays?'<div class="tile"><small>Pro Tag</small><b>'+eur(total/nDays)+'</b><span>bei '+nDays+' Reisetagen</span></div>':'')
-    +(nDays&&tagSum?'<div class="tile"><small>Vor Ort pro Tag</small><b>'+eur(tagSum/nDays)+'</b><span>Essen, Taxi, Shopping …</span></div>':'')
+    +(nDays&&tagSum?'<div class="tile"><small>Vor Ort pro Tag</small><b>'+eur(tagSum/nDays)+'</b><span>Essen, Transport, Shopping …</span></div>':'')
     +'</div>';
 
   // Ausgaben vor Ort pro Tag

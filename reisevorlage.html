@@ -1247,7 +1247,7 @@ html.app-guestview body{padding-top:48px;}
         <option>🍽️ Essen &amp; Trinken</option>
         <option>🎫 Eintritt</option>
         <option>🛍️ Shopping</option>
-        <option>🚕 Taxi / Transport</option>
+        <option>🚕 Transport</option>
         <option>🏖️ Aktivität</option>
         <option>💆 Sonstiges</option>
       </select>
@@ -2759,7 +2759,7 @@ function closeExpenseModal(){document.getElementById('expense-modal').classList.
 
 // ── SCHNELLERFASSUNG FÜR TAGESAUSGABEN (Knopf „＋ Ausgabe“ und ?schnell=1) ─────
 function qxTrip(){return REISE;}
-var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Taxi','🚕'],['🎫','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
+var QX_CATS=[['🍽️','Essen','🍽️'],['🛍️','Shopping','🛍️'],['🚕','Transport','🚕'],['🎫','Eintritt','🎫'],['🏖️','Aktivität','🏖️'],['💆','Sonstiges','💆']];
 var QX_DEFCUR='EUR';
 var _qxCat='',_qxBusy=false,_qxAuthDone=false;
 function qxDays(){return buildDays();}
@@ -2995,7 +2995,7 @@ function saveFxRate(cur){
 // ── KOSTEN UI ─────────────────────────────────────────────────────────────────
 var _openCostDays={};
 // Gespeichert wird nur das Symbol der Kategorie – für die Anzeige den Namen dazusetzen
-var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🎫','Eintritt'],['🛍','Shopping'],['🚕','Taxi / Transport'],['🏖','Aktivität'],['💆','Sonstiges'],['Eintritt','']];
+var EXP_CAT_NAMES=[['🍽','Essen &amp; Trinken'],['🎫','Eintritt'],['🛍','Shopping'],['🚕','Transport'],['🏖','Aktivität'],['💆','Sonstiges'],['Eintritt','']];
 function expCatLabel(k){
   for(var i=0;i<EXP_CAT_NAMES.length;i++){
     var pre=EXP_CAT_NAMES[i][0],name=EXP_CAT_NAMES[i][1];
