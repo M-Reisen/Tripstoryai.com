@@ -20,13 +20,13 @@
 <meta property="og:locale" content="de_DE">
 <meta property="og:title" content="Australien 2026 · Unser Reisetagebuch">
 <meta property="og:description" content="Queensland &amp; Great Barrier Reef – 13. September bis 10. Oktober 2026.">
-<meta property="og:image" content="https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1200&amp;h=630&amp;fit=crop&amp;auto=format">
+<meta property="og:image" content="https://www.travona.de/img/australien-og.jpg">
 <meta property="og:url" content="https://www.travona.de/australien.html">
 <link rel="canonical" href="https://www.travona.de/australien.html">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Australien 2026 · Unser Reisetagebuch">
 <meta name="twitter:description" content="Queensland &amp; Great Barrier Reef – 13. September bis 10. Oktober 2026.">
-<meta name="twitter:image" content="https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1200&amp;h=630&amp;fit=crop&amp;auto=format">
+<meta name="twitter:image" content="https://www.travona.de/img/australien-og.jpg">
 <script>try{if(localStorage.getItem('au26_admin')==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
@@ -930,7 +930,7 @@ html.app-guestview body{padding-top:48px;}
 </nav>
 
 <section class="figma-hero">
-  <img src="https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1800&h=1000&fit=crop&auto=format" alt="Great Barrier Reef, Queensland" fetchpriority="high" decoding="async">
+  <img src="/img/australien-titel.jpg" alt="Whitehaven Beach, Whitsundays" fetchpriority="high" decoding="async">
   <div class="figma-hero-overlay"></div>
   <div class="figma-hero-content">
     <p class="figma-hero-eyebrow">13. September — 10. Oktober 2026</p>
@@ -1340,7 +1340,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── AUTH / BESITZ ─────────────────────────────────────────────────────────────
 const REISE_ID='australien-2026';
-const HERO_IMG_URL='https://images.unsplash.com/photo-1587139223877-04cb899fa3e8?w=1800&h=1000&fit=crop&auto=format';
+const HERO_IMG_URL='https://www.travona.de/img/australien-titel.jpg';
 async function syncCoverToOverview(){
   // Titelbild in trips-Tabelle schreiben, damit es auf "Meine Reisen" erscheint
   if(!canEdit)return;
