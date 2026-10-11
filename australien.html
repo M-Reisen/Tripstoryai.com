@@ -1784,7 +1784,7 @@ function buildDayHTML(day,i){
     const revAct=editMode?`<div class="hotel-review-actions"><button class="btn btn-reef btn-sm" data-bid="${stayItem.id}" data-hotel="${stayItem.name}" data-stars="${rev.stars}" onclick="genReviewEl(this)">✍️ Bewertung</button>${rev.text?`<button class="btn btn-ghost btn-sm" style="color:var(--fog)" data-bid="${stayItem.id}" onclick="clearReviewEl(this)">Löschen</button>`:''}</div>`:'';
     hotelBannerHTML+=`<div class="hotel-review"><div class="hotel-review-stars">${starsHTML}</div>${revTxt}${revAct}</div>`;
   }
-  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}${editMode?hideNewHTML():''}</div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
+  return `<div class="day-card">${hotelBannerHTML}<div class="day-card-header"><div class="day-card-date">${dateLabel}</div><div class="day-card-loc">${loc}</div></div><div class="photo-strip"><div class="photo-strip-label">Fotos</div><div class="photo-gallery" id="photo-grid-${day.iso}">${loadingHint}${photoItems}${addBtn}</div>${dayPhotos.length?`<div style="font-size:.7rem;color:var(--fog);text-align:right;padding:4px 0">${dayPhotos.length} Foto${dayPhotos.length>1?'s':''}</div>`:''}${editMode?hideNewHTML():''}</div><div class="tv-vids" data-iso="${day.iso}" data-edit hidden></div><div class="day-entry-area">${entryHTML}</div>${allBadges?`<div class="day-transport">${allBadges}</div>`:''}${comments}${(()=>{
     const exps=dayExpenses[day.iso]||[];
     if(!exps.length&&!editMode)return'';
     const rows=exps.map((e,ei)=>{const cur=e.cur||'EUR';const amtStr=e.amount.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;return `<div class="day-cost-row"><span>${e.cat} ${e.label}</span><span>${editMode?`<button style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:.8rem;margin-right:4px" data-iso="${day.iso}" data-idx="${ei}" onclick="delExpEl(this)">✕</button>`:''}<b>${amtStr}</b></span></div>`;}).join('');
@@ -5501,6 +5501,7 @@ initApp();
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
 <script src="/tagesbericht.js" defer></script>
+<script src="/videos.js" defer></script>
 <script src="/folgen.js" defer></script>
 <script src="/gutzuwissen.js" defer></script>
 </body>

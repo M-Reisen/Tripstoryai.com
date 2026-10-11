@@ -2156,6 +2156,7 @@ function renderDayCard(days){
         +'<button class="btn btn-primary btn-sm" onclick="saveTagOrt(\''+iso+'\')">Setzen</button>'
         +'</div></div>'):'')
     +(photoHTML?`<div class="photo-strip"><div class="photo-strip-label">📸 Fotos</div>${photoHTML}</div>`:'')
+    +`<div class="tv-vids" data-iso="${iso}" data-edit hidden></div>`
     +`<div class="day-entry-area">${entryHTML}${expHTML}</div>`
     +(badges?`<div class="day-program">${badges}</div>`:'')
     +'<div class="day-react" data-iso="'+iso+'"></div>'
@@ -5945,6 +5946,7 @@ init();
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
 <script src="/tagesbericht.js" defer></script>
+<script src="/videos.js" defer></script>
 <script src="/folgen.js" defer></script>
 <script src="/gutzuwissen.js" defer></script>
 </body>
