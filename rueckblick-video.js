@@ -293,7 +293,7 @@
   function drawOutro(x,t,dur,d){
     x.fillStyle=C.ink;x.fillRect(0,0,W,H);
     x.textAlign='center';
-    rise(x,t,0.15,function(){x.fillStyle=C.bg;x.font='italic 400 70px "Playfair Display", serif';x.fillText('Belege rein,',W/2,H/2-90);x.fillText('Reisebericht raus.',W/2,H/2);});
+    rise(x,t,0.15,function(){x.fillStyle=C.bg;x.font='italic 400 70px "Playfair Display", serif';x.fillText('Fotos rein,',W/2,H/2-90);x.fillText('Reisebericht raus.',W/2,H/2);});
     rise(x,t,0.6,function(){x.fillStyle=C.terra;x.font='500 64px "DM Sans", sans-serif';x.fillText('travona.de',W/2,H/2+170);});
     rise(x,t,0.9,function(){x.fillStyle='rgba(244,239,232,.7)';x.font='400 36px "DM Sans", sans-serif';x.fillText('Dein Reisetagebuch mit KI',W/2,H/2+240);});
     x.textAlign='left';
