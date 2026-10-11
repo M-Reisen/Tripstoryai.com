@@ -7,7 +7,7 @@
 | Zweck | Zuhause drucken, als PDF teilen | Upload bei einem Fotobuch-Anbieter |
 | Seitenformat | 297 × 210 mm (A4 quer) | 303 × 216 mm (A4 quer + 3 mm Beschnitt an jeder Kante) |
 | Fotoauflösung | ca. 200 dpi | 300 dpi (Ausnahme: siehe „Grenzen“) |
-| Seitenzahl | wie erzeugt | immer gerade (bei Bedarf eine Leerseite vor der Schlussseite) |
+| Seitenzahl | wie erzeugt | wie erzeugt, ohne Leerseite (seit 2026-10-11; verlangt ein Anbieter eine gerade Zahl, beim Hochladen eine Leerseite ergänzen) |
 | Sicherheitsabstand | Text und Fotos mind. 15 mm vom Rand | dito, gemessen ab Schnittkante |
 | Farbraum | RGB (sRGB) | RGB (sRGB) |
 
