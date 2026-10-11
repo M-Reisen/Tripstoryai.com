@@ -1,5 +1,6 @@
 // Travona – „Gut zu wissen“: Besonderheiten des Reiselandes als kurze Tipp-Karten (kein Fließtext).
-// Erscheint unter der Route (australien.html, reisevorlage.html). Besucher sehen die Karten, sobald es Tipps gibt.
+// Eigene Ansicht #section-tipps (Mehr › Gut zu wissen, für Besucher Tab „Tipps“, Link …#tipps).
+// Seiten ohne diese Ansicht zeigen es weiter unter der Route. Besucher sehen die Karten, sobald es Tipps gibt.
 // Die Besitzerin legt Tipps an, bearbeitet oder löscht sie und lässt sich von der KI Vorschläge
 // aus ihren Tagebuchtexten machen (Abhaken und Übernehmen).
 // Gespeichert als eine Zeile in kommentare: ort = <reise>_gutzuwissen, nachricht = JSON {tips:[{id,k,t,d}]}.
@@ -56,7 +57,7 @@
     if(document.getElementById('gzw-css'))return;
     var s=document.createElement('style');s.id='gzw-css';
     s.textContent=''
-      +'.gzw{margin-top:34px}'
+      +'.gzw{margin-top:34px}#section-tipps .gzw{margin-top:0}'
       +'.gzw h3{font-family:"Playfair Display",serif;font-weight:400;font-size:1.6rem;margin:0 0 4px;color:var(--a-ink,#1A1714)}'
       +'.gzw-sub{font-size:.85rem;color:var(--a-fog,#6B6560);margin:0 0 16px}'
       +'.gzw-acts{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}'
@@ -83,16 +84,21 @@
       +'.gzw-q{font-size:.72rem;color:var(--terra,#B5714A);margin-top:3px}';
     document.head.appendChild(s);
   }
-  function anker(){return document.getElementById('section-route');}
+  function anker(){return document.getElementById('section-tipps')||document.getElementById('section-route');}
+  function eigeneAnsicht(){var a=anker();return !!a&&a.id==='section-tipps';}
   function zeichnen(){
     var a=anker();if(!a)return;
     css();
     var own=besitzer(),tips=D.tips||[];
     if(!sec||!sec.isConnected){sec=document.createElement('div');sec.id='tv-gzw';sec.className='gzw';a.appendChild(sec);}
-    if(!own&&!tips.length){sec.style.display='none';sec.innerHTML='';return;}
+    if(!own&&!tips.length){
+      if(eigeneAnsicht()){sec.style.display='';sec.innerHTML='<h3>Gut zu wissen</h3><div class="gzw-leer">Für diese Reise gibt es noch keine Tipps.</div>';return;}
+      sec.style.display='none';sec.innerHTML='';return;
+    }
     sec.style.display='';
     var l=land();
-    var h='<h3>Gut zu wissen'+(l?' in '+E(l):'')+'</h3><p class="gzw-sub">Besonderheiten des Landes, kurz notiert.</p>';
+    var h=(own&&eigeneAnsicht()?'<button type="button" class="app-back" onclick="appShow(\'mehr\')" style="margin:0 0 14px">← Mehr</button>':'')
+      +'<h3>Gut zu wissen'+(l?' in '+E(l):'')+'</h3><p class="gzw-sub">Besonderheiten des Landes, kurz notiert.</p>';
     if(own)h+='<div class="gzw-acts"><button type="button" class="gzw-b pri" data-gzw="neu">＋ Tipp notieren</button><button type="button" class="gzw-b" data-gzw="ki">✨ KI-Vorschläge aus dem Tagebuch</button></div>';
     if(!tips.length){
       h+='<div class="gzw-leer">Noch keine Tipps. Notiere z. B. „Bestellen und zahlen an der Theke, das Essen wird gebracht“. Oder lass dir Vorschläge aus deinen Tagebuchtexten machen.</div>';
@@ -236,13 +242,15 @@
     })();
   }
   window.TvGzw={
-    zeigen:function(){var s=document.getElementById('tv-gzw');if(s)try{s.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},
+    zeigen:function(){if(eigeneAnsicht()&&window.appShow)return appShow('tipps');var s=document.getElementById('tv-gzw');if(s)try{s.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},
+    hatTipps:function(){return !!(D.tips&&D.tips.length);},
     neu:function(){if(besitzer())editor(null);}
   };
   if(!anker())return;
   warte(async function(){
     await laden();
     zeichnen();
+    if(window.appTabs)try{appTabs();}catch(e){}   // Besucher-Tab „Tipps“ erscheint, sobald es Tipps gibt
     // Gästeansicht an/aus oder spätere Anmeldung: neu zeichnen
     new MutationObserver(function(){zeichnen();}).observe(document.documentElement,{attributes:true,attributeFilter:['class']});
     // Die Seite zeichnet den Routen-Bereich teils neu: Abschnitt dann wieder anhängen

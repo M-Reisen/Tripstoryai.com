@@ -1124,6 +1124,7 @@ html.app-guestview body{padding-top:48px;}
     <button class="btn btn-reef" onclick="submitGuestbook()">Nachricht senden</button>
   </div>
 </div>
+<div class="section" id="section-tipps"></div>
 <div class="section" id="section-mehr">
   <div style="margin-bottom:10px"><p class="app-eb" style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:14px"></p><h2 style="font-family:'Playfair Display',serif;font-size:34px;font-weight:400;color:var(--ink);margin:0;line-height:1.1">Mehr</h2></div>
   <div id="mehr-body"></div>
@@ -3927,9 +3928,10 @@ initApp();
 <script>
 /* ===== App-Oberfläche: Ansichten, Tab-Leiste, Kopfbereich mit Karte ===== */
 (function(){
-  var VIEWS={heute:'section-tage',tagebuch:'section-journal',route:'section-route',kosten:'section-kosten',gaestebuch:'section-gaestebuch',mehr:'section-mehr',neu:'section-neu'};
+  var VIEWS={heute:'section-tage',tagebuch:'section-journal',route:'section-route',kosten:'section-kosten',gaestebuch:'section-gaestebuch',tipps:'section-tipps',mehr:'section-mehr',neu:'section-neu'};
   var OLD={tage:'heute',journal:'tagebuch',route:'route',kosten:'kosten',gaestebuch:'gaestebuch',neu:'neu'};
   var cur=document.documentElement.classList.contains('is-admin')?'heute':'tagebuch';
+  if(location.hash==='#tipps')cur='tipps';  // eigener Aufruf: Link …#tipps öffnet „Gut zu wissen“
   var modeInit=false,lastOwner=null,heroSig='',miniRun=0,miniMap=null,_userDay=false,_jDays=null;
   try{
     if((window.navigator.standalone===true)||window.matchMedia('(display-mode: standalone)').matches)document.documentElement.classList.add('standalone');
@@ -3962,7 +3964,7 @@ initApp();
   function ic(n,s,w){return '<svg width="'+(s||24)+'" height="'+(s||24)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="'+(w||1.7)+'" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(IC[n]||'')+'</svg>';}
   function E(s){return (typeof esc==='function')?esc(s):String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
   function isOwner(){return !!editMode;}
-  function allowed(v){return isOwner()?true:(v==='tagebuch'||v==='route'||v==='gaestebuch');}
+  function allowed(v){return isOwner()?true:(v==='tagebuch'||v==='route'||v==='gaestebuch'||v==='tipps');}
   function defView(){return isOwner()?'heute':'tagebuch';}
   function tripLabel(){var yr=tripHead.from?tripHead.from.slice(0,4):'';var tt=tripHead.title||'Reisetagebuch';return (yr&&tt.indexOf(yr)<0)?tt+' '+yr:tt;}
   function fmtNum(n){return Number(n).toLocaleString('de-DE');}
@@ -3975,6 +3977,7 @@ initApp();
     if(!allowed(v))v=defView();
     cur=v;
     document.documentElement.setAttribute('data-view',v);
+    try{if(v==='tipps'&&location.hash!=='#tipps')history.replaceState(null,'',location.pathname+location.search+'#tipps');else if(v!=='tipps'&&location.hash==='#tipps')history.replaceState(null,'',location.pathname+location.search);}catch(e){}
     Object.keys(VIEWS).forEach(function(k){var el=document.getElementById(VIEWS[k]);if(el)el.classList.toggle('app-on',k===v);});
     buildTabs();renderHero();setHeaders();
     if(v==='neu'){try{auNeu();}catch(e){}}
@@ -3986,16 +3989,18 @@ initApp();
     }
   }
   window.appShow=function(v){show(v);};
+  window.appTabs=function(){buildTabs();};
 
   /* ---------- Tab-Leiste ---------- */
   function buildTabs(){
     var el=document.getElementById('app-tabs');if(!el)return;
     var owner=isOwner(),act=cur;
-    if(owner&&(cur==='route'||cur==='gaestebuch'))act='mehr';
+    if(owner&&(cur==='route'||cur==='gaestebuch'||cur==='tipps'))act='mehr';
     if(cur==='neu')act='heute';
     var items=owner
       ?[['heute','Heute','heute'],['tagebuch','Tagebuch','buch'],['+'],['kosten','Kosten','kosten'],['mehr','Mehr','mehr']]
       :[['tagebuch','Tagebuch','buch'],['route','Route','karte'],['gaestebuch','Gästebuch','chat']];
+    if(!owner&&window.TvGzw&&TvGzw.hatTipps())items.splice(2,0,['tipps','Tipps','notiz']);
     el.innerHTML=items.map(function(it){
       if(it[0]==='+')return '<button type="button" class="at-plus" data-plus="1" aria-label="Ausgabe erfassen"><span class="at-eur" aria-hidden="true">€</span></button>';
       var on=it[0]===act;
@@ -4248,7 +4253,7 @@ initApp();
   }
   function act(a){
     if(a==='route')show('route');
-    else if(a==='gutzuwissen'){show('route');setTimeout(function(){if(window.TvGzw)TvGzw.zeigen();},120);}
+    else if(a==='gutzuwissen')show('tipps');
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
