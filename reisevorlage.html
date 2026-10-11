@@ -4696,7 +4696,7 @@ init();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('video','video','Reise-Rückblick als Video')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gutzuwissen','notiz','Gut zu wissen (Landes-Tipps)')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('video','video','Reise-Rückblick als Video')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Bearbeiten',row('eckdaten','notiz','Reise-Eckdaten bearbeiten')+row('titelbild','foto','Titelbild ändern'));
@@ -4711,6 +4711,7 @@ init();
   }
   function act(a){
     if(a==='route')show('route');
+    else if(a==='gutzuwissen'){show('route');setTimeout(function(){if(window.TvGzw)TvGzw.zeigen();},120);}
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
@@ -5949,5 +5950,6 @@ init();
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
 <script src="/folgen.js" defer></script>
+<script src="/gutzuwissen.js" defer></script>
 </body>
 </html>

@@ -1662,7 +1662,7 @@ async function initApp(){
   await Promise.all([
     (async function(){try{
       const db=await sbLoadEntries();
-    entries=db.filter(e=>e.name!=='visit'&&!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&!e.ort.startsWith('budget_')&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
+    entries=db.filter(e=>e.name!=='visit'&&!e.ort.startsWith('kommentar_')&&!e.ort.startsWith('ausgabe_')&&!e.ort.startsWith('plankost_')&&!e.ort.startsWith('favorit_')&&!e.ort.startsWith('visit_')&&!e.ort.startsWith('gaestebuch_')&&e.ort!=='fxrates'&&!e.ort.startsWith('budget_')&&e.ort!=='tagort_stationen'&&e.ort!=='stationsbilder'&&!/_gutzuwissen$/.test(e.ort)&&!e.ort.startsWith('fotoverborgen_')&&!e.ort.startsWith('bildtexte_')).map(e=>({id:e.ort,datum:e.ort,titel:e.name,text:e.nachricht,ort:'',kat:'Sonstiges',at:e.created_at}));
     }catch(e){console.error('Eintraege laden:',e);}})(),
     (async function(){try{await sbLoadExpenses();}catch(e){console.error('Ausgaben laden:',e);}})(),
     (async function(){try{await sbLoadFX();}catch(e){console.error('FX laden:',e);}})(),
@@ -4273,7 +4273,7 @@ initApp();
     function grp(t,r){return '<div class="mr-title">'+t+'</div><div class="mr-card">'+r+'</div>';}
     var h='';
     if(owner){
-      h+=grp('Reise',row('route','karte','Route und Karte')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('video','video','Reise-Rückblick als Video')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
+      h+=grp('Reise',row('route','karte','Route und Karte')+row('gutzuwissen','notiz','Gut zu wissen (Landes-Tipps)')+row('gaestebuch','chat','Gästebuch')+row('fotobuch','pdf','Fotobuch als PDF')+row('zahlen','foto','Reise in Zahlen (Bild zum Teilen)')+row('video','video','Reise-Rückblick als Video')+row('nachbuchen','kosten','Nachbuchen-Ansicht (Route und Kosten)')+row('ausgaben','kosten','Ausgabenstatistik')+row('teilen','teilen','Teilen'));
       h+=grp('Freunde',row('wa','teilen','WhatsApp-Status teilen')+row('waask','chat','Nach dem Speichern nachfragen: '+(waAsk()?'An':'Aus')));
       h+=grp('KI',row('aicap','notiz','KI-Vorschläge für Bildkommentare: '+(aiCapOn()?'An':'Aus')));
       h+=grp('Ansicht',row('gast','auge','Gästeansicht')+row('ziele','globus','Reiseziele entdecken')+row('meine','buch','Meine Reisen')+row('start','haus','Startseite'));
@@ -4287,6 +4287,7 @@ initApp();
   }
   function act(a){
     if(a==='route')show('route');
+    else if(a==='gutzuwissen'){show('route');setTimeout(function(){if(window.TvGzw)TvGzw.zeigen();},120);}
     else if(a==='gaestebuch')show('gaestebuch');
     else if(a==='fotobuch')createPhotobook();
     else if(a==='teilen')shareTrip();
@@ -5518,5 +5519,6 @@ initApp();
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
 <script src="/folgen.js" defer></script>
+<script src="/gutzuwissen.js" defer></script>
 </body>
 </html>
