@@ -632,6 +632,16 @@
     v.appendChild(o);
   }
 
+  // Zur Fehlersuche (Titelbild fehlte im PDF): Zustand des Titelbilds beim Drucken melden, ohne Inhalte
+  function titelMelden(mode){
+    try{
+      var im=S.root&&S.root.querySelector('.pb-cover img');if(!im||!window.travonaFehler)return;
+      var b=im.getBoundingClientRect(),src=im.currentSrc||im.src||'';
+      window.travonaFehler('Fotobuch Druck '+mode+': Titelbild '+(src.indexOf('blob:')===0?'zugeschnitten':src?'Original':'ohne Quelle')
+        +', geladen '+(im.complete?'ja':'nein')+', '+im.naturalWidth+'x'+im.naturalHeight+', Rahmen '+Math.round(b.width)+'x'+Math.round(b.height)
+        +', sichtbar '+getComputedStyle(im).display+'/'+getComputedStyle(im).visibility,'fotobuch.js');
+    }catch(e){}
+  }
   async function doPrint(mode){
     if(mode==='pro'&&IOS){iosHinweis();return;}
     if(mode==='pro')toast('Druckdatei: Im Druckdialog „Als PDF speichern“, Ränder „Keine“, Skalierung 100 % wählen.');
@@ -639,6 +649,7 @@
     setMode(mode);
     var ok=await loadForPrint(mode);
     if(!ok){toast('Abgebrochen.');return;}
+    titelMelden(mode);
     setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},700);
   }
   // Eigenständiges Dokument (für „Neuer Tab“), Fotos in Druckqualität A4
