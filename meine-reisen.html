@@ -15,8 +15,9 @@
 <meta name="apple-mobile-web-app-title" content="Meine Reisen">
 <meta name="theme-color" content="#F4EFE8">
 <script src="/install.js" defer data-banner="1"></script>
+<script src="/folgen.js" defer></script>
 <link href="/fonts/fonts.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/vendor/supabase-js-2.117.2.js"></script>
 <script src="/offline-sync.js"></script>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <style>
@@ -213,7 +214,20 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
     <button class="btn btn-primary" style="width:100%;margin-bottom:14px;font-size:1rem;padding:13px;" id="auth-action-btn" onclick="doAuth()">Anmelden</button>
     <div style="text-align:center;">
       <a href="#" onclick="toggleAuthMode();return false;" id="auth-toggle" style="font-size:.85rem;color:var(--ocean);">Neu hier? Konto erstellen</a>
+      <div style="margin-top:10px;"><a href="#" onclick="doPasswordReset();return false;" id="auth-forgot" style="font-size:.8rem;color:var(--fog);">Passwort vergessen?</a></div>
     </div>
+  </div>
+</div>
+
+<!-- NEUES PASSWORT (nach Klick auf den Link in der E-Mail „Passwort zurücksetzen“) -->
+<div id="pw-screen" style="display:none;position:fixed;inset:0;z-index:1001;background:#2C5F6A;align-items:center;justify-content:center;padding:24px;overflow-y:auto;">
+  <div style="background:var(--white);border-radius:20px;padding:32px 26px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(26,23,20,.18);margin:auto;">
+    <div style="font-family:'Playfair Display',serif;font-size:1.4rem;text-align:center;margin-bottom:6px;">Neues Passwort</div>
+    <div style="font-size:.85rem;color:var(--fog);text-align:center;margin-bottom:18px;">Wähle ein neues Passwort für dein Konto.</div>
+    <div class="field"><label>Neues Passwort</label><input type="password" id="pw-new" placeholder="mindestens 8 Zeichen" autocomplete="new-password"></div>
+    <div class="field"><label>Passwort wiederholen</label><input type="password" id="pw-new2" autocomplete="new-password"></div>
+    <div id="pw-msg" style="font-size:.8rem;min-height:18px;margin:4px 0 12px;text-align:center;"></div>
+    <button class="btn btn-primary" style="width:100%;font-size:1rem;padding:13px;" id="pw-go" onclick="saveNewPassword()">Passwort speichern</button>
   </div>
 </div>
 
@@ -321,7 +335,7 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
           <div class="status-opt" data-v="link" onclick="pickVis('link')">🔗 Per Link</div>
           <div class="status-opt" data-v="public" onclick="pickVis('public')">🌍 Öffentlich</div>
         </div>
-        <div class="help" id="vis-help">Privat: nur du. Per Link: jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
+        <div class="help" id="vis-help">Privat: nur du. Per Link: nicht öffentlich gelistet, jeder mit dem Link. Öffentlich: für alle sichtbar.</div>
         <div id="share-box" style="display:none;margin-top:10px;">
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="text" id="share-link" readonly style="flex:1;min-width:0;min-height:46px;font-size:.78rem;background:var(--paper);">
@@ -365,6 +379,9 @@ footer .v{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--suns
 // ── SUPABASE ─────────────────────────────────────────────────────────────
 var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+// Kommt der Besucher über den Link „Passwort zurücksetzen“? (vor createClient lesen, das den Link auswertet)
+var PW_RECOVERY=/(^|[#&])type=recovery(&|$)/.test(location.hash);
+var PW_LINK_ERROR=/(^|[#&?])error_code=/.test(location.hash+location.search);
 var sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
 var STORAGE_KEY='mreisen_trips_v1'; // nur noch für einmalige Migration
 var authMode='login'; // 'login' oder 'signup'
@@ -388,8 +405,54 @@ function toggleAuthMode(){
   document.getElementById('auth-action-btn').textContent=(authMode==='login')?'Anmelden':'Konto erstellen';
   document.getElementById('auth-toggle').textContent=(authMode==='login')?'Neu hier? Konto erstellen':'Ich habe schon ein Konto';
   document.getElementById('auth-subtitle').textContent=(authMode==='login')?'Melde dich an, um deine Reisetagebücher zu sehen':'Erstelle ein Konto für deine Reisetagebücher';
+  document.getElementById('auth-forgot').style.display=(authMode==='login')?'':'none';
   showAuthMsg('');
 }
+// ── Passwort vergessen ───────────────────────────────────────────────────
+// Schickt eine E-Mail mit Link. Die Antwort ist immer gleich, damit niemand
+// herausfinden kann, ob zu einer Adresse ein Konto existiert.
+var _resetBusy=false;
+async function doPasswordReset(){
+  if(_resetBusy)return;
+  var email=document.getElementById('auth-email').value.trim();
+  if(!email||email.indexOf('@')<1){showAuthMsg('Bitte oben deine E-Mail-Adresse eintragen und dann erneut auf „Passwort vergessen?“ tippen.');return;}
+  _resetBusy=true;
+  showAuthMsg('Einen Moment …',true);
+  try{
+    var token;try{token=await captchaToken('auth-captcha');}catch(e){showAuthMsg(e.message);return;}
+    var res=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/meine-reisen.html',captchaToken:token});
+    if(res.error&&/rate|limit|seconds/i.test(res.error.message||'')){showAuthMsg('Bitte warte kurz, bevor du eine weitere E-Mail anforderst.');return;}
+    showAuthMsg('Falls es zu dieser Adresse ein Konto gibt, haben wir dir eine E-Mail mit einem Link zum Zurücksetzen geschickt. Schau auch im Spam-Ordner nach.',true);
+  }finally{_resetBusy=false;}
+}
+function showPwScreen(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('pw-screen').style.display='flex';
+  setTimeout(function(){try{document.getElementById('pw-new').focus();}catch(e){}},50);
+}
+function pwMsg(txt,ok){var m=document.getElementById('pw-msg');m.textContent=txt||'';m.style.color=ok?'var(--reef)':'#dc2626';}
+async function saveNewPassword(){
+  var a=document.getElementById('pw-new').value,b=document.getElementById('pw-new2').value;
+  if(a.length<8){pwMsg('Das Passwort muss mindestens 8 Zeichen haben.');return;}
+  if(a!==b){pwMsg('Die beiden Passwörter stimmen nicht überein.');return;}
+  var go=document.getElementById('pw-go');go.disabled=true;pwMsg('Wird gespeichert …',true);
+  var res=await sb.auth.updateUser({password:a});
+  go.disabled=false;
+  if(res.error){
+    var m=res.error.message||'';
+    if(/pwned|leaked|breach|compromised/i.test(m))pwMsg('Dieses Passwort ist aus Datenlecks bekannt. Bitte wähle ein anderes.');
+    else if(/same|different/i.test(m))pwMsg('Bitte wähle ein anderes Passwort als bisher.');
+    else if(/session|jwt|expired/i.test(m))pwMsg('Der Link ist abgelaufen. Bitte fordere über „Passwort vergessen?“ einen neuen an.');
+    else pwMsg('Fehler: '+m);
+    return;
+  }
+  PW_RECOVERY=false;
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+  document.getElementById('pw-screen').style.display='none';
+  toast('Dein neues Passwort ist gespeichert.');
+  onLoggedIn(res.data.user);
+}
+sb.auth.onAuthStateChange(function(ev){if(ev==='PASSWORD_RECOVERY'){PW_RECOVERY=true;showPwScreen();}});
 // Link von „Ohne Anmeldung testen“: gleich die Registrierung zeigen
 if(/[?&]neu=1/.test(location.search))document.addEventListener('DOMContentLoaded',function(){if(authMode==='login')toggleAuthMode();});
 // ── Bot-Schutz (Cloudflare Turnstile) ────────────────────────────────────
@@ -454,7 +517,7 @@ function onLoggedIn(user){
   // Kommt der Besucher von einer Reise-Seite („weiter“), nach der Anmeldung dorthin zurück (nur Adressen dieser Seite)
   try{
     var w=new URLSearchParams(location.search).get('weiter');
-    if(w&&/^\/(?!\/)/.test(w)&&w.indexOf('\\')<0){location.replace(w);return;}
+    if(w){var u=new URL(w,location.origin);if(u.origin===location.origin&&/^\/(?!\/)/.test(w)){location.replace(u.pathname+u.search+u.hash);return;}}
   }catch(e){}
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('logout-btn').style.display='inline-flex';
@@ -482,6 +545,7 @@ async function loadTripsFromDB(){
   // Einmalige Migration alter localStorage-Reisen
   await migrateLocalTrips();
   render();
+  try{if(window.TvFolgen)TvFolgen.meineReisen(document.getElementById('trips-grid'));}catch(e){}
 }
 // DB-Zeile -> UI-Objekt
 function dbToTrip(r){
@@ -763,10 +827,10 @@ function updateShareBox(){
     help.textContent='Privat: nur du siehst diese Reise.';
   }else{
     var id=val('t-id');
-    if(!id){ box.style.display='none'; help.textContent=(pickedVis==='public'?'Öffentlich: für alle sichtbar.':'Per Link: jeder mit dem Link kann sie ansehen.')+' Der Teilen-Link erscheint nach dem ersten Speichern.'; return; }
+    if(!id){ box.style.display='none'; help.textContent=(pickedVis==='public'?'Öffentlich: für alle sichtbar.':'Per Link: nicht öffentlich gelistet, jeder mit dem Link kann sie ansehen. Für Vertrauliches bitte „Privat“ wählen.')+' Der Teilen-Link erscheint nach dem ersten Speichern.'; return; }
     box.style.display='block';
     document.getElementById('share-link').value=tripShareUrl();
-    help.textContent=(pickedVis==='public')?'Öffentlich: für alle sichtbar und im Community-Bereich auffindbar.':'Per Link: nur wer den Link hat, kann die Reise ansehen.';
+    help.textContent=(pickedVis==='public')?'Öffentlich: für alle sichtbar und im Community-Bereich auffindbar.':'Per Link: nicht öffentlich gelistet, jeder mit dem Link kann sie ansehen. Für Vertrauliches bitte „Privat“ wählen.';
   }
 }
 function copyShareLink(){
@@ -816,8 +880,17 @@ async function saveTripInner(){
     weitere: landSlug ? _weitere.filter(function(w){return w.slug!==landSlug;}) : []
   };
 
+  var prev = editingId ? trips.find(function(x){return x.id===editingId;}) : null;
+  var prevVis = prev ? (prev.visibility||'private') : 'private';
   var ok = await saveTripDB(data);   // kann data.slug anpassen (bei doppeltem Namen)
   if(!ok) return;                    // Formular bleibt offen
+  // War die Reise geteilt und ist jetzt privat: Fotos bekommen neue, zufällige Namen,
+  // damit früher geteilte Foto-Adressen nicht mehr funktionieren
+  var renamePending=false;try{renamePending=localStorage.getItem('tv_rename_'+data.id)==='1';}catch(e){}
+  if(data.visibility==='private' && (prevVis==='public'||prevVis==='link'||renamePending)
+     && !Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,data.id)){
+    await renamePhotosForPrivacy(data);
+  }
   if(editingId){
     var i = trips.findIndex(function(x){return x.id===editingId;});
     if(i>=0) trips[i] = data;
@@ -980,6 +1053,65 @@ async function tripFiles(id){
   ts.forEach(function(t){if(t.id&&t.name.indexOf(id+'_')===0)acc.push('titelbilder/'+t.name);});
   return acc;
 }
+// ── Fotos beim Umstellen auf „Privat“ neu benennen ──────────────────────
+// Der Foto-Speicher ist öffentlich: Wer früher eine Foto-Adresse gesehen hat, könnte sie
+// sonst weiter öffnen. Ablauf, der bei Abbruch nichts kaputt macht:
+// 1) jedes Foto unter neuem Namen kopieren, 2) alle Verweise der Reise (Fotoreihenfolge,
+// Hotels, Titelbild) auf die neuen Namen umstellen, 3) erst dann die alten Dateien löschen.
+function randomToken(){
+  var a=new Uint8Array(12);crypto.getRandomValues(a);
+  return Array.prototype.map.call(a,function(b){return ('0'+b.toString(16)).slice(-2);}).join('');
+}
+function privateName(path,tripId){
+  var slash=path.lastIndexOf('/'),dir=path.slice(0,slash+1),file=path.slice(slash+1);
+  var dot=file.lastIndexOf('.'),ext=dot>0?file.slice(dot):'';
+  var ts=(file.match(/^(?:[a-z0-9-]+_)?(\d{10,})/)||[])[1]||String(Date.now());   // Zeitstempel für die Sortierung behalten
+  if(dir==='titelbilder/')return dir+tripId+'_'+ts+'_'+randomToken()+ext;     // Ordner-Zuordnung über "<reise>_"
+  return dir+ts+'_'+randomToken()+ext;
+}
+async function renamePhotosForPrivacy(t){
+  var mark=function(on){try{if(on)localStorage.setItem('tv_rename_'+t.id,'1');else localStorage.removeItem('tv_rename_'+t.id);}catch(e){}};
+  mark(true);   // bleibt gesetzt, falls etwas schiefgeht: beim nächsten Speichern als „Privat“ geht es weiter
+  try{
+    toast('Fotos werden für „Privat“ neu benannt …');
+    var files=(await tripFiles(t.id)).filter(function(f){return !/\.emptyFolderPlaceholder$/.test(f);});
+    if(!files.length){mark(false);return;}
+    // 1) Kopieren
+    var moved=[];
+    for(var i=0;i<files.length;i++){
+      var neu=privateName(files[i],t.id);
+      var c=await sb.storage.from('Reisefotos').copy(files[i],neu);
+      if(!c.error)moved.push([files[i],neu]);
+    }
+    if(!moved.length){toast('Die Fotos konnten nicht neu benannt werden.');return;}
+    var swap=function(txt){
+      if(!txt)return txt;
+      for(var k=0;k<moved.length;k++)txt=txt.split('/Reisefotos/'+moved[k][0]).join('/Reisefotos/'+moved[k][1]);
+      return txt;
+    };
+    // 2) Verweise umstellen: Einträge der Reise und Titelbild in den Reise-Daten
+    var rows=await sb.from('kommentare').select('id,nachricht').eq('trip_id',t.id).eq('owner',currentUser.id).like('nachricht','%/Reisefotos/%');
+    if(rows.error)throw rows.error;
+    for(var r=0;r<(rows.data||[]).length;r++){
+      var row=rows.data[r],nn=swap(row.nachricht);
+      if(nn!==row.nachricht){
+        var u=await sb.from('kommentare').update({nachricht:nn}).eq('id',row.id);
+        if(u.error)throw u.error;
+      }
+    }
+    var img2=swap(t.img);
+    if(img2!==t.img){t.img=img2;if(!(await saveTripDB(t)))throw new Error('Titelbild');}
+    // 3) Alte Dateien löschen
+    var old=moved.map(function(m){return m[0];});
+    for(var j=0;j<old.length;j+=100)await sb.storage.from('Reisefotos').remove(old.slice(j,j+100));
+    if(moved.length===files.length)mark(false);
+    toast(moved.length+' Fotos neu benannt. Alte Foto-Links funktionieren nicht mehr.');
+  }catch(e){
+    console.error('Fotos neu benennen:',e);
+    toast('Fotos konnten nicht vollständig neu benannt werden. Bitte die Reise erneut als „Privat“ speichern.');
+  }
+}
+
 async function deleteAccount(){
   if(_delBusy||!currentUser)return;
   var conf=(document.getElementById('del-confirm').value||'').trim().toUpperCase();
@@ -1006,11 +1138,7 @@ async function deleteAccount(){
     var ids=(tr.data||[]).map(function(x){return x.id;}).filter(function(id){return !Object.prototype.hasOwnProperty.call(SPECIAL_PAGES,id);});
     var files=[];
     for(var i=0;i<ids.length;i++){try{files=files.concat(await tripFiles(ids[i]));}catch(e){console.error(e);}}
-    // 4) Konto und Daten in der Datenbank löschen
-    delStatus('Konto und Daten werden gelöscht …');
-    var rp=await sb.rpc('delete_my_account',{p_pruefen:false});
-    if(rp.error){fail('Löschen fehlgeschlagen: '+(rp.error.message||'Fehler')+'. Es wurde nichts gelöscht.');return;}
-    // 5) Fotos entfernen (Anmeldedaten sind noch kurz gültig)
+    // 4) Fotos entfernen, solange das Konto noch besteht (sonst bleiben sie verwaist im Speicher)
     var bad=0;
     for(var j=0;j<files.length;j+=100){
       delStatus('Fotos werden gelöscht … '+Math.min(j+100,files.length)+' von '+files.length);
@@ -1020,6 +1148,10 @@ async function deleteAccount(){
       }catch(e){bad+=Math.min(100,files.length-j);}
     }
     if(bad)console.warn(bad+' Fotos konnten nicht entfernt werden');
+    // 5) Konto und Daten in der Datenbank löschen
+    delStatus('Konto und Daten werden gelöscht …');
+    var rp=await sb.rpc('delete_my_account',{p_pruefen:false});
+    if(rp.error){fail('Löschen fehlgeschlagen: '+(rp.error.message||'Fehler')+'. Bitte versuche es erneut oder schreib an info@travona.de.');return;}
     // 6) Abmelden, lokale Daten entfernen, zur Startseite
     try{await sb.auth.signOut();}catch(e){}
     try{
@@ -1035,10 +1167,16 @@ async function deleteAccount(){
 // ── INIT ─────────────────────────────────────────────────────────────────
 async function initApp(){
   var res=await sb.auth.getSession();
-  if(res.data.session && res.data.session.user){
+  if(PW_RECOVERY && res.data.session && res.data.session.user){
+    showPwScreen();
+  } else if(res.data.session && res.data.session.user){
     onLoggedIn(res.data.session.user);
   } else {
     showAuthScreen();
+    if(PW_LINK_ERROR){
+      showAuthMsg('Der Link ist abgelaufen oder wurde schon benutzt. Tippe auf „Passwort vergessen?“, um einen neuen zu bekommen.');
+      try{history.replaceState(null,'',location.pathname);}catch(e){}
+    }
   }
 }
 initApp();

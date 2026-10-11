@@ -32,13 +32,12 @@ try{var _m=location.pathname.match(/^\/reisetagebuch\/([a-z0-9-]+)\/([a-z0-9-]+)
 </script>
 <script>try{var _rk=(window.__REISE_ID||new URLSearchParams(location.search).get('reise')||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g,'');if(localStorage.getItem('tv_admin_'+_rk)==='1')document.documentElement.classList.add('is-admin');}catch(e){}</script>
 <link rel="preconnect" href="https://celihvrblqqivtlvzbjp.supabase.co" crossorigin>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="preconnect" href="https://images.unsplash.com" crossorigin>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/vendor/supabase-js-2.117.2.js"></script>
 <script src="/offline-sync.js" data-queue="1"></script>
 <link href="/fonts/fonts.css" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+<link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/vendor/leaflet-1.9.4/leaflet.css"></noscript>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -218,13 +217,13 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .photo-add>span{display:flex;flex-direction:column;align-items:center;gap:2px;}
 
 /* LIGHTBOX */
-.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:700;flex-direction:column;align-items:center;justify-content:center;}
+.lightbox{display:none;position:fixed;inset:0;background:#0b0b0b;z-index:10050;flex-direction:column;align-items:center;justify-content:center;}
 .lightbox.open{display:flex;}
 .lightbox img{max-width:94vw;max-height:78vh;object-fit:contain;border-radius:8px;}
 .lb-top{position:absolute;top:14px;left:0;right:0;display:flex;justify-content:space-between;align-items:center;padding:0 18px;color:#fff;}
-.lb-counter{font-size:.82rem;color:rgba(255,255,255,.7);}
+.lb-counter{font-size:.95rem;font-weight:600;color:#fff;}
 .lb-close{background:none;border:none;color:#fff;font-size:1.6rem;cursor:pointer;opacity:.85;}
-.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.12);border:none;color:#fff;width:44px;height:44px;border-radius:50%;font-size:1.3rem;cursor:pointer;}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.35);color:#fff;width:48px;height:48px;border-radius:50%;font-size:1.7rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 4px;}
 .lb-arrow.prev{left:12px;}.lb-arrow.next{right:12px;}
 
 /* TAGESAUSGABEN */
@@ -379,6 +378,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fj-gallery{aspect-ratio:4/3;}
 .fj-scroll{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x;}
 .fj-scroll::-webkit-scrollbar{display:none;}
+.fj-img img{cursor:zoom-in;}
 .fj-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;}
 .fj-slide img{width:100%;height:100%;object-fit:cover;display:block;}
 .fj-count{position:absolute;bottom:14px;right:14px;background:rgba(26,23,20,.7);color:#fff;font-size:11px;letter-spacing:.05em;padding:4px 10px;border-radius:20px;pointer-events:none;}
@@ -1438,10 +1438,7 @@ async function sbLoadHotelPhotos(bid){
     return u.publicUrl;
   });
 }
-async function sbDeleteHotelPhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
-}
+async function sbDeleteHotelPhoto(url){return tvRemoveFile(url);}
 // ── TITELBILD (Hero) pro Reise ──
 let _heroInput=null;
 async function sbLoadHeroImage(){
@@ -1528,13 +1525,13 @@ function addHotelPhotoEl(btn){
   _hotelInput.value='';_hotelInput.click();
 }
 async function delHotelPhotoEl(btn){
-  if(!editMode)return;if(!confirm('Hotelfoto löschen?'))return;
+  if(!editMode)return;
   var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
-  if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
-    await sbDeleteHotelPhoto(hotelPhotos[bid][idx]);
-    hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
-  }
-  renderTage();toast('Foto gelöscht.');
+  var url=(hotelPhotos[bid]||[])[idx];if(!url)return;
+  hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
+  renderTage();
+  var back=function(){var a=hotelPhotos[bid]||(hotelPhotos[bid]=[]);if(a.indexOf(url)<0)a.splice(Math.min(idx,a.length),0,url);renderTage();};
+  tvDeleteWithUndo('Foto gelöscht',async function(){if(!(await sbDeleteHotelPhoto(url)))back();},back);
 }
 let _revIso=null;        // aktueller Tag für Hotelbewertung
 let _apiKey='';          // Anthropic API-Key
@@ -1648,10 +1645,34 @@ async function sbUploadPhoto(iso,file){
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data&&data.publicUrl?data.publicUrl:null;
 }
-async function sbDeletePhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+// Löschen mit einem Tipp: das Foto verschwindet sofort, unten erscheint 6 Sekunden lang
+// „Foto gelöscht · Rückgängig“. Erst danach wird die Datei wirklich gelöscht.
+// (Kein confirm(): manche Browser zeigen den Dialog nicht an und brechen still ab.)
+var _tvUndo=null;
+function tvUndoFlush(){var u=_tvUndo;_tvUndo=null;if(!u)return;clearTimeout(u.t);var b=document.getElementById('tv-undo');if(b)b.remove();try{u.commit();}catch(e){console.error(e);}}
+function tvDeleteWithUndo(text,commit,undo){
+  tvUndoFlush(); // eine vorherige Löschung sofort ausführen
+  var bar=document.createElement('div');bar.id='tv-undo';bar.setAttribute('role','status');
+  bar.style.cssText='position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:18px;background:#1A1714;color:#fff;font:500 17px/1.3 "DM Sans",Inter,sans-serif;padding:14px 14px 14px 22px;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.35);max-width:calc(100vw - 32px)';
+  bar.innerHTML='<span style="white-space:nowrap"></span><button type="button" style="font:700 17px/1 \'DM Sans\',Inter,sans-serif;background:#fff;color:#1A1714;border:none;border-radius:10px;padding:12px 16px;cursor:pointer">Rückgängig</button>';
+  bar.firstChild.textContent=text;
+  var u={commit:commit,t:setTimeout(tvUndoFlush,3000)};_tvUndo=u;
+  bar.lastChild.onclick=function(){if(_tvUndo!==u)return;clearTimeout(u.t);_tvUndo=null;bar.remove();try{undo();}catch(e){console.error(e);}};
+  document.body.appendChild(bar);
 }
+// Beim Verlassen der Seite ausstehende Löschung sofort ausführen
+window.addEventListener('pagehide',tvUndoFlush);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')tvUndoFlush();});
+// Löscht eine Datei im Foto-Speicher; Fehler werden gemeldet statt verschluckt
+async function tvRemoveFile(url){
+  const path=String(url||'').split('/Reisefotos/')[1];
+  if(!path)return true;
+  const {data,error}=await sb.storage.from('Reisefotos').remove([decodeURIComponent(path.split('?')[0])]);
+  if(error){console.error('Foto löschen:',error);toast('Foto konnte nicht gelöscht werden: '+(error.message||'Fehler'));return false;}
+  if(Array.isArray(data)&&!data.length){toast('Foto konnte nicht gelöscht werden (keine Berechtigung).');return false;}
+  return true;
+}
+async function sbDeletePhoto(url){return tvRemoveFile(url);}
 
 // ── FOTO-META: Reihenfolge + Bildunterschriften (pro Tag, in Supabase) ────────
 // ort=PFX+'photometa_<iso>', nachricht=JSON {order:[...], captions:{url:text}}
@@ -2021,11 +2042,11 @@ function renderDayCard(days){
       const cap=captionFor(iso,url);
       const hid=isHiddenPhoto(iso,url);
       let html='<div class="photo-cell'+(hid?' photo-hidden':'')+'">'
-        +'<img src="'+tvT(url,480)+'" data-orig="'+url+'" decoding="async" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="if(tvImgErr(this))return;this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
+        +'<img src="'+esc(tvT(url,480))+'" data-orig="'+esc(url)+'" decoding="async" loading="lazy" onclick="openLightbox(\''+iso+'\','+pi+')" onerror="if(tvImgErr(this))return;this.style.display=\'none\';this.parentNode.classList.add(\'photo-err\');" alt="Foto">';
       if(editMode&&hid)html+='<div class="photo-hidden-tag">Für Gäste ausgeblendet</div>';
       if(editMode){
         html+='<button class="photo-hide-btn" title="'+(hid?'Für Gäste einblenden':'Für Gäste ausblenden')+'" onclick="toggleHidden(\''+iso+'\','+pi+')">'+(hid?'🚫':'👁')+'</button>';
-        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
+        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+',this)">✕</button>';
         if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
         if(pi<arr.length-1)html+='<button class="photo-move photo-move-r" onclick="movePhoto(\''+iso+'\','+pi+',1)">▶</button>';
         html+='<button class="photo-cap-btn" onclick="openCaption(\''+iso+'\','+pi+')">✏️</button>';
@@ -2288,20 +2309,22 @@ async function handlePhotos(event,iso){
     toast(ok+' Foto(s) gespeichert!'+(zunaechstVersteckt?' Sie sind zunächst nur für dich sichtbar.':''));
   }
 }
-async function delPhoto(iso,idx){
+async function delPhoto(iso,idx,btn){
   if(!editMode)return;
-  if(!confirm('Foto löschen?'))return;
   const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
-  await sbDeletePhoto(url);
-  arr.splice(idx,1);
-  // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
-  if(photoMeta[iso]){
-    if(photoMeta[iso].order)photoMeta[iso].order=arr.slice();
-    if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
-    if(Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=photoMeta[iso].hidden.filter(function(u){return u!==url;});
-    await sbSavePhotoMeta(iso);
-  }
-  renderTage();toast('Foto gelöscht.');
+  arr.splice(idx,1);renderTage();
+  const back=function(){const a=photos[iso]||(photos[iso]=[]);if(a.indexOf(url)<0)a.splice(Math.min(idx,a.length),0,url);renderTage();};
+  tvDeleteWithUndo('Foto gelöscht',async function(){
+    if(!(await sbDeletePhoto(url))){back();return;}
+    // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
+    if(photoMeta[iso]){
+      const cur=photos[iso]||[];
+      if(photoMeta[iso].order)photoMeta[iso].order=cur.slice();
+      if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
+      if(Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=photoMeta[iso].hidden.filter(function(u){return u!==url;});
+      await sbSavePhotoMeta(iso);
+    }
+  },back);
 }
 async function movePhoto(iso,idx,dir){
   if(!editMode)return;
@@ -2655,21 +2678,43 @@ function parseBelegJSON(txt){
 }
 function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function openLightbox(iso,idx){
+  if(!editMode)idx=0; // Gäste starten immer bei Bild 1 des Tages
   _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
   if(!_lbPhotos.length)return;
   document.getElementById('lb-img').src=_lbPhotos[idx];
-  document.getElementById('lb-counter').textContent=(idx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-counter').textContent='Foto '+(idx+1)+' von '+_lbPhotos.length;
   document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[idx]);
+  document.getElementById('lightbox').classList.add('open');
+}
+// Großansicht mit eigener Fotoliste (z. B. sichtbare Fotos im Tagebuch), startet beim angetippten Foto
+function lbOpenList(iso,list,idx){
+  _lbPhotos=list||[];_lbIdx=idx||0;_lbIso=iso;
+  if(!_lbPhotos.length)return;
+  document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
+  document.getElementById('lb-counter').textContent='Foto '+(_lbIdx+1)+' von '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[_lbIdx]);
   document.getElementById('lightbox').classList.add('open');
 }
 function lbNav(dir){
   if(!_lbPhotos.length)return;
   _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
   document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
-  document.getElementById('lb-counter').textContent=(_lbIdx+1)+' / '+_lbPhotos.length;
+  document.getElementById('lb-counter').textContent='Foto '+(_lbIdx+1)+' von '+_lbPhotos.length;
   document.getElementById('lb-caption').textContent=captionFor(_lbIso,_lbPhotos[_lbIdx]);
 }
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+// Wischen (links/rechts blättert, nach unten schließt) und Pfeiltasten
+(function(){
+  var lb=document.getElementById('lightbox');if(!lb)return;
+  var x0=null,y0=null;
+  lb.addEventListener('touchstart',function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;},{passive:true});
+  lb.addEventListener('touchend',function(e){
+    if(x0===null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=y0=null;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))lbNav(dx<0?1:-1);
+    else if(dy>90&&Math.abs(dy)>Math.abs(dx))closeLightbox();
+  },{passive:true});
+  document.addEventListener('keydown',function(e){if(!lb.classList.contains('open'))return;if(e.key==='ArrowRight')lbNav(1);else if(e.key==='ArrowLeft')lbNav(-1);else if(e.key==='Escape')closeLightbox();});
+})();
 
 // ── TAGEBUCHEINTRAG UI ────────────────────────────────────────────────────────
 function openEntry(iso){
@@ -3786,10 +3831,29 @@ async function renderJournal(){
 function bindJournalCounters(){
   var c=document.getElementById('journal-entries');
   if(!c)return;
+  // Foto im Tagebuch antippen öffnet die Großansicht (auch für Gäste)
+  if(!c._tvZoom){
+    c._tvZoom=true;
+    c.addEventListener('click',function(ev){
+      var im=ev.target&&ev.target.closest?ev.target.closest('.fj-img img'):null;
+      if(!im)return;
+      var ent=im.closest('.fig-journal-entry[data-jiso]');if(!ent)return;
+      var iso=ent.getAttribute('data-jiso');
+      var list=visiblePhotos(iso);if(!list.length)return;
+      var idx=Array.prototype.indexOf.call(ent.querySelectorAll('.fj-img img'),im);
+      if(idx<0||idx>=list.length)idx=0;
+      lbOpenList(iso,list,idx);
+    });
+  }
   // Foto-Zähler beim Blättern aktualisieren
   c.querySelectorAll('.fj-scroll').forEach(function(sc){
     var cnt=document.getElementById(sc.id+'-c');
     var total=parseInt(sc.getAttribute('data-total')||'1');
+    // Immer bei Bild 1 starten, auch wenn nachladende Fotos die Breite verschieben
+    var beruehrt=false;
+    sc.scrollLeft=0;
+    ['pointerdown','touchstart','wheel','keydown'].forEach(function(ev){sc.addEventListener(ev,function(){beruehrt=true;},{passive:true,once:true});});
+    sc.querySelectorAll('img').forEach(function(im){im.addEventListener('load',function(){if(!beruehrt&&sc.scrollLeft)sc.scrollLeft=0;});});
     if(!cnt)return;
     sc.addEventListener('scroll',function(){
       var i=Math.round(sc.scrollLeft/sc.clientWidth)+1;
@@ -4047,7 +4111,7 @@ function ensureLeaflet(){
   if(window.L)return Promise.resolve();
   if(_leafletLoading)return _leafletLoading;
   _leafletLoading=new Promise(function(res,rej){
-    var sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    var sc=document.createElement('script');sc.src='/vendor/leaflet-1.9.4/leaflet.js';
     sc.onload=res;sc.onerror=function(){_leafletLoading=null;rej(new Error('Leaflet konnte nicht geladen werden'));};
     document.head.appendChild(sc);
   });
@@ -5097,9 +5161,11 @@ init();
   /* ---------- Kleine Vorschaubilder (Supabase-Bildumwandlung) mit Rückfall auf das Original (THUMB-BEGIN) ---------- */
   function thumbOff(){
     if(window.__noThumb)return true;
-    try{var t=parseInt(localStorage.getItem('tv_nothumb')||'0',10);return !!t&&Date.now()-t<86400000;}catch(e){return false;}
+    try{var t=parseInt(localStorage.getItem('tv_nothumb2')||'0',10);return !!t&&Date.now()-t<3600000;}catch(e){return false;}
   }
-  function thumbFail(){window.__noThumb=1;try{localStorage.setItem('tv_nothumb',String(Date.now()));}catch(e){}}
+  // Nur der Test-Aufruf schaltet Vorschaubilder ab (z. B. Free-Plan ohne Bildumwandlung), und nur für 1 Stunde.
+  // Einzelne Fehler (z. B. 429 „zu viele Anfragen“) dürfen nicht alle Fotos auf die großen Originale umstellen.
+  function thumbFail(){window.__noThumb=1;try{localStorage.removeItem('tv_nothumb');localStorage.setItem('tv_nothumb2',String(Date.now()));}catch(e){}}
   var TPROBE=0;
   function thumbProbe(url){
     if(TPROBE)return;
@@ -5123,7 +5189,14 @@ init();
   window.tvThumb=tvThumb;
   window.tvImgErr=function(img){
     var o=img&&img.getAttribute&&img.getAttribute('data-orig');
-    if(o&&img.src!==o){thumbFail();img.src=o;return true;}
+    if(!o||img.src===o)return false;
+    // Erst ein zweiter Versuch mit dem Vorschaubild (kurze Überlastung), dann das Original nur für dieses Foto
+    if(!img.dataset.tr&&/\/render\/image\//.test(img.src)){
+      img.dataset.tr='1';var s=img.src;
+      setTimeout(function(){img.src=s+(s.indexOf('?')<0?'?':'&')+'r=1';},1200+Math.random()*1800);
+      return true;
+    }
+    img.src=o;return true;
     return false;
   };
   /* ---------- (THUMB-ENDE) ---------- */
@@ -5876,5 +5949,6 @@ init();
 <script src="/reise-in-zahlen.js" defer></script>
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
+<script src="/folgen.js" defer></script>
 </body>
 </html>

@@ -19,7 +19,7 @@
   var W=297,H=210,BLEED=3,M=15,GAP=4; // Seitenmaße in mm, Rand, Fotoabstand
   var MAX_PX=2500;                   // Obergrenze der Supabase-Bildumwandlung
   var MAX_PER_PAGE=8,MAX_PAGES_PER_DAY=3,LONG_TEXT=400,TEXT_PER_PAGE=3300;
-  var FONTS='https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Caveat:wght@400;600&display=swap';
+  var FONTS=location.origin+'/fonts/fonts.css';   // eigene Schriften, keine Verbindung zu Google
   var MODES={
     home:{bleed:0,dpi:200,label:'Drucken / PDF'},
     pro:{bleed:BLEED,dpi:300,label:'Druckdatei'}
@@ -228,7 +228,7 @@
       +'<div class="pb-rule"></div>'
       +(book.dates?'<div class="pb-cover-dates">'+esc(book.dates)+'</div>':'')
       +(stations.length?'<div class="pb-cover-route">'+stations.map(esc).join('<span>·</span>')+'</div>':'')
-      +'</div><div class="pb-cover-brand">travona.de</div></div></section>');
+      +'</div></div></section>');
 
     (book.items||[]).forEach(function(it){
       if(it.type==='hotel'){
@@ -293,7 +293,7 @@
     var stat=function(n,l){return '<div class="pb-stat"><div class="pb-stat-n">'+n+'</div><div class="pb-stat-l">'+l+'</div></div>';};
     pages.push(page('pb-end','<div class="pb-end-in"><div class="pb-eyebrow">Unsere Reise in Zahlen</div><div class="pb-stats">'
       +stat(tag,tag===1?'Tag':'Tage')+stat(nPhotos,nPhotos===1?'Foto':'Fotos')+(stations.length?stat(stations.length,stations.length===1?'Station':'Stationen'):'')
-      +'</div><div class="pb-rule"></div><div class="pb-end-brand">Erstellt mit Travona</div><div class="pb-end-url">travona.de</div></div>',''));
+      +'</div></div>',''));
     // Leerseite, damit die Druckdatei eine gerade Seitenzahl hat (nur im Druckdatei-Modus sichtbar)
     if(pages.length%2)pages.splice(pages.length-1,0,'<section class="pb-page pb-pad"><div class="pb-trim"></div></section>');
     return pages.join('');
@@ -352,8 +352,6 @@
     +'.pb-cover-dates{font-size:12pt;letter-spacing:.12em;opacity:.95}'
     +'.pb-cover-route{font-size:9.5pt;line-height:1.9;letter-spacing:.06em;opacity:.82;margin-top:3mm}'
     +'.pb-cover-route span{margin:0 2.2mm;color:var(--cover-acc)}'
-    +'.pb-cover-brand{position:absolute;right:15mm;bottom:15mm;font-size:7.5pt;letter-spacing:.3em;text-transform:uppercase;opacity:.85;text-shadow:0 0 3mm rgba(0,0,0,.45)}'
-    +'.pb-cover.noimg .pb-cover-brand{text-shadow:none}'
     +'.pb-cover.noimg{background:var(--paper);color:var(--ink)}'
     +'.pb-cover.noimg .pb-eyebrow{color:var(--terra)}.pb-cover.noimg .pb-cover-route span{color:var(--terra)}'
     +'.pb-cover.noimg .pb-cover-in{top:50%;bottom:auto;transform:translateY(-50%)}'
@@ -371,8 +369,6 @@
     +'.pb-stat-n{font-family:var(--serif);font-size:40pt;line-height:1}'
     +'.pb-stat-l{font-size:8pt;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);margin-top:2.5mm}'
     +'.pb-end-in .pb-rule{margin:12mm auto 8mm}'
-    +'.pb-end-brand{font-family:var(--serif);font-style:var(--ital);font-size:13pt}'
-    +'.pb-end-url{font-size:8pt;letter-spacing:.3em;text-transform:uppercase;color:var(--terra);margin-top:2mm}'
     // Anordnen-Modus (nur Bildschirm)
     +'.pb-lay{display:none}'
     +'@media screen{.pb-root.arrange .pb-lay{display:block;position:absolute;right:15mm;top:4mm;z-index:6;font:500 12pt "DM Sans",sans-serif;padding:1.5mm 4mm;border-radius:99mm;border:.3mm solid #B5714A;background:#fff;color:#B5714A;cursor:pointer}'

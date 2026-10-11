@@ -10,7 +10,7 @@
     {key:'Ausflug',label:'Ausflüge & Touren',search:'Tour suchen'},
     {key:'Sonstiges',label:'Sonstiges',search:''}
   ];
-  var S=null,_open=false,LINKS={},_linksLoaded=false;
+  var S=null,_open=false,LINKS={},_linksLoaded=false,_linksP=null;
 
   // ── Hilfen ────────────────────────────────────────────────────────────────
   function E(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -33,11 +33,16 @@
   function safeURL(u){u=String(u||'').trim();return /^https?:\/\/[^\s"'<>]+$/i.test(u)?u.slice(0,500):'';}
   function host(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return '';}}
 
-  // ── Eigene Anbieter-Links der Besitzerin (pro Position: Link + Beschreibung), gespeichert als eine Zeile in kommentare ──
+  // ── Einstellungen der Besitzerin, gespeichert als eine Zeile in kommentare:
+  //    pro Position Anbieter-Link + Beschreibung ({u,d}) und die Freigabe für Besucher (_frei) ──
   function linkKey(){return (typeof PFX!=='undefined'&&PFX?PFX:tripKey()+'_')+'nb_links';}
   function tripId(){return (typeof REISE!=='undefined'&&REISE)||(typeof REISE_ID!=='undefined'&&REISE_ID)||null;}
-  async function loadLinks(){
-    if(_linksLoaded||typeof sb==='undefined')return;
+  function loadLinks(){
+    if(_linksLoaded||typeof sb==='undefined')return Promise.resolve();
+    if(!_linksP)_linksP=fetchLinks().then(function(){_linksP=null;});
+    return _linksP;
+  }
+  async function fetchLinks(){
     try{
       var r=await sb.from('kommentare').select('nachricht').eq('ort',linkKey()).limit(1);
       if(r.error)return;
@@ -45,14 +50,16 @@
       _linksLoaded=true;
     }catch(e){}
   }
-  async function saveLinks(){
+  function frei(){return _linksLoaded&&!!LINKS._frei;}
+  async function saveLinks(msg){
     try{
       var payload=JSON.stringify(LINKS),r=await sb.from('kommentare').select('id').eq('ort',linkKey()).limit(1),res;
       if(r.data&&r.data.length)res=await sb.from('kommentare').update({nachricht:payload}).eq('id',r.data[0].id);
       else res=await sb.from('kommentare').insert({ort:linkKey(),name:'Nachbuchen-Links',nachricht:payload,created_at:new Date().toISOString(),owner:typeof currentUser!=='undefined'&&currentUser?currentUser.id:null,trip_id:tripId()});
       if(res&&res.error)throw res.error;
-      if(typeof toast==='function')toast('Anbieter gespeichert');
-    }catch(e){if(typeof toast==='function')toast('Speichern fehlgeschlagen. Bitte erneut versuchen.');}
+      if(typeof toast==='function')toast(msg||'Anbieter gespeichert');
+      return true;
+    }catch(e){if(typeof toast==='function')toast('Speichern fehlgeschlagen. Bitte erneut versuchen.');return false;}
   }
 
   // ── Daten der Seite ───────────────────────────────────────────────────────
@@ -96,7 +103,6 @@
     Object.keys(dx).forEach(function(k){(dx[k]||[]).forEach(function(e){vor+=toE(Number(e.amount)||0,e.cur||'EUR');});});
     return {stays:stays,groups:groups,days:d,first:d[0]||(stays[0]&&stays[0].datum)||today(),last:d[d.length-1]||'',vorOrt:vor};
   }
-  function ended(){var d=days(),h=head(),last=isISO(h.to)?h.to:d[d.length-1];return !!last&&last<today();}
 
   // ── Zustand (Änderungen des Besuchers) ────────────────────────────────────
   function defaultStart(first){
@@ -365,8 +371,8 @@
         +'<div class="nb-pr">'+eur(p.vor)+'</div></label></div>';
     }
     h+='<p class="nb-note">Die Preise sind die Beträge, die auf dieser Reise bezahlt wurden. Heutige Preise können abweichen. „Buchen“ öffnet den Anbieter oder die Suche mit deinen neuen Daten.</p>';
-    if(admin()&&typeof sbSaveHead==='function'&&typeof tripHead!=='undefined'){
-      h+='<label class="nb-own"><input type="checkbox" data-act="pub"'+(tripHead.nachbuchen===false?'':' checked')+'> Für Besucher nach Reiseende anzeigen (nur du siehst diesen Schalter)</label>';
+    if(admin()){
+      h+='<label class="nb-own"><input type="checkbox" data-act="pub"'+(frei()?' checked':'')+'> Für Besucher freigeben (nur du siehst diesen Schalter)</label>';
     }
     var st=body.scrollTop;
     body.innerHTML=h;
@@ -416,9 +422,14 @@
     if(t.id==='nb-start'){if(isISO(t.value)){S.start=t.value;save();render();}return;}
     if(a==='tg'){var id=t.getAttribute('data-id');if(t.checked)delete S.off[id];else S.off[id]=1;save();render();}
     else if(a==='vor'){S.vor=t.checked?1:0;save();render();}
-    else if(a==='pub'&&typeof tripHead!=='undefined'&&typeof sbSaveHead==='function'){
-      if(t.checked)delete tripHead.nachbuchen;else tripHead.nachbuchen=false;
-      Promise.resolve(sbSaveHead()).then(function(){if(typeof toast==='function')toast(t.checked?'Besucher sehen „Nachbuchen“ nach Reiseende.':'„Nachbuchen“ ist für Besucher ausgeblendet.');banner();});
+    else if(a==='pub'){
+      var on=t.checked;
+      if(on)LINKS._frei=1;else delete LINKS._frei;
+      _linksLoaded=true;
+      saveLinks(on?'„Nachbuchen“ ist für Besucher freigegeben.':'„Nachbuchen“ ist für Besucher ausgeblendet.').then(function(ok){
+        if(!ok){if(on)delete LINKS._frei;else LINKS._frei=1;t.checked=!on;}
+        banner();
+      });
     }
   }
 
@@ -458,10 +469,11 @@
   }
 
   // ── Karte im Kopfbereich (Startansicht) ───────────────────────────────────
+  // Besucher sehen die Ansicht nur, wenn die Besitzerin sie freigegeben hat (nicht automatisch nach Reiseende)
   function visible(){
     if(!rawItems().length)return false;
     if(admin())return true;
-    return ended()&&head().nachbuchen!==false;
+    return frei();
   }
   function banner(){
     var hero=document.getElementById('app-hero');if(!hero)return;
@@ -471,8 +483,8 @@
     if(c)c.remove();
     css();
     c=document.createElement('button');c.type='button';c.id='nb-card';
-    var pre=admin()&&!ended();
-    c.innerHTML='<i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A8522F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18M9 12v2M15 12v2"/></svg></i><span><b>Diese Reise nachbuchen</b><small>'+(pre?'Vorschau: Besucher sehen das ab Reiseende. ':'')+'Hotels, Flüge und Touren mit Preisen. Route anpassen, Kosten sehen.</small></span><em>Ansehen ›</em>';
+    var pre=admin()&&!frei();
+    c.innerHTML='<i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A8522F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18M9 12v2M15 12v2"/></svg></i><span><b>Diese Reise nachbuchen</b><small>'+(pre?'Nur für dich sichtbar, bis du es freigibst. ':'')+'Hotels, Flüge und Touren mit Preisen. Route anpassen, Kosten sehen.</small></span><em>Ansehen ›</em>';
     c.onclick=open;
     stats.insertAdjacentElement('afterend',c);
   }
@@ -480,8 +492,8 @@
     var hero=document.getElementById('app-hero');
     if(hero&&window.MutationObserver)new MutationObserver(banner).observe(hero,{childList:true});
     var tries=0,t=setInterval(function(){
-      tries++;banner();
-      if(/^#nachbuchen/.test(location.hash||'')&&rawItems().length&&!_open){clearInterval(t);open();return;}
+      tries++;loadLinks().then(banner);
+      if(/^#nachbuchen/.test(location.hash||'')&&_linksLoaded&&visible()&&!_open){clearInterval(t);open();return;}
       if(tries>40)clearInterval(t);
     },500);
   }
