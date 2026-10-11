@@ -2396,7 +2396,7 @@ async function deleteReview(){
 function closeReviewModal(){stopDictation();document.getElementById('rev-modal').classList.remove('open');}
 
 // Diktieren: startDictationFor() und stopDictation() kommen aus /diktat.js
-function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn');}
+function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn',['entry-titel']);}
 function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
 
 // ── API-KEY ───────────────────────────────────────────────────────────────────

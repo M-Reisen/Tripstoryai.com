@@ -132,7 +132,7 @@
         +'<span style="display:flex;gap:8px">'+(tip?'<button type="button" class="gzw-b" id="gzw-del" style="color:#B3261E">Löschen</button>':'')
         +'<button type="button" class="gzw-b pri" id="gzw-ok">Speichern</button></span></div>');
     o.querySelectorAll('.gzw-chip').forEach(function(c){c.onclick=function(){k=c.getAttribute('data-k');o.querySelectorAll('.gzw-chip').forEach(function(x){x.classList.toggle('on',x===c);});};});
-    var dict=o.querySelector('#gzw-dict');if(dict)dict.onclick=function(){startDictationFor('gzw-t','gzw-dict');};
+    var dict=o.querySelector('#gzw-dict');if(dict)dict.onclick=function(){startDictationFor('gzw-t','gzw-dict',['gzw-d']);};
     setTimeout(function(){var i=o.querySelector('#gzw-t');if(i&&!tip)i.focus();},150);
     o.querySelector('#gzw-ok').onclick=async function(){
       var t=o.querySelector('#gzw-t').value.trim(),d=o.querySelector('#gzw-d').value.trim();
