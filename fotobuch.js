@@ -514,7 +514,7 @@
     d.innerHTML='<div style="max-width:720px;margin:0 auto">'
       +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Welche Ausgabe brauche ich?</div>'
       +'<p style="margin:0 0 6px"><b>Drucken / PDF</b>: A4 quer für zu Hause. Ausdrucken oder als PDF speichern und teilen.</p>'
-      +'<p style="margin:0 0 12px"><b>Druckdatei</b>: für Fotobuch-Anbieter. Jede Seite ist 3 mm größer (wird beim Zuschneiden entfernt, so gibt es keine weißen Kanten), Fotos in Druckqualität. Verlangt ein Anbieter eine gerade Seitenzahl, ergänzt er beim Hochladen eine Leerseite.</p>'
+      +'<p style="margin:0 0 12px"><b>Druckdatei</b>: für Fotobuch-Anbieter. Jede Seite ist 3 mm größer (wird beim Zuschneiden entfernt, so gibt es keine weißen Kanten), Fotos in Druckqualität. Verlangt ein Anbieter eine gerade Seitenzahl, ergänzt er beim Hochladen eine Leerseite. Die Druckdatei bitte am Computer (Chrome oder Edge) erstellen, auf dem iPhone/iPad hält Safari das Format nicht ein.</p>'
       +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Fotos anordnen</div>'
       +'<ol style="margin:0 0 12px;padding-left:20px"><li><b>✥ Anordnen</b> tippen. Die Fotos bekommen einen gestrichelten Rahmen.</li>'
       +'<li><b>Tauschen:</b> ein Foto antippen, dann ein zweites vom selben Tag. Die beiden wechseln den Platz, auch zwischen den Seiten dieses Tages.</li>'
@@ -564,7 +564,32 @@
     return d;
   }
 
+  // iPhone/iPad: Safari hält sich beim Drucken nicht an das Seitenformat 303 × 216 mm (nimmt A4),
+  // jede Seite läuft dann auf eine leere Folgeseite über. Die Druckdatei geht dort nicht sauber.
+  var IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  function iosHinweis(){
+    var v=document.getElementById('pb-viewer');if(!v)return;
+    var o=document.getElementById('pb-ios');if(o)o.remove();
+    o=document.createElement('div');o.id='pb-ios';
+    o.style.cssText='position:absolute;inset:0;z-index:20;background:rgba(26,23,20,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+    var b='min-height:44px;padding:0 16px;border-radius:999px;font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;';
+    o.innerHTML='<div style="max-width:420px;background:#FBF8F3;border-radius:16px;padding:20px;color:#1A1714;font:15px/1.5 \'DM Sans\',sans-serif">'
+      +'<p style="margin:0 0 10px;font-weight:600">Druckdatei geht nicht auf dem iPhone/iPad</p>'
+      +'<p style="margin:0 0 10px">Safari speichert hier jede Seite im falschen Format, dadurch entstehen leere Seiten. Die Druckdatei mit 3 mm Beschnitt für Fotobuch-Anbieter bitte am Computer erstellen (Chrome oder Edge: Reise öffnen, Fotobuch, „Druckdatei“).</p>'
+      +'<p style="margin:0 0 16px">Auf dem iPhone funktioniert „Drucken / PDF“ (A4 quer, ohne Leerseiten).</p>'
+      +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+      +'<button type="button" data-a="ok" style="'+b+'border:1px solid #D8D0C4;background:transparent;color:#1A1714">OK</button>'
+      +'<button type="button" data-a="home" style="'+b+'border:1px solid #1A1714;background:#1A1714;color:#F4EFE8">Drucken / PDF nehmen</button></div></div>';
+    o.onclick=function(ev){
+      var a=ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-a');
+      if(ev.target===o||a==='ok')o.remove();
+      else if(a==='home'){o.remove();doPrint('home');}
+    };
+    v.appendChild(o);
+  }
+
   async function doPrint(mode){
+    if(mode==='pro'&&IOS){iosHinweis();return;}
     if(mode==='pro')toast('Druckdatei: Im Druckdialog „Als PDF speichern“, Ränder „Keine“, Skalierung 100 % wählen.');
     else toast('Im Druckdialog „Als PDF speichern“ oder einen Drucker wählen.');
     setMode(mode);
