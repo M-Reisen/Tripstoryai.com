@@ -51,6 +51,8 @@
     }catch(e){}
   }
   function frei(){return _linksLoaded&&!!LINKS._frei;}
+  // Kosten sehen Besucher nur, wenn die Besitzerin das zusätzlich erlaubt; sie selbst sieht sie immer
+  function kosten(){return admin()||(_linksLoaded&&!!LINKS._kosten);}
   async function saveLinks(msg){
     try{
       var payload=JSON.stringify(LINKS),r=await sb.from('kommentare').select('id').eq('ort',linkKey()).limit(1),res;
@@ -285,19 +287,20 @@
 
   function render(){
     var body=document.getElementById('nb-body');if(!body)return;
-    var m=model(),p=plan(m),h='',num=0,open=body.getAttribute('data-form')||'';
+    var m=model(),p=plan(m),h='',num=0,open=body.getAttribute('data-form')||'',K=kosten();
+    function tot(v){return K?'<b>'+eur(v)+'</b>':'';}
     h+='<div class="nb-row0"><label>Reisebeginn <input type="date" id="nb-start" value="'+E(S.start)+'" min="'+E(today())+'"></label>'
       +'<span>'+(p.end?E(span(S.start,p.end,1))+' · ':'')+p.nDays+' Tage'+(p.nDays!==p.oDays?' (statt '+p.oDays+')':'')+'</span></div>';
 
     var stTotal=0;p.rows.forEach(function(r){if(!(r.kind==='stay'&&r.off))stTotal+=r.price;});
-    h+='<h3>Route & Unterkünfte<b>'+eur(stTotal)+'</b></h3>';
+    h+='<h3>Route & Unterkünfte'+tot(stTotal)+'</h3>';
     function ins(after){
       var key='f:'+(after==null?'':after);
       if(open===key){
         return '<div class="nb-form" data-after="'+E(after==null?'':after)+'">'
           +'<label class="w">Ort oder Unterkunft<input id="nb-f-name" maxlength="80" placeholder="z. B. Mission Beach" autocomplete="off"></label>'
           +'<label>Nächte<input id="nb-f-n" type="number" min="1" max="60" value="1" inputmode="numeric"></label>'
-          +'<label>Preis pro Nacht (€)<input id="nb-f-p" type="number" min="0" step="1" placeholder="optional" inputmode="decimal"></label>'
+          +(K?'<label>Preis pro Nacht (€)<input id="nb-f-p" type="number" min="0" step="1" placeholder="optional" inputmode="decimal"></label>':'')
           +'<div><button type="button" class="nb-btn" data-act="cancel">Abbrechen</button><button type="button" class="nb-btn pri" data-act="save">Einfügen</button></div></div>';
       }
       return '';
@@ -322,7 +325,7 @@
         h+='<div class="nb-card'+(r.off?' off':'')+'"><div class="nb-l1"><span class="nb-num">'+(r.off?'–':num)+'</span>'
           +'<div class="nb-tx"><div class="nb-name">'+E(st.label)+'</div>'
           +'<div class="nb-sub">'+(st.loc?E(st.loc)+' · ':'')+(r.off?'weggelassen':E(span(r.start,r.end))+' · '+nN(r.n))+'</div>'+desc(st.id)+'</div>'
-          +'<div class="nb-pr">'+(r.off?eur(0):(st.amount?eur(r.price):'–'))+(st.amount&&!r.off?'<small>'+eur(r.ppn)+' / Nacht</small>':'')+'</div></div>'
+          +(K?'<div class="nb-pr">'+(r.off?eur(0):(st.amount?eur(r.price):'–'))+(st.amount&&!r.off?'<small>'+eur(r.ppn)+' / Nacht</small>':'')+'</div>':'')+'</div>'
           +'<div class="nb-l2">'
           +(r.off?'<button type="button" class="nb-btn" data-act="on" data-id="'+E(st.id)+'">Wieder aufnehmen</button>'
             :'<div class="nb-step"><button type="button" data-act="minus" data-id="'+E(st.id)+'"'+(r.n<=1?' disabled':'')+' aria-label="Eine Nacht weniger">−</button><span>'+nN(r.n)+'</span><button type="button" data-act="plus" data-id="'+E(st.id)+'"'+(r.n>=60?' disabled':'')+' aria-label="Eine Nacht mehr">+</button></div>'
@@ -335,7 +338,7 @@
         var a=r.a;num++;
         h+='<div class="nb-card add"><div class="nb-l1"><span class="nb-num">'+num+'</span>'
           +'<div class="nb-tx"><div class="nb-name">'+E(a.name)+'</div><div class="nb-sub">Dein Vorschlag · '+E(span(r.start,r.end))+' · '+nN(r.n)+'</div></div>'
-          +'<div class="nb-pr">'+(a.ppn?eur(r.price)+'<small>'+eur(a.ppn)+' / Nacht</small>':'<small>Preis offen</small>')+'</div></div>'
+          +(K?'<div class="nb-pr">'+(a.ppn?eur(r.price)+'<small>'+eur(a.ppn)+' / Nacht</small>':'<small>Preis offen</small>')+'</div>':'')+'</div>'
           +'<div class="nb-l2"><div class="nb-step"><button type="button" data-act="aminus" data-id="'+E(a.id)+'"'+(r.n<=1?' disabled':'')+' aria-label="Eine Nacht weniger">−</button><span>'+nN(r.n)+'</span><button type="button" data-act="aplus" data-id="'+E(a.id)+'" aria-label="Eine Nacht mehr">+</button></div>'
           +'<button type="button" class="nb-btn" data-act="adel" data-id="'+E(a.id)+'">Entfernen</button>'
           +'<a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(bookingURL(a.name,'',r.start,r.end))+'">Unterkunft suchen ↗</a>'+insBtn(a.id)+'</div></div>';
@@ -347,14 +350,14 @@
     CATS.forEach(function(cat){
       var g=p.groups[cat.key];if(!g||!g.length)return;
       var sum=0;g.forEach(function(x){if(!x.off)sum+=x.it.amount;});
-      h+='<h3>'+E(cat.label)+'<b>'+eur(sum)+'</b></h3>';
+      h+='<h3>'+E(cat.label)+tot(sum)+'</h3>';
       g.forEach(function(x){
         var it=x.it,url=itemURL(cat.key,it,x.d);
         h+='<div class="nb-card'+(x.off?' off':'')+'"><label class="nb-tg"><input type="checkbox" data-act="tg" data-id="'+E(it.id)+'"'+(x.off?'':' checked')+'>'
           +'<div class="nb-tx"><div class="nb-name">'+E(it.label)+'</div>'
           +'<div class="nb-sub">'+(x.d?E(kurz(x.d)):'')+(x.d&&it.text?' · ':'')+E(it.text)+'</div>'+desc(it.id)
           +(x.warn&&!x.off?'<div class="nb-warn">'+E(x.warn)+'</div>':'')+'</div>'
-          +'<div class="nb-pr">'+(it.amount?eur(it.amount):'<small>Preis offen</small>')+'</div></label>'
+          +(K?'<div class="nb-pr">'+(it.amount?eur(it.amount):'<small>Preis offen</small>')+'</div>':'')+'</label>'
           +(function(){
             var dl=x.off?'':direct(it.id,'Buchen bei'),sl=url&&!x.off&&!dl?'<a class="nb-btn go" target="_blank" rel="noopener nofollow" href="'+E(url)+'">'+E(cat.search)+' ↗</a>':'';
             var row=dl+sl+lnkBtn(it.id);
@@ -364,29 +367,33 @@
       });
     });
 
-    if(m.vorOrt>0){
+    if(K&&m.vorOrt>0){
       h+='<h3>Vor Ort<b>'+eur(S.vor?p.vor:0)+'</b></h3>'
         +'<div class="nb-card'+(S.vor?'':' off')+'"><label class="nb-tg"><input type="checkbox" data-act="vor"'+(S.vor?' checked':'')+'>'
         +'<div class="nb-tx"><div class="nb-name">Essen, Eintritte & Co.</div><div class="nb-sub">⌀ '+eur(p.perDay)+' pro Tag × '+p.nDays+' Tage</div></div>'
         +'<div class="nb-pr">'+eur(p.vor)+'</div></label></div>';
     }
-    h+='<p class="nb-note">Die Preise sind die Beträge, die auf dieser Reise bezahlt wurden. Heutige Preise können abweichen. „Buchen“ öffnet den Anbieter oder die Suche mit deinen neuen Daten.</p>';
+    h+='<p class="nb-note">'+(K?'Die Preise sind die Beträge, die auf dieser Reise bezahlt wurden. Heutige Preise können abweichen. ':'')+'„Buchen“ öffnet den Anbieter oder die Suche mit deinen neuen Daten.</p>';
     if(admin()){
-      h+='<label class="nb-own"><input type="checkbox" data-act="pub"'+(frei()?' checked':'')+'> Für Besucher freigeben (nur du siehst diesen Schalter)</label>';
+      h+='<label class="nb-own"><input type="checkbox" data-act="pub"'+(frei()?' checked':'')+'> Für Besucher freigeben (nur du siehst diese Schalter)</label>'
+        +'<label class="nb-own"><input type="checkbox" data-act="kost"'+(LINKS._kosten?' checked':'')+'> Kosten für Besucher anzeigen (du siehst sie immer)</label>';
     }
     var st=body.scrollTop;
     body.innerHTML=h;
     body.scrollTop=st;
     var d=p.total-p.orig,dd=Math.round(d);
-    document.getElementById('nb-total').innerHTML='<small>Gesamt für deine Version</small><b>'+eur(p.total)+'</b>'
-      +(dd?'<span class="nb-d '+(dd<0?'minus':'plus')+'">'+(dd<0?'−':'+')+eur(Math.abs(d))+'</span>':'');
+    var stops=p.rows.filter(function(r){return !(r.kind==='stay'&&r.off);}).length;
+    document.getElementById('nb-total').innerHTML=K
+      ?'<small>Gesamt für deine Version</small><b>'+eur(p.total)+'</b>'
+        +(dd?'<span class="nb-d '+(dd<0?'minus':'plus')+'">'+(dd<0?'−':'+')+eur(Math.abs(d))+'</span>':'')
+      :'<small>Deine Version</small><b>'+p.nDays+' Tage</b><span class="nb-d minus" style="background:#EFE6D8;color:#5F5953">'+stops+(stops===1?' Stopp':' Stopps')+'</span>';
     var f=document.getElementById('nb-f-name')||document.getElementById('nb-l-u');if(f)f.focus();
   }
 
   function onClick(e){
     var b=e.target.closest('[data-act]');if(!b)return;
     var a=b.getAttribute('data-act'),id=b.getAttribute('data-id'),body=document.getElementById('nb-body');
-    if(a==='tg'||a==='vor'||a==='pub')return; // Checkboxen laufen über change
+    if(a==='tg'||a==='vor'||a==='pub'||a==='kost')return; // Checkboxen laufen über change
     var m=model(),st=m.stays.find(function(x){return x.id===id;}),ad=S.add.find(function(x){return x.id===id;});
     if(a==='minus'&&st)S.n[id]=Math.max(1,(S.n[id]||st.n0)-1);
     else if(a==='plus'&&st)S.n[id]=Math.min(60,(S.n[id]||st.n0)+1);
@@ -411,7 +418,7 @@
       var after=b.closest('.nb-form').getAttribute('data-after');
       S.add.push({id:'x'+Date.now().toString(36),after:after===''?null:after,name:name.slice(0,80),
         n:Math.min(60,Math.max(1,parseInt(document.getElementById('nb-f-n').value,10)||1)),
-        ppn:Math.max(0,parseFloat(String(document.getElementById('nb-f-p').value).replace(',','.'))||0)});
+        ppn:document.getElementById('nb-f-p')?Math.max(0,parseFloat(String(document.getElementById('nb-f-p').value).replace(',','.'))||0):0});
       body.removeAttribute('data-form');
     }
     else return;
@@ -431,6 +438,14 @@
         banner();
       });
     }
+    else if(a==='kost'){
+      var k=t.checked;
+      if(k)LINKS._kosten=1;else delete LINKS._kosten;
+      _linksLoaded=true;
+      saveLinks(k?'Besucher sehen die Kosten.':'Kosten sind für Besucher ausgeblendet.').then(function(ok){
+        if(!ok){if(k)delete LINKS._kosten;else LINKS._kosten=1;t.checked=!k;}
+      });
+    }
   }
 
   function close(){
@@ -444,7 +459,7 @@
     if(!S)S=load(m);
     var ov=document.createElement('div');ov.id='nb-ov';
     ov.innerHTML='<div class="nb-sh" role="dialog" aria-modal="true" aria-labelledby="nb-h">'
-      +'<div class="nb-top"><div><h2 id="nb-h">Diese Reise nachbuchen</h2><p>'+E(head().title||'')+(head().title?' · ':'')+'Ändere Nächte, lass Stopps weg oder füge eigene hinzu. Die Kosten rechnen sich sofort neu.</p></div>'
+      +'<div class="nb-top"><div><h2 id="nb-h">Diese Reise nachbuchen</h2><p>'+E(head().title||'')+(head().title?' · ':'')+'Ändere Nächte, lass Stopps weg oder füge eigene hinzu.'+(kosten()?' Die Kosten rechnen sich sofort neu.':'')+'</p></div>'
       +'<button type="button" class="nb-x" aria-label="Schließen">×</button></div>'
       +'<div class="nb-body" id="nb-body"></div>'
       +'<div class="nb-foot"><div class="nb-sum" id="nb-total"></div>'
@@ -484,7 +499,7 @@
     css();
     c=document.createElement('button');c.type='button';c.id='nb-card';
     var pre=admin()&&!frei();
-    c.innerHTML='<i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A8522F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18M9 12v2M15 12v2"/></svg></i><span><b>Diese Reise nachbuchen</b><small>'+(pre?'Nur für dich sichtbar, bis du es freigibst. ':'')+'Hotels, Flüge und Touren mit Preisen. Route anpassen, Kosten sehen.</small></span><em>Ansehen ›</em>';
+    c.innerHTML='<i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#A8522F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18M9 12v2M15 12v2"/></svg></i><span><b>Diese Reise nachbuchen</b><small>'+(pre?'Nur für dich sichtbar, bis du es freigibst. ':'')+(kosten()?'Hotels, Flüge und Touren mit Preisen. Route anpassen, Kosten sehen.':'Hotels, Flüge und Touren. Route anpassen und direkt buchen.')+'</small></span><em>Ansehen ›</em>';
     c.onclick=open;
     stats.insertAdjacentElement('afterend',c);
   }
