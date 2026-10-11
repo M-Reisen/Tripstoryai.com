@@ -1,8 +1,8 @@
-// Travona – KI-Tagesbericht aus den Fotos des Tages: Die KI sieht bis zu 4 Fotos, kennt Ort, Unterkunft und
+// Travona – KI-Tagesbericht aus den Fotos des Tages: Die KI sieht bis zu 10 Fotos, kennt Ort, Unterkunft und
 // Ausflüge des Tages (und optionale Stichpunkte) und schreibt daraus einen Tagebucheintrag in Wir-Form.
 // Nutzt nur, was reisevorlage.html bzw. australien.html schon bereitstellen (photos, sbLoadPhotos, aiAuthHeaders …).
 (function(){
-  var MAX_FOTOS=4;
+  var MAX_FOTOS=10;
 
   function fotosFuerTag(iso){
     var all=(typeof photos!=='undefined'&&photos[iso])||[];
