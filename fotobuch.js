@@ -6,7 +6,7 @@
  * Zwei Ausgaben:
  *  - „Drucken / PDF“: A4 quer, ohne Beschnitt, ca. 200 dpi (Zuhause, Teilen)
  *  - „Druckdatei“:    303 × 216 mm (A4 quer + 3 mm Beschnitt je Seite), 300 dpi,
- *                     gerade Seitenzahl – für Fotobuch-Anbieter (siehe docs/fotobuch-druck.md)
+ *                     ohne Leerseiten – für Fotobuch-Anbieter (siehe docs/fotobuch-druck.md)
  *
  * Aufruf: TvFotobuch.busy('…'); TvFotobuch.open(buch)
  * buch = {title, sub, dates, stations:[…], cover:url, items:[
@@ -294,8 +294,8 @@
     pages.push(page('pb-end','<div class="pb-end-in"><div class="pb-eyebrow">Unsere Reise in Zahlen</div><div class="pb-stats">'
       +stat(tag,tag===1?'Tag':'Tage')+stat(nPhotos,nPhotos===1?'Foto':'Fotos')+(stations.length?stat(stations.length,stations.length===1?'Station':'Stationen'):'')
       +'</div></div>',''));
-    // Leerseite, damit die Druckdatei eine gerade Seitenzahl hat (nur im Druckdatei-Modus sichtbar)
-    if(pages.length%2)pages.splice(pages.length-1,0,'<section class="pb-page pb-pad"><div class="pb-trim"></div></section>');
+    // Keine Leerseite mehr (Wunsch Ramona 2026-10-11). Braucht ein Anbieter eine gerade Seitenzahl,
+    // ergänzt er die Leerseite beim Hochladen selbst.
     return pages.join('');
   }
 
@@ -306,7 +306,10 @@
     +'.pb-root *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
     +'.pb-page{position:relative;width:calc(297mm + 2*var(--b));height:calc(210mm + 2*var(--b));overflow:hidden;background:var(--paper);break-after:page;page-break-after:always;break-inside:avoid}'
     +'.pb-page:last-child{break-after:auto;page-break-after:auto}'
-    +'.pb-root:not(.pro) .pb-pad{display:none}'
+    // Drucken ohne Leerseiten: Umbruch nur zwischen den Seiten, und jede Seite einen Hauch (0,3 mm, wird
+    // ohnehin weggeschnitten) kürzer als das Papier, damit Rundung nie eine leere Folgeseite erzeugt (Safari/iPhone)
+    +'@media print{.pb-page{break-after:auto;page-break-after:auto;break-before:page;page-break-before:always;height:calc(210mm + 2*var(--b) - .3mm)}.pb-page:first-child{break-before:auto;page-break-before:auto}}'
+    
     +'.pb-trim{position:absolute;left:var(--b);top:var(--b);width:297mm;height:210mm}'
     +'.pb-page:not(.pb-cover),.pb-cover.noimg{background-image:var(--pattern);background-size:6mm 6mm;background-position:center}'
     // Motiv: neben der Überschrift, groß und blass auf Textseiten, über der Schlussseite
@@ -511,7 +514,7 @@
     d.innerHTML='<div style="max-width:720px;margin:0 auto">'
       +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Welche Ausgabe brauche ich?</div>'
       +'<p style="margin:0 0 6px"><b>Drucken / PDF</b>: A4 quer für zu Hause. Ausdrucken oder als PDF speichern und teilen.</p>'
-      +'<p style="margin:0 0 12px"><b>Druckdatei</b>: für Fotobuch-Anbieter. Jede Seite ist 3 mm größer (wird beim Zuschneiden entfernt, so gibt es keine weißen Kanten), Fotos in Druckqualität, gerade Seitenzahl.</p>'
+      +'<p style="margin:0 0 12px"><b>Druckdatei</b>: für Fotobuch-Anbieter. Jede Seite ist 3 mm größer (wird beim Zuschneiden entfernt, so gibt es keine weißen Kanten), Fotos in Druckqualität. Verlangt ein Anbieter eine gerade Seitenzahl, ergänzt er beim Hochladen eine Leerseite.</p>'
       +'<div style="font-family:\'Playfair Display\',serif;font-size:19px;margin-bottom:8px">Fotos anordnen</div>'
       +'<ol style="margin:0 0 12px;padding-left:20px"><li><b>✥ Anordnen</b> tippen. Die Fotos bekommen einen gestrichelten Rahmen.</li>'
       +'<li><b>Tauschen:</b> ein Foto antippen, dann ein zweites vom selben Tag. Die beiden wechseln den Platz, auch zwischen den Seiten dieses Tages.</li>'
@@ -630,7 +633,7 @@
       bar.appendChild(btn('← Schließen','Fotobuch schließen',backOrClose,false));
       bar.appendChild(ttl);
       bar.appendChild(btn('Drucken / PDF','A4 quer – zum Ausdrucken oder als PDF speichern',function(){doPrint('home');},true));
-      bar.appendChild(btn('Druckdatei','Für Fotobuch-Anbieter: 3 mm Beschnitt, 300 dpi, gerade Seitenzahl',function(){doPrint('pro');},false));
+      bar.appendChild(btn('Druckdatei','Für Fotobuch-Anbieter: 3 mm Beschnitt, 300 dpi',function(){doPrint('pro');},false));
       bar.appendChild(btn('Neuer Tab','Fotobuch in einem neuen Tab öffnen',function(){
         var u=URL.createObjectURL(new Blob([standalone()],{type:'text/html'}));
         window.open(u,'_blank');setTimeout(function(){URL.revokeObjectURL(u);},60000);
