@@ -1077,6 +1077,7 @@ html.app-guestview body{padding-top:48px;}
         <select id="ai-style-entry" class="ai-style-select" onchange="saveAiStyle(this.value)" style="padding:8px 10px;border:1.5px solid rgba(28,26,22,.15);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.85rem;background:var(--paper);color:var(--ink);"></select>
       </div>
       <button class="btn btn-reef" onclick="aiFormuliere()">KI formuliert den Eintrag</button>
+      <button class="btn" id="foto-ai-btn" onclick="aiTagesbericht()" style="margin-left:8px;background:var(--terra);color:#fff">📷 KI-Tagesbericht aus Fotos</button>
       <button class="btn btn-bush" onclick="startDictationEntry()" id="dictate-btn" style="margin-left:8px">Diktieren</button>
       <div class="ai-box" id="ai-formbox" style="display:none;margin-top:11px">
         <div class="ai-box-title">KI-Formulierung</div>
@@ -2170,6 +2171,18 @@ async function aiFormuliere(){
     if(d.error){res.className='ai-result';res.textContent='Fehler: '+((typeof d.error==='string'?d.error:d.error.message)||'KI-Fehler');return;}
     res.className='ai-result';res.textContent=d.content?d.content.map(c=>c.text||'').join(''):'Keine Antwort.';
   }catch(err){res.className='ai-result';res.textContent='Fehler: '+err.message;}
+}
+async function aiTagesbericht(){
+  if(!currentUser){toast('Bitte zuerst anmelden.');return;}
+  if(!window.travonaTagesbericht){toast('Bitte die Seite neu laden.');return;}
+  const iso=document.getElementById('f-datum').value;
+  const box=document.getElementById('ai-formbox'),res=document.getElementById('ai-form-result'),btn=document.getElementById('foto-ai-btn');
+  box.style.display='block';res.className='ai-result loading';res.textContent='KI schaut sich die Fotos des Tages an …';btn.disabled=true;
+  try{
+    res.textContent=await window.travonaTagesbericht({iso:iso,ort:document.getElementById('f-ort').value.trim(),titel:document.getElementById('f-titel').value.trim(),kat:document.getElementById('f-kategorie').value,notizen:document.getElementById('f-notizen').value.trim(),reise:'Australien 2026, Queensland bis Sydney'});
+    res.className='ai-result';
+  }catch(err){res.className='ai-result';res.textContent=err.message;}
+  btn.disabled=false;
 }
 function useAIText(){document.getElementById('f-text').value=document.getElementById('ai-form-result').textContent;toast('✓ Text übernommen!');}
 
@@ -4858,6 +4871,7 @@ initApp();
   function aiCapOn(){try{return localStorage.getItem('tv_ai_cap')==='1';}catch(e){return false;}}
   function aiCapSet(on){try{localStorage.setItem('tv_ai_cap',on?'1':'0');}catch(e){}}
   var AICAP={run:0},CB={rows:[],iso:null,run:0};
+  window.tvCapImageB64=function(u){return capImageB64(u);};
   async function capImageB64(url){
     var r=await fetch(tvThumb(url,1024));
     if(!r.ok&&tvThumb(url,1024)!==url)r=await fetch(url);
@@ -5484,6 +5498,7 @@ initApp();
 <script src="/reise-in-zahlen.js" defer></script>
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
+<script src="/tagesbericht.js" defer></script>
 <script src="/folgen.js" defer></script>
 <script src="/gutzuwissen.js" defer></script>
 </body>
