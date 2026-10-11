@@ -606,9 +606,11 @@
     return d;
   }
 
-  // iPhone/iPad: Safari hält sich beim Drucken nicht an das Seitenformat 303 × 216 mm (nimmt A4),
+  // Safari (iPhone/iPad und Mac) hält sich beim Drucken nicht an das Seitenformat 303 × 216 mm (nimmt A4),
   // jede Seite läuft dann auf eine leere Folgeseite über. Die Druckdatei geht dort nicht sauber.
-  var IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var UA=navigator.userAgent||'';
+  var IOS=/iP(hone|ad|od)/.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)
+    ||(/Safari\//.test(UA)&&!/Chrome|Chromium|CriOS|Edg|OPR|Firefox|FxiOS/.test(UA));
   function iosHinweis(){
     var v=document.getElementById('pb-viewer');if(!v)return;
     var o=document.getElementById('pb-ios');if(o)o.remove();
@@ -616,9 +618,9 @@
     o.style.cssText='position:absolute;inset:0;z-index:20;background:rgba(26,23,20,.45);display:flex;align-items:center;justify-content:center;padding:16px';
     var b='min-height:44px;padding:0 16px;border-radius:999px;font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;';
     o.innerHTML='<div style="max-width:420px;background:#FBF8F3;border-radius:16px;padding:20px;color:#1A1714;font:15px/1.5 \'DM Sans\',sans-serif">'
-      +'<p style="margin:0 0 10px;font-weight:600">Druckdatei geht nicht auf dem iPhone/iPad</p>'
-      +'<p style="margin:0 0 10px">Safari speichert hier jede Seite im falschen Format, dadurch entstehen leere Seiten. Die Druckdatei mit 3 mm Beschnitt für Fotobuch-Anbieter bitte am Computer erstellen (Chrome oder Edge: Reise öffnen, Fotobuch, „Druckdatei“).</p>'
-      +'<p style="margin:0 0 16px">Auf dem iPhone funktioniert „Drucken / PDF“ (A4 quer, ohne Leerseiten).</p>'
+      +'<p style="margin:0 0 10px;font-weight:600">Druckdatei geht nicht in Safari</p>'
+      +'<p style="margin:0 0 10px">Safari (iPhone, iPad und Mac) speichert jede Seite im falschen Format, dadurch entstehen leere Zwischenseiten. Die Druckdatei mit 3 mm Beschnitt für Fotobuch-Anbieter bitte in Chrome oder Edge am Computer erstellen (Reise öffnen, Fotobuch, „Druckdatei“).</p>'
+      +'<p style="margin:0 0 16px">In Safari funktioniert „Drucken / PDF“ (A4 quer, ohne Leerseiten).</p>'
       +'<div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
       +'<button type="button" data-a="ok" style="'+b+'border:1px solid #D8D0C4;background:transparent;color:#1A1714">OK</button>'
       +'<button type="button" data-a="home" style="'+b+'border:1px solid #1A1714;background:#1A1714;color:#F4EFE8">Drucken / PDF nehmen</button></div></div>';
@@ -630,6 +632,16 @@
     v.appendChild(o);
   }
 
+  // Zur Fehlersuche (Titelbild fehlte im PDF): Zustand des Titelbilds beim Drucken melden, ohne Inhalte
+  function titelMelden(mode){
+    try{
+      var im=S.root&&S.root.querySelector('.pb-cover img');if(!im||!window.travonaFehler)return;
+      var b=im.getBoundingClientRect(),src=im.currentSrc||im.src||'';
+      window.travonaFehler('Fotobuch Druck '+mode+': Titelbild '+(src.indexOf('blob:')===0?'zugeschnitten':src?'Original':'ohne Quelle')
+        +', geladen '+(im.complete?'ja':'nein')+', '+im.naturalWidth+'x'+im.naturalHeight+', Rahmen '+Math.round(b.width)+'x'+Math.round(b.height)
+        +', sichtbar '+getComputedStyle(im).display+'/'+getComputedStyle(im).visibility,'fotobuch.js');
+    }catch(e){}
+  }
   async function doPrint(mode){
     if(mode==='pro'&&IOS){iosHinweis();return;}
     if(mode==='pro')toast('Druckdatei: Im Druckdialog „Als PDF speichern“, Ränder „Keine“, Skalierung 100 % wählen.');
@@ -637,6 +649,7 @@
     setMode(mode);
     var ok=await loadForPrint(mode);
     if(!ok){toast('Abgebrochen.');return;}
+    titelMelden(mode);
     setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},700);
   }
   // Eigenständiges Dokument (für „Neuer Tab“), Fotos in Druckqualität A4
