@@ -420,6 +420,34 @@
       im.addEventListener('load',ok);im.addEventListener('error',bad);
     });
   }
+  // Fotos, die nicht über die Bildumwandlung kommen (z. B. Titelbild /img/australien-titel.jpg oder
+  // Originale, wenn die Umwandlung aus ist): fürs Drucken selbst passend zuschneiden. Safari (iPhone)
+  // ließ das Titelbild sonst im PDF weg. Ergebnis: eigenes Bild im exakten Rahmenformat, ohne Zuschnitt
+  // durch den Browser. Nur eigene Dateien und Supabase (beide ohne CORS-Probleme), sonst bleibt es wie es ist.
+  async function zuschneiden(im,k,q){
+    try{
+      if(im.getAttribute('data-fit')==='contain'||!window.createImageBitmap)return;
+      var u=new URL(im.getAttribute('data-src'),location.href);
+      if(/(^|\.)travona\.de$/.test(u.hostname))u=new URL(u.pathname+u.search,location.origin);
+      else if(u.origin!==location.origin&&!/\.supabase\.co$/.test(u.hostname))return;
+      var box=im.getBoundingClientRect(),ratio=box.width&&box.height?box.width/box.height:(+im.getAttribute('data-w'))/(+im.getAttribute('data-h'));
+      var w=Math.round(+im.getAttribute('data-w')*k),h=Math.round(w/ratio),f=Math.min(1,3000/Math.max(w,h));
+      w=Math.max(16,Math.round(w*f));h=Math.max(16,Math.round(h*f));
+      var r=await fetch(u.href,{mode:'cors',credentials:'omit'});if(!r.ok)return;
+      var bmp=await createImageBitmap(await r.blob());
+      var c=document.createElement('canvas');c.width=w;c.height=h;
+      var sc=Math.max(w/bmp.width,h/bmp.height),dw=bmp.width*sc,dh=bmp.height*sc;
+      c.getContext('2d').drawImage(bmp,(w-dw)/2,(h-dh)/2,dw,dh);
+      if(bmp.close)bmp.close();
+      var blob=await new Promise(function(res){c.toBlob(res,'image/jpeg',q/100);});
+      if(!blob)return;
+      if(im._pbBlob)URL.revokeObjectURL(im._pbBlob);
+      im._pbBlob=URL.createObjectURL(blob);
+      im.src=im._pbBlob;
+      await whenLoaded(im);
+    }catch(e){}
+  }
+
   async function loadForPrint(mode){
     var k=MODES[mode].dpi/25.4,list=imgs(),done=0;
     S.cancel=false;
@@ -433,6 +461,13 @@
     var stop=new Promise(function(res){S.onCancel=res;});
     await Promise.race([stop,Promise.all(list.map(function(im){return whenLoaded(im).then(function(){done++;progress(done+' von '+list.length+' Fotos');});}))]);
     S.onCancel=null;
+    if(S.cancel)return false;
+    progress('Titelbild und Fotos werden zugeschnitten …');
+    var q=mode==='pro'?90:85;
+    await Promise.all(list.filter(function(im){
+      var u=sized(im.getAttribute('data-src'),+im.getAttribute('data-w'),+im.getAttribute('data-h'),k,im.getAttribute('data-fit'),q);
+      return u===original(im.getAttribute('data-src'));
+    }).map(function(im){return zuschneiden(im,k,q);}));
     if(S.cancel)return false;
     // Safari (iPhone) druckt Bilder, die noch nicht fertig dekodiert sind, teils gar nicht –
     // besonders das große Titelbild auf Seite 1. Daher alle Fotos vor dem Drucken fertig dekodieren.
