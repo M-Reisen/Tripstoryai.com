@@ -2676,6 +2676,7 @@ function parseBelegJSON(txt){
 }
 function escAttr(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function openLightbox(iso,idx){
+  if(!editMode)idx=0; // Gäste starten immer bei Bild 1 des Tages
   _lbPhotos=photos[iso]||[];_lbIdx=idx;_lbIso=iso;
   if(!_lbPhotos.length)return;
   document.getElementById('lb-img').src=_lbPhotos[idx];
@@ -3811,6 +3812,11 @@ function bindJournalCounters(){
   c.querySelectorAll('.fj-scroll').forEach(function(sc){
     var cnt=document.getElementById(sc.id+'-c');
     var total=parseInt(sc.getAttribute('data-total')||'1');
+    // Immer bei Bild 1 starten, auch wenn nachladende Fotos die Breite verschieben
+    var beruehrt=false;
+    sc.scrollLeft=0;
+    ['pointerdown','touchstart','wheel','keydown'].forEach(function(ev){sc.addEventListener(ev,function(){beruehrt=true;},{passive:true,once:true});});
+    sc.querySelectorAll('img').forEach(function(im){im.addEventListener('load',function(){if(!beruehrt&&sc.scrollLeft)sc.scrollLeft=0;});});
     if(!cnt)return;
     sc.addEventListener('scroll',function(){
       var i=Math.round(sc.scrollLeft/sc.clientWidth)+1;

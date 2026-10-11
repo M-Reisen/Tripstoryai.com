@@ -2066,7 +2066,8 @@ function editFromModal(){
 function closeModal(ev){if(ev.target===document.getElementById('modal'))closeModalDirect();}
 function closeModalDirect(){document.getElementById('modal').classList.remove('open');}
 
-function openLB(el){openGalleryLB(el.getAttribute('data-iso'),photos[el.getAttribute('data-iso')]||[],parseInt(el.getAttribute('data-idx')||'0'));}
+// Gäste starten immer bei Bild 1 des Tages, im Bearbeiten-Modus beim angetippten Foto
+function openLB(el){openGalleryLB(el.getAttribute('data-iso'),photos[el.getAttribute('data-iso')]||[],editMode?parseInt(el.getAttribute('data-idx')||'0'):0);}
 function openGalleryLB(iso,all,startIdx){
   if(!all.length)return;
   _lbIso=iso;_lbIdx=startIdx;
@@ -2539,6 +2540,11 @@ function bindJournalCounters(){
   c.querySelectorAll('.fj-scroll').forEach(function(sc){
     var cnt=document.getElementById(sc.id+'-c');
     var total=parseInt(sc.getAttribute('data-total')||'1');
+    // Immer bei Bild 1 starten, auch wenn nachladende Fotos die Breite verschieben
+    var beruehrt=false;
+    sc.scrollLeft=0;
+    ['pointerdown','touchstart','wheel','keydown'].forEach(function(ev){sc.addEventListener(ev,function(){beruehrt=true;},{passive:true,once:true});});
+    sc.querySelectorAll('img').forEach(function(im){im.addEventListener('load',function(){if(!beruehrt&&sc.scrollLeft)sc.scrollLeft=0;});});
     if(!cnt)return;
     sc.addEventListener('scroll',function(){
       var i=Math.round(sc.scrollLeft/sc.clientWidth)+1;
