@@ -1436,10 +1436,7 @@ async function sbLoadHotelPhotos(bid){
     return u.publicUrl;
   });
 }
-async function sbDeleteHotelPhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
-}
+async function sbDeleteHotelPhoto(url){return tvRemoveFile(url);}
 // ── TITELBILD (Hero) pro Reise ──
 let _heroInput=null;
 async function sbLoadHeroImage(){
@@ -1526,10 +1523,11 @@ function addHotelPhotoEl(btn){
   _hotelInput.value='';_hotelInput.click();
 }
 async function delHotelPhotoEl(btn){
-  if(!editMode)return;if(!confirm('Hotelfoto löschen?'))return;
+  if(!editMode)return;if(!tvArmDelete(btn))return;
   var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
   if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
-    await sbDeleteHotelPhoto(hotelPhotos[bid][idx]);
+    btn.disabled=true;
+    if(!(await sbDeleteHotelPhoto(hotelPhotos[bid][idx]))){renderTage();return;}
     hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
   }
   renderTage();toast('Foto gelöscht.');
@@ -1646,10 +1644,27 @@ async function sbUploadPhoto(iso,file){
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data&&data.publicUrl?data.publicUrl:null;
 }
-async function sbDeletePhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+// Löschen mit zweitem Tipp statt confirm(): manche Browser (z. B. in Apps geöffnete Seiten
+// oder Safari nach „Dialoge ignorieren“) zeigen confirm() nicht an und brechen still ab.
+// Erster Tipp: Knopf wird zu „Löschen?“, zweiter Tipp innerhalb von 4 s löscht.
+function tvArmDelete(btn){
+  if(!btn)return confirm('Foto löschen?');
+  if(btn.dataset.armed==='1'){clearTimeout(btn._armT);btn.dataset.armed='';return true;}
+  btn.dataset.armed='1';btn.dataset.txt=btn.innerHTML;
+  btn.innerHTML='Löschen?';btn.style.width='auto';btn.style.padding='0 10px';btn.style.borderRadius='15px';btn.style.background='#dc2626';btn.style.fontSize='.75rem';
+  btn._armT=setTimeout(function(){btn.dataset.armed='';btn.innerHTML=btn.dataset.txt;btn.style.width='';btn.style.padding='';btn.style.borderRadius='';btn.style.background='';btn.style.fontSize='';},4000);
+  return false;
 }
+// Löscht eine Datei im Foto-Speicher; Fehler werden gemeldet statt verschluckt
+async function tvRemoveFile(url){
+  const path=String(url||'').split('/Reisefotos/')[1];
+  if(!path)return true;
+  const {data,error}=await sb.storage.from('Reisefotos').remove([decodeURIComponent(path.split('?')[0])]);
+  if(error){console.error('Foto löschen:',error);toast('Foto konnte nicht gelöscht werden: '+(error.message||'Fehler'));return false;}
+  if(Array.isArray(data)&&!data.length){toast('Foto konnte nicht gelöscht werden (keine Berechtigung).');return false;}
+  return true;
+}
+async function sbDeletePhoto(url){return tvRemoveFile(url);}
 
 // ── FOTO-META: Reihenfolge + Bildunterschriften (pro Tag, in Supabase) ────────
 // ort=PFX+'photometa_<iso>', nachricht=JSON {order:[...], captions:{url:text}}
@@ -2023,7 +2038,7 @@ function renderDayCard(days){
       if(editMode&&hid)html+='<div class="photo-hidden-tag">Für Gäste ausgeblendet</div>';
       if(editMode){
         html+='<button class="photo-hide-btn" title="'+(hid?'Für Gäste einblenden':'Für Gäste ausblenden')+'" onclick="toggleHidden(\''+iso+'\','+pi+')">'+(hid?'🚫':'👁')+'</button>';
-        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+')">✕</button>';
+        html+='<button class="photo-del" onclick="delPhoto(\''+iso+'\','+pi+',this)">✕</button>';
         if(pi>0)html+='<button class="photo-move photo-move-l" onclick="movePhoto(\''+iso+'\','+pi+',-1)">◀</button>';
         if(pi<arr.length-1)html+='<button class="photo-move photo-move-r" onclick="movePhoto(\''+iso+'\','+pi+',1)">▶</button>';
         html+='<button class="photo-cap-btn" onclick="openCaption(\''+iso+'\','+pi+')">✏️</button>';
@@ -2286,11 +2301,12 @@ async function handlePhotos(event,iso){
     toast(ok+' Foto(s) gespeichert!'+(zunaechstVersteckt?' Sie sind zunächst nur für dich sichtbar.':''));
   }
 }
-async function delPhoto(iso,idx){
+async function delPhoto(iso,idx,btn){
   if(!editMode)return;
-  if(!confirm('Foto löschen?'))return;
+  if(!tvArmDelete(btn))return;
   const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
-  await sbDeletePhoto(url);
+  if(btn)btn.disabled=true;
+  if(!(await sbDeletePhoto(url))){if(btn)btn.disabled=false;return;}
   arr.splice(idx,1);
   // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
   if(photoMeta[iso]){

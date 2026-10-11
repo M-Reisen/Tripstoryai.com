@@ -1490,10 +1490,7 @@ async function sbLoadHotelPhotos(bid){
     return u.publicUrl;
   });
 }
-async function sbDeleteHotelPhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
-}
+async function sbDeleteHotelPhoto(url){return tvRemoveFile(url);}
 async function sbLoadPhotos(iso){
   const {data,error}=await sb.storage.from('Reisefotos').list(iso,{limit:100});
   if(error||!data)return[];
@@ -1502,10 +1499,27 @@ async function sbLoadPhotos(iso){
     return u.publicUrl;
   });
 }
-async function sbDeletePhoto(url){
-  const path=url.split('/Reisefotos/')[1];
-  if(path)await sb.storage.from('Reisefotos').remove([decodeURIComponent(path)]);
+// Löschen mit zweitem Tipp statt confirm(): manche Browser (z. B. in Apps geöffnete Seiten
+// oder Safari nach „Dialoge ignorieren“) zeigen confirm() nicht an und brechen still ab.
+// Erster Tipp: Knopf wird zu „Löschen?“, zweiter Tipp innerhalb von 4 s löscht.
+function tvArmDelete(btn){
+  if(!btn)return confirm('Foto löschen?');
+  if(btn.dataset.armed==='1'){clearTimeout(btn._armT);btn.dataset.armed='';return true;}
+  btn.dataset.armed='1';btn.dataset.txt=btn.innerHTML;
+  btn.innerHTML='Löschen?';btn.style.width='auto';btn.style.padding='0 10px';btn.style.borderRadius='15px';btn.style.background='#dc2626';btn.style.fontSize='.75rem';
+  btn._armT=setTimeout(function(){btn.dataset.armed='';btn.innerHTML=btn.dataset.txt;btn.style.width='';btn.style.padding='';btn.style.borderRadius='';btn.style.background='';btn.style.fontSize='';},4000);
+  return false;
 }
+// Löscht eine Datei im Foto-Speicher; Fehler werden gemeldet statt verschluckt
+async function tvRemoveFile(url){
+  const path=String(url||'').split('/Reisefotos/')[1];
+  if(!path)return true;
+  const {data,error}=await sb.storage.from('Reisefotos').remove([decodeURIComponent(path.split('?')[0])]);
+  if(error){console.error('Foto löschen:',error);toast('Foto konnte nicht gelöscht werden: '+(error.message||'Fehler'));return false;}
+  if(Array.isArray(data)&&!data.length){toast('Foto konnte nicht gelöscht werden (keine Berechtigung).');return false;}
+  return true;
+}
+async function sbDeletePhoto(url){return tvRemoveFile(url);}
 
 // ── DATA ──────────────────────────────────────────────────────────────────
 const ACTIVITIES = [
@@ -1834,10 +1848,11 @@ function refreshPhotoGrid(iso){
 }
 async function delPhotoEl(btn){
   if(!editMode)return;
-  if(!confirm('Foto löschen?'))return;
+  if(!tvArmDelete(btn))return;
   const iso=btn.getAttribute('data-iso'), idx=parseInt(btn.getAttribute('data-idx'));
   const _delUrl=photos[iso][idx];
-  await sbDeletePhoto(_delUrl);
+  btn.disabled=true;
+  if(!(await sbDeletePhoto(_delUrl))){btn.disabled=false;refreshPhotoGrid(iso);return;}
   photos[iso].splice(idx,1);
   try{await hiddenDrop(iso,_delUrl);}catch(e){}
   refreshPhotoGrid(iso);
@@ -2718,10 +2733,11 @@ function addHotelPhotoEl(btn){
   _hotelInput.value='';_hotelInput.click();
 }
 async function delHotelPhotoEl(btn){
-  if(!editMode)return;if(!confirm('Hotelfoto löschen?'))return;
+  if(!editMode)return;if(!tvArmDelete(btn))return;
   var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
   if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
-    await sbDeleteHotelPhoto(hotelPhotos[bid][idx]);
+    btn.disabled=true;
+    if(!(await sbDeleteHotelPhoto(hotelPhotos[bid][idx]))){buildDaySlides();return;}
     hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
   }
   buildDaySlides();toast('Foto gelöscht.');
