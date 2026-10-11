@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="/fehler.js"></script>
+<script src="/diktat.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 <script src="/fotobuch.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -1535,7 +1536,6 @@ async function delHotelPhotoEl(btn){
 }
 let _revIso=null;        // aktueller Tag für Hotelbewertung
 let _apiKey='';          // Anthropic API-Key
-let _dictRec=null, _dictTimeout=null;  // Diktierfunktion
 let editMode=false;
 let pinBuffer='';
 let currentDay=0;
@@ -2379,7 +2379,7 @@ function renderStarPicker(){
 function setStars(s){_revStars=s;renderStarPicker();}
 async function saveReview(){
   if(!_revIso)return;
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  stopDictation();
   const text=val('rev-text').trim();
   const ok=await sbSaveReview(_revIso,_revStars,text);
   if(!ok)return;
@@ -2393,35 +2393,9 @@ async function deleteReview(){
   document.getElementById('rev-modal').classList.remove('open');
   renderTage();toast('Bewertung gelöscht.');
 }
-function closeReviewModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('rev-modal').classList.remove('open');}
+function closeReviewModal(){stopDictation();document.getElementById('rev-modal').classList.remove('open');}
 
-// ── DIKTIERFUNKTION (robust: interimResults) ──────────────────────────────────
-function startDictationFor(textareaId,btnId){
-  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
-  const btn=document.getElementById(btnId);
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';toast('Diktat beendet.');return;}
-  const ta=document.getElementById(textareaId);if(!ta){return;}
-  let baseText=ta.value?(ta.value.trim()+' '):'';
-  _dictRec=new SpeechRec();
-  _dictRec.lang='de-DE';_dictRec.continuous=true;_dictRec.interimResults=true;
-  _dictRec.onstart=function(){if(btn)btn.textContent='⏹ Stopp';toast('🎤 Mikrofon aktiv – jetzt sprechen…');};
-  _dictRec.onresult=function(e){
-    let finalT='',interimT='';
-    for(let i=0;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=t+' ';else interimT+=t;}
-    ta.value=(baseText+finalT+interimT).trim();
-  };
-  _dictRec.onerror=function(e){
-    if(e.error==='not-allowed'||e.error==='service-not-allowed')toast('Mikrofonzugriff verweigert. Bitte erlauben.');
-    else if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
-  };
-  _dictRec.onend=function(){_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';};
-  try{
-    _dictRec.start();
-    if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='🎤 Diktieren';}},60000);
-  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
-}
+// Diktieren: startDictationFor() und stopDictation() kommen aus /diktat.js
 function dictateEntry(){startDictationFor('entry-notes','entry-dictate-btn');}
 function dictateReview(){startDictationFor('rev-text','rev-dictate-btn');}
 
@@ -2738,7 +2712,7 @@ function openEntry(iso){
 }
 async function saveEntry(){
   const iso=_entryIso;if(!iso)return;
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  stopDictation();
   const titel=val('entry-titel').trim();
   const kat=val('entry-kat');
   const ort=val('entry-ort').trim();
@@ -2751,13 +2725,13 @@ async function saveEntry(){
 }
 async function deleteEntry(){
   const iso=_entryIso;if(!iso)return;
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  stopDictation();
   if(!confirm('Eintrag wirklich löschen?'))return;
   await sbDeleteEntry(iso);
   document.getElementById('entry-modal').classList.remove('open');
   renderTage();toast('Eintrag gelöscht.');
 }
-function closeEntryModal(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}document.getElementById('entry-modal').classList.remove('open');}
+function closeEntryModal(){stopDictation();document.getElementById('entry-modal').classList.remove('open');}
 
 // ── TAGESAUSGABEN UI ──────────────────────────────────────────────────────────
 function addDayExpense(iso){

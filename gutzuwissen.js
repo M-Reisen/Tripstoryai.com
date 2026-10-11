@@ -111,7 +111,7 @@
   }
 
   // ── Tipp anlegen / bearbeiten ─────────────────────────────────────────────
-  function schliessen(){var o=document.getElementById('gzw-ov');if(o)o.remove();}
+  function schliessen(){if(typeof stopDictation==='function')stopDictation();var o=document.getElementById('gzw-ov');if(o)o.remove();}
   function overlay(inner){
     schliessen();
     var o=document.createElement('div');o.id='gzw-ov';o.className='gzw-ov';

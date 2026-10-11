@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="/fehler.js"></script>
+<script src="/diktat.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 <script src="/fotobuch.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -2805,7 +2806,7 @@ function genReviewEl(btn){
   document.getElementById('rev-modal').style.display='flex';
 }
 function saveReview(){
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  stopDictation();
   var bid=document.getElementById('rev-bid').value;if(!bid){closeRevModal();return;}
   var text=document.getElementById('rev-text').value.trim();
   if(!hotelReviews[bid])hotelReviews[bid]={stars:0,text:''};
@@ -2814,7 +2815,7 @@ function saveReview(){
   buildDaySlides();toast(text?'Bewertung gespeichert!':'Gespeichert.');
 }
 function closeRevModal(){
-  if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;}
+  stopDictation();
   document.getElementById('rev-modal').style.display='none';
 }
 async function polishReviewText(){
@@ -2837,48 +2838,7 @@ async function polishReviewText(){
     else{ta.value=orig;toast('Keine Antwort erhalten.');}
   }catch(e){ta.disabled=false;ta.value=orig;toast('Verbindungsfehler: '+e.message);}
 }
-// ── GEMEINSAME DIKTIERFUNKTION (Toggle, Timeout, sauberes onend) ────────────
-let _dictRec = null, _dictTimeout = null, _dictBtnId = null;
-function startDictationFor(textareaId, btnId){
-  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SpeechRec){toast('Diktieren wird auf diesem Gerät nicht unterstützt. Nutze das Mikrofon auf der Tastatur.');return;}
-  const btn=document.getElementById(btnId);
-  // Wenn läuft: stoppen
-  if(_dictRec){
-    try{_dictRec.stop();}catch(e){}
-    _dictRec=null;
-    if(btn)btn.textContent='Diktieren';
-    toast('Diktat beendet.');
-    return;
-  }
-  // Starten
-  _dictBtnId=btnId;
-  _dictRec = new SpeechRec();
-  _dictRec.lang='de-DE';
-  _dictRec.continuous=false;
-  _dictRec.interimResults=false;
-  _dictRec.onresult=function(e){
-    const t=e.results[0][0].transcript;
-    const ta=document.getElementById(textareaId);
-    if(t&&ta)ta.value=ta.value?(ta.value+' '+t):t;
-  };
-  _dictRec.onerror=function(e){
-    if(e.error!=='no-speech')toast('Diktat-Fehler: '+e.error);
-  };
-  _dictRec.onend=function(){
-    // KEIN Auto-Neustart – sauber beenden
-    _dictRec=null;
-    if(btn)btn.textContent='Diktieren';
-  };
-  try{
-    _dictRec.start();
-    if(btn)btn.textContent='⏹ Stopp';
-    toast('Sprechen… (nach kurzer Pause stoppt es automatisch)');
-    // Sicherheits-Stopp nach 60 Sekunden
-    if(_dictTimeout)clearTimeout(_dictTimeout);
-    _dictTimeout=setTimeout(function(){if(_dictRec){try{_dictRec.stop();}catch(e){}_dictRec=null;if(btn)btn.textContent='Diktieren';}},60000);
-  }catch(e){_dictRec=null;toast('Fehler: '+e.message);}
-}
+// Diktieren: startDictationFor() und stopDictation() kommen aus /diktat.js
 function startDictation(){ startDictationFor('rev-text','rev-dictate-btn'); }
 function startDictationEntry(){ startDictationFor('f-notizen','dictate-btn'); }
 
