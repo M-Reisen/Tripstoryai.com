@@ -5111,9 +5111,11 @@ init();
   /* ---------- Kleine Vorschaubilder (Supabase-Bildumwandlung) mit Rückfall auf das Original (THUMB-BEGIN) ---------- */
   function thumbOff(){
     if(window.__noThumb)return true;
-    try{var t=parseInt(localStorage.getItem('tv_nothumb')||'0',10);return !!t&&Date.now()-t<86400000;}catch(e){return false;}
+    try{var t=parseInt(localStorage.getItem('tv_nothumb2')||'0',10);return !!t&&Date.now()-t<3600000;}catch(e){return false;}
   }
-  function thumbFail(){window.__noThumb=1;try{localStorage.setItem('tv_nothumb',String(Date.now()));}catch(e){}}
+  // Nur der Test-Aufruf schaltet Vorschaubilder ab (z. B. Free-Plan ohne Bildumwandlung), und nur für 1 Stunde.
+  // Einzelne Fehler (z. B. 429 „zu viele Anfragen“) dürfen nicht alle Fotos auf die großen Originale umstellen.
+  function thumbFail(){window.__noThumb=1;try{localStorage.removeItem('tv_nothumb');localStorage.setItem('tv_nothumb2',String(Date.now()));}catch(e){}}
   var TPROBE=0;
   function thumbProbe(url){
     if(TPROBE)return;
@@ -5137,7 +5139,14 @@ init();
   window.tvThumb=tvThumb;
   window.tvImgErr=function(img){
     var o=img&&img.getAttribute&&img.getAttribute('data-orig');
-    if(o&&img.src!==o){thumbFail();img.src=o;return true;}
+    if(!o||img.src===o)return false;
+    // Erst ein zweiter Versuch mit dem Vorschaubild (kurze Überlastung), dann das Original nur für dieses Foto
+    if(!img.dataset.tr&&/\/render\/image\//.test(img.src)){
+      img.dataset.tr='1';var s=img.src;
+      setTimeout(function(){img.src=s+(s.indexOf('?')<0?'?':'&')+'r=1';},1200+Math.random()*1800);
+      return true;
+    }
+    img.src=o;return true;
     return false;
   };
   /* ---------- (THUMB-ENDE) ---------- */
