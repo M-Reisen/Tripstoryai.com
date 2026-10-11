@@ -59,6 +59,9 @@
     clearTimeout(s.wd); clearTimeout(s.max);
     knopf(s, false);
     if (cur === s) cur = null;
+    if (s.onTippen) { s.ta.removeEventListener('input', s.onTippen); s.onTippen = null; }
+    // Letzte Wörter dürfen noch kurz nachkommen, danach schreibt diese Sitzung nie mehr ins Feld
+    clearTimeout(s.zu); s.zu = setTimeout(function () { s.zu = 'zu'; }, 1500);
   }
 
   function stoppen() {
@@ -67,6 +70,13 @@
     s.stopped = true;
     try { s.rec.stop(); } catch (e) {}
     ende(s);              // Knopf sofort zurück; letzte Wörter kommen noch über onresult
+  }
+
+  // Tippt man selbst ins Feld (Korrektur), endet das Diktat sofort und überschreibt nichts mehr
+  function selbstGetippt(s) {
+    s.edited = true;
+    if (cur === s) stoppen();
+    try { s.rec.abort(); } catch (e) {}
   }
 
   var FEHLER = {
@@ -93,14 +103,16 @@
       if (cur === s) { knopf(s, true); hinweis(s.ta, '🎤 Mikrofon an. Jetzt sprechen, zum Beenden „Stopp“ tippen.'); }
     };
     rec.onresult = function (e) {
-      if (s.rec !== rec) return;
+      if (s.rec !== rec || s.edited || s.zu === 'zu') return;
+      // Feld wurde seit unserem letzten Schreiben verändert: das war die Nutzerin, nicht überschreiben
+      if (s.last != null && s.ta.value !== s.last) { selbstGetippt(s); return; }
       var fin = '', zw = '';
       for (var i = 0; i < e.results.length; i++) {
         var t = e.results[i][0].transcript;
         if (e.results[i].isFinal) fin += t + ' '; else zw += t;
       }
       var neu = (fin + zw).trim();
-      if (neu) { s.heard = true; s.ta.value = s.base + neu; }
+      if (neu) { s.heard = true; s.ta.value = s.base + neu; s.last = s.ta.value; }
       try { s.ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (x) {}
     };
     rec.onerror = function (e) {
@@ -115,7 +127,7 @@
     rec.onend = function () {
       if (s.rec !== rec) return;
       // iPhone: nach einer Sprechpause neu starten, solange nicht gestoppt
-      if (IOS && cur === s && !s.stopped && !s.fail && s.ok) {
+      if (IOS && cur === s && !s.stopped && !s.fail && !s.edited && s.ok) {
         try { sitzung(s); return; } catch (x) {}
       }
       if (cur === s) { ende(s); if (s.heard) hinweisWeg(s.ta); }
@@ -138,6 +150,8 @@
     var s = { ta: ta, btn: btn, label: btn ? (btn.getAttribute('data-label') || btn.textContent) : '' };
     if (btn && !btn.getAttribute('data-label')) btn.setAttribute('data-label', s.label);
     cur = s;
+    s.onTippen = function (ev) { if (ev.isTrusted) selbstGetippt(s); };
+    ta.addEventListener('input', s.onTippen);
     knopf(s, true);
     hinweis(ta, 'Mikrofon wird gestartet… Bitte den Zugriff erlauben, falls gefragt.');
     try {
