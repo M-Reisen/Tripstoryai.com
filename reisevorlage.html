@@ -377,6 +377,7 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .fj-gallery{aspect-ratio:4/3;}
 .fj-scroll{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;height:100%;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-x;}
 .fj-scroll::-webkit-scrollbar{display:none;}
+.fj-img img{cursor:zoom-in;}
 .fj-slide{flex:0 0 100%;scroll-snap-align:center;height:100%;}
 .fj-slide img{width:100%;height:100%;object-fit:cover;display:block;}
 .fj-count{position:absolute;bottom:14px;right:14px;background:rgba(26,23,20,.7);color:#fff;font-size:11px;letter-spacing:.05em;padding:4px 10px;border-radius:20px;pointer-events:none;}
@@ -2684,6 +2685,15 @@ function openLightbox(iso,idx){
   document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[idx]);
   document.getElementById('lightbox').classList.add('open');
 }
+// Großansicht mit eigener Fotoliste (z. B. sichtbare Fotos im Tagebuch), startet beim angetippten Foto
+function lbOpenList(iso,list,idx){
+  _lbPhotos=list||[];_lbIdx=idx||0;_lbIso=iso;
+  if(!_lbPhotos.length)return;
+  document.getElementById('lb-img').src=_lbPhotos[_lbIdx];
+  document.getElementById('lb-counter').textContent='Foto '+(_lbIdx+1)+' von '+_lbPhotos.length;
+  document.getElementById('lb-caption').textContent=captionFor(iso,_lbPhotos[_lbIdx]);
+  document.getElementById('lightbox').classList.add('open');
+}
 function lbNav(dir){
   if(!_lbPhotos.length)return;
   _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
@@ -3820,6 +3830,20 @@ async function renderJournal(){
 function bindJournalCounters(){
   var c=document.getElementById('journal-entries');
   if(!c)return;
+  // Foto im Tagebuch antippen öffnet die Großansicht (auch für Gäste)
+  if(!c._tvZoom){
+    c._tvZoom=true;
+    c.addEventListener('click',function(ev){
+      var im=ev.target&&ev.target.closest?ev.target.closest('.fj-img img'):null;
+      if(!im)return;
+      var ent=im.closest('.fig-journal-entry[data-jiso]');if(!ent)return;
+      var iso=ent.getAttribute('data-jiso');
+      var list=visiblePhotos(iso);if(!list.length)return;
+      var idx=Array.prototype.indexOf.call(ent.querySelectorAll('.fj-img img'),im);
+      if(idx<0||idx>=list.length)idx=0;
+      lbOpenList(iso,list,idx);
+    });
+  }
   // Foto-Zähler beim Blättern aktualisieren
   c.querySelectorAll('.fj-scroll').forEach(function(sc){
     var cnt=document.getElementById(sc.id+'-c');
