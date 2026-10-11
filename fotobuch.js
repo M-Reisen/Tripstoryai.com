@@ -434,6 +434,13 @@
     await Promise.race([stop,Promise.all(list.map(function(im){return whenLoaded(im).then(function(){done++;progress(done+' von '+list.length+' Fotos');});}))]);
     S.onCancel=null;
     if(S.cancel)return false;
+    // Safari (iPhone) druckt Bilder, die noch nicht fertig dekodiert sind, teils gar nicht –
+    // besonders das große Titelbild auf Seite 1. Daher alle Fotos vor dem Drucken fertig dekodieren.
+    progress('Seiten werden vorbereitet …');
+    await Promise.all(list.map(function(im){
+      im.decoding='sync';
+      try{return im.decode?im.decode().catch(function(){}):null;}catch(e){return null;}
+    }));
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready;}catch(e){}
     fitTexts(S.root);
     unbusy();
@@ -595,7 +602,7 @@
     setMode(mode);
     var ok=await loadForPrint(mode);
     if(!ok){toast('Abgebrochen.');return;}
-    setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},300);
+    setTimeout(function(){try{window.print();}catch(e){toast('Drucken war hier nicht möglich. Nutze „Neuer Tab“.');}},700);
   }
   // Eigenständiges Dokument (für „Neuer Tab“), Fotos in Druckqualität A4
   function standalone(){
