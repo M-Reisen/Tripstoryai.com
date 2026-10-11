@@ -13,6 +13,11 @@
   var START_MS = 8000;     // startet die Erkennung bis dahin nicht, gilt sie als nicht verfügbar
 
   var cur = null;          // laufende Sitzung: {rec, ta, btn, label, stopped, heard, ...}
+  var zuletzt = null;      // zuletzt angetipptes Textfeld (für Formulare mit mehreren Feldern)
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && (!t.type || t.type === 'text')))) zuletzt = t;
+  });
 
   function el(id) { return id && id.nodeType ? id : document.getElementById(id); }
 
@@ -118,8 +123,11 @@
     rec.start();
   }
 
-  window.startDictationFor = function (textareaId, btnId) {
+  // felder (optional): weitere Feld-IDs im selben Formular. Wurde zuletzt eines davon
+  // angetippt (z. B. „Titel (optional)“), wird dorthin diktiert, sonst ins Standardfeld.
+  window.startDictationFor = function (textareaId, btnId, felder) {
     var ta = el(textareaId), btn = el(btnId);
+    if (felder && zuletzt && zuletzt.id && felder.concat([textareaId]).indexOf(zuletzt.id) >= 0 && document.contains(zuletzt)) ta = zuletzt;
     if (!ta) return;
     // Läuft schon: gleicher Knopf = stoppen, anderes Feld = altes beenden und neu starten
     if (cur) { var gleich = cur.ta === ta; stoppen(); if (gleich) return; }
