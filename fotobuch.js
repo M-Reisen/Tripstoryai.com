@@ -346,6 +346,7 @@
     // Deckblatt
     +'.pb-cover{background:var(--cover);color:#fff}'
     +'.pb-cover .pb-ph{background:var(--cover)}'
+    +'.pb-baked .pb-veil{display:none}@media print{.pb-cover .pb-cover-title{text-shadow:none}.pb-cover .pb-cover-sub,.pb-cover .pb-cover-dates,.pb-cover .pb-cover-route{opacity:1}}'
     +'.pb-veil{position:absolute;inset:calc(-1 * var(--b));background:linear-gradient(180deg,rgba(26,23,20,0) 35%,rgba(26,23,20,.25) 55%,rgba(26,23,20,.78) 100%)}'
     +'.pb-cover-in{position:absolute;left:20mm;right:20mm;bottom:24mm}'
     +'.pb-cover .pb-eyebrow{color:var(--cover-acc);font-size:10pt;margin-bottom:3mm}'
@@ -400,6 +401,7 @@
   }
   function setPreviewSources(){
     var k=previewPxPerMm();
+    if(S.root)S.root.querySelectorAll('.pb-baked').forEach(function(p){p.classList.remove('pb-baked');});
     imgs().forEach(function(im){
       im.src=sized(im.getAttribute('data-src'),+im.getAttribute('data-w'),+im.getAttribute('data-h'),k,im.getAttribute('data-fit'),70);
     });
@@ -437,14 +439,24 @@
       var bmp=await createImageBitmap(await r.blob());
       var c=document.createElement('canvas');c.width=w;c.height=h;
       var sc=Math.max(w/bmp.width,h/bmp.height),dw=bmp.width*sc,dh=bmp.height*sc;
-      c.getContext('2d').drawImage(bmp,(w-dw)/2,(h-dh)/2,dw,dh);
+      var cx=c.getContext('2d');cx.drawImage(bmp,(w-dw)/2,(h-dh)/2,dw,dh);
       if(bmp.close)bmp.close();
+      // Titelbild: den dunklen Verlauf (.pb-veil) gleich ins Bild malen. Adobe am PC zeigte das
+      // iPhone-PDF mit halbtransparenter Ebene über dem Foto ohne Titelbild an.
+      var pg=im.closest&&im.closest('.pb-cover'),cv=pg&&pg.querySelector('.pb-veil');
+      if(cv){
+        var g=cx.createLinearGradient(0,0,0,h);
+        g.addColorStop(0,'rgba(26,23,20,0)');g.addColorStop(.35,'rgba(26,23,20,0)');
+        g.addColorStop(.55,'rgba(26,23,20,.25)');g.addColorStop(1,'rgba(26,23,20,.78)');
+        cx.fillStyle=g;cx.fillRect(0,0,w,h);
+      }
       var blob=await new Promise(function(res){c.toBlob(res,'image/jpeg',q/100);});
       if(!blob)return;
       if(im._pbBlob)URL.revokeObjectURL(im._pbBlob);
       im._pbBlob=URL.createObjectURL(blob);
       im.src=im._pbBlob;
       await whenLoaded(im);
+      if(cv)pg.classList.add('pb-baked');
     }catch(e){}
   }
 
@@ -466,7 +478,7 @@
     var q=mode==='pro'?90:85;
     await Promise.all(list.filter(function(im){
       var u=sized(im.getAttribute('data-src'),+im.getAttribute('data-w'),+im.getAttribute('data-h'),k,im.getAttribute('data-fit'),q);
-      return u===original(im.getAttribute('data-src'));
+      return u===original(im.getAttribute('data-src'))||!!im.closest('.pb-cover');
     }).map(function(im){return zuschneiden(im,k,q);}));
     if(S.cancel)return false;
     // Safari (iPhone) druckt Bilder, die noch nicht fertig dekodiert sind, teils gar nicht –
