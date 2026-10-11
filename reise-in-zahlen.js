@@ -134,7 +134,7 @@
 
     x.beginPath();x.moveTo(L,footY);x.lineTo(W-L,footY);x.stroke();
     x.fillStyle=C.ink;x.font='italic 400 52px "Playfair Display", serif';
-    x.fillText('Belege rein, Reisebericht raus.',L,footY+90);
+    x.fillText('Fotos rein, Reisebericht raus.',L,footY+90);
     x.fillStyle=C.terra;x.font='500 40px "DM Sans", sans-serif';
     x.fillText('travona.de',L,footY+160);
     return new Promise(function(res){try{cv.toBlob(function(b){res(b);},"image/png");}catch(e){res(null);}});
