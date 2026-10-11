@@ -37,6 +37,8 @@ function bucket(url) {
     return FILES;
   }
   if (CDN.includes(url.hostname)) return FILES;
+  // Videos nicht merken: zu groß für den Gerätespeicher, und sie werden ohnehin stückweise geladen
+  if (url.origin === SUPABASE && /\.(mp4|mov|m4v|webm)$/i.test(url.pathname)) return null;
   if (url.origin === SUPABASE && url.pathname.startsWith('/storage/v1/object/public/')) return PHOTOS;
   return null;
 }
