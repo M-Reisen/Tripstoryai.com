@@ -1523,14 +1523,13 @@ function addHotelPhotoEl(btn){
   _hotelInput.value='';_hotelInput.click();
 }
 async function delHotelPhotoEl(btn){
-  if(!editMode)return;if(!tvArmDelete(btn))return;
+  if(!editMode)return;
   var bid=btn.getAttribute('data-bid');var idx=parseInt(btn.getAttribute('data-idx')||'0');
-  if(hotelPhotos[bid]&&hotelPhotos[bid][idx]){
-    btn.disabled=true;
-    if(!(await sbDeleteHotelPhoto(hotelPhotos[bid][idx]))){renderTage();return;}
-    hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
-  }
-  renderTage();toast('Foto gelöscht.');
+  var url=(hotelPhotos[bid]||[])[idx];if(!url)return;
+  hotelPhotos[bid].splice(idx,1);if(!hotelPhotos[bid].length)delete hotelPhotos[bid];
+  renderTage();
+  var back=function(){var a=hotelPhotos[bid]||(hotelPhotos[bid]=[]);if(a.indexOf(url)<0)a.splice(Math.min(idx,a.length),0,url);renderTage();};
+  tvDeleteWithUndo('Foto gelöscht',async function(){if(!(await sbDeleteHotelPhoto(url)))back();},back);
 }
 let _revIso=null;        // aktueller Tag für Hotelbewertung
 let _apiKey='';          // Anthropic API-Key
@@ -1644,17 +1643,24 @@ async function sbUploadPhoto(iso,file){
   const {data}=sb.storage.from('Reisefotos').getPublicUrl(path);
   return data&&data.publicUrl?data.publicUrl:null;
 }
-// Löschen mit zweitem Tipp statt confirm(): manche Browser (z. B. in Apps geöffnete Seiten
-// oder Safari nach „Dialoge ignorieren“) zeigen confirm() nicht an und brechen still ab.
-// Erster Tipp: Knopf wird zu „Löschen?“, zweiter Tipp innerhalb von 4 s löscht.
-function tvArmDelete(btn){
-  if(!btn)return confirm('Foto löschen?');
-  if(btn.dataset.armed==='1'){clearTimeout(btn._armT);btn.dataset.armed='';return true;}
-  btn.dataset.armed='1';btn.dataset.txt=btn.innerHTML;
-  btn.innerHTML='Löschen?';btn.style.width='auto';btn.style.padding='0 10px';btn.style.borderRadius='15px';btn.style.background='#dc2626';btn.style.fontSize='.75rem';
-  btn._armT=setTimeout(function(){btn.dataset.armed='';btn.innerHTML=btn.dataset.txt;btn.style.width='';btn.style.padding='';btn.style.borderRadius='';btn.style.background='';btn.style.fontSize='';},4000);
-  return false;
+// Löschen mit einem Tipp: das Foto verschwindet sofort, unten erscheint 6 Sekunden lang
+// „Foto gelöscht · Rückgängig“. Erst danach wird die Datei wirklich gelöscht.
+// (Kein confirm(): manche Browser zeigen den Dialog nicht an und brechen still ab.)
+var _tvUndo=null;
+function tvUndoFlush(){var u=_tvUndo;_tvUndo=null;if(!u)return;clearTimeout(u.t);var b=document.getElementById('tv-undo');if(b)b.remove();try{u.commit();}catch(e){console.error(e);}}
+function tvDeleteWithUndo(text,commit,undo){
+  tvUndoFlush(); // eine vorherige Löschung sofort ausführen
+  var bar=document.createElement('div');bar.id='tv-undo';bar.setAttribute('role','status');
+  bar.style.cssText='position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:99999;display:flex;align-items:center;gap:18px;background:#1A1714;color:#fff;font:500 17px/1.3 "DM Sans",Inter,sans-serif;padding:14px 14px 14px 22px;border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.35);max-width:calc(100vw - 32px)';
+  bar.innerHTML='<span style="white-space:nowrap"></span><button type="button" style="font:700 17px/1 \'DM Sans\',Inter,sans-serif;background:#fff;color:#1A1714;border:none;border-radius:10px;padding:12px 16px;cursor:pointer">Rückgängig</button>';
+  bar.firstChild.textContent=text;
+  var u={commit:commit,t:setTimeout(tvUndoFlush,6000)};_tvUndo=u;
+  bar.lastChild.onclick=function(){if(_tvUndo!==u)return;clearTimeout(u.t);_tvUndo=null;bar.remove();try{undo();}catch(e){console.error(e);}};
+  document.body.appendChild(bar);
 }
+// Beim Verlassen der Seite ausstehende Löschung sofort ausführen
+window.addEventListener('pagehide',tvUndoFlush);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden')tvUndoFlush();});
 // Löscht eine Datei im Foto-Speicher; Fehler werden gemeldet statt verschluckt
 async function tvRemoveFile(url){
   const path=String(url||'').split('/Reisefotos/')[1];
@@ -2303,19 +2309,20 @@ async function handlePhotos(event,iso){
 }
 async function delPhoto(iso,idx,btn){
   if(!editMode)return;
-  if(!tvArmDelete(btn))return;
   const arr=photos[iso]||[];const url=arr[idx];if(!url)return;
-  if(btn)btn.disabled=true;
-  if(!(await sbDeletePhoto(url))){if(btn)btn.disabled=false;return;}
-  arr.splice(idx,1);
-  // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
-  if(photoMeta[iso]){
-    if(photoMeta[iso].order)photoMeta[iso].order=arr.slice();
-    if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
-    if(Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=photoMeta[iso].hidden.filter(function(u){return u!==url;});
-    await sbSavePhotoMeta(iso);
-  }
-  renderTage();toast('Foto gelöscht.');
+  arr.splice(idx,1);renderTage();
+  const back=function(){const a=photos[iso]||(photos[iso]=[]);if(a.indexOf(url)<0)a.splice(Math.min(idx,a.length),0,url);renderTage();};
+  tvDeleteWithUndo('Foto gelöscht',async function(){
+    if(!(await sbDeletePhoto(url))){back();return;}
+    // Meta aufräumen: URL aus Reihenfolge und Captions entfernen
+    if(photoMeta[iso]){
+      const cur=photos[iso]||[];
+      if(photoMeta[iso].order)photoMeta[iso].order=cur.slice();
+      if(photoMeta[iso].captions)delete photoMeta[iso].captions[url];
+      if(Array.isArray(photoMeta[iso].hidden))photoMeta[iso].hidden=photoMeta[iso].hidden.filter(function(u){return u!==url;});
+      await sbSavePhotoMeta(iso);
+    }
+  },back);
 }
 async function movePhoto(iso,idx,dir){
   if(!editMode)return;
