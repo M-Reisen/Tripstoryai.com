@@ -1149,9 +1149,10 @@ html.app-guestview body{padding-top:48px;}
     <div class="field" style="margin-bottom:10px"><label for="ai-style-entry">Stil der KI</label><select id="ai-style-entry" class="ai-style-select" onchange="saveAiStyle(this.value)"></select></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
       <button id="entry-ai-btn" class="btn btn-sm" style="background:var(--reef);color:#fff" onclick="aiWriteEntry()">✨ KI formuliert den Eintrag</button>
+      <button id="entry-foto-btn" class="btn btn-sm" style="background:var(--terra);color:#fff" onclick="aiWriteFromPhotos()">📷 KI-Tagesbericht aus Fotos</button>
       <button id="entry-dictate-btn" class="btn btn-sm" style="background:var(--bush);color:#fff" onclick="dictateEntry()">🎤 Diktieren</button>
     </div>
-    <div style="font-size:.72rem;color:var(--fog);margin-bottom:6px">🎤 Diktieren & ✨ KI arbeiten mit den Stichpunkten oben.</div>
+    <div style="font-size:.72rem;color:var(--fog);margin-bottom:6px">🎤 Diktieren & ✨ KI arbeiten mit den Stichpunkten oben. 📷 schreibt den Bericht aus den Fotos dieses Tages (Stichpunkte optional).</div>
     <div style="height:1px;background:rgba(28,26,22,.1);margin:14px 0"></div>
     <div class="field">
       <label>Finaler Text</label>
@@ -2510,6 +2511,17 @@ async function aiWriteEntry(){
   const prompt='Du hilfst beim Schreiben eines privaten Reisetagebuchs. Schreibe aus den Stichpunkten einen Tagebucheintrag auf Deutsch in Wir-Form. '+st.diary+'\n\n'+AI_NO_HYPE+'\n\nOrt: '+ort+' | Kategorie: '+kat+(titel?' | Titel: '+titel:'')+'\nStichpunkte:\n'+notes+'\n\nNur den Tagebucheintrag, kein Titel, keine Anführungszeichen.';
   try{const out=await aiCall(prompt,1000);if(out)setVal('entry-text',out);toast('✓ Eintrag formuliert!');}
   catch(e){toast('Fehler: '+e.message);}
+  btn.textContent=orig;btn.disabled=false;
+}
+async function aiWriteFromPhotos(){
+  if(!ensureApiKey())return;
+  if(!window.travonaTagesbericht){toast('Bitte die Seite neu laden.');return;}
+  if(val('entry-text').trim()&&!confirm('Der vorhandene Text wird ersetzt. Weiter?'))return;
+  const btn=document.getElementById('entry-foto-btn');const orig=btn.textContent;btn.textContent='📷 KI schaut die Fotos an…';btn.disabled=true;
+  try{
+    const out=await window.travonaTagesbericht({iso:_entryIso,ort:val('entry-ort').trim(),titel:val('entry-titel').trim(),kat:val('entry-kat'),notizen:val('entry-notes').trim(),reise:tripHead.title||''});
+    setVal('entry-text',out);toast('✓ Tagesbericht geschrieben. Bitte kurz prüfen.');
+  }catch(e){toast(e.message);}
   btn.textContent=orig;btn.disabled=false;
 }
 async function aiPolishReview(){
@@ -5303,6 +5315,7 @@ init();
   function aiCapOn(){try{return localStorage.getItem('tv_ai_cap')==='1';}catch(e){return false;}}
   function aiCapSet(on){try{localStorage.setItem('tv_ai_cap',on?'1':'0');}catch(e){}}
   var AICAP={run:0},CB={rows:[],iso:null,run:0};
+  window.tvCapImageB64=function(u){return capImageB64(u);};
   async function capImageB64(url){
     var r=await fetch(tvThumb(url,1024));
     if(!r.ok&&tvThumb(url,1024)!==url)r=await fetch(url);
@@ -5929,6 +5942,7 @@ init();
 <script src="/reise-in-zahlen.js" defer></script>
 <script src="/rueckblick-video.js" defer></script>
 <script src="/nachbuchen.js" defer></script>
+<script src="/tagesbericht.js" defer></script>
 <script src="/folgen.js" defer></script>
 <script src="/gutzuwissen.js" defer></script>
 </body>
