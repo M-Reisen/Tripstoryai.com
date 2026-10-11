@@ -117,11 +117,15 @@ main{max-width:1200px;margin:0 auto;padding:80px 48px 100px;}
 .badge-ferry-s{background:#e0f2fe;color:#075985;}
 .badge-tour-s{background:#fce7f3;color:#9d174d;}
 .badge-plan-s{background:#e8f0e0;color:#3d5a26;border:1px dashed #9bb87e;}
-.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;flex-direction:column;}
+.lightbox{display:none;position:fixed;inset:0;background:#0b0b0b;z-index:10050;flex-direction:column;}
 .lightbox.open{display:flex;}
 .lightbox-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;color:#fff;flex-shrink:0;}
-.lightbox-counter{font-size:.82rem;color:rgba(255,255,255,.6);}
-.lightbox-close{color:#fff;font-size:1.6rem;cursor:pointer;background:none;border:none;opacity:.8;padding:0;}
+.lightbox-counter{font-size:.95rem;font-weight:600;color:#fff;}
+.lightbox-close{color:#fff;font-size:1.6rem;cursor:pointer;background:rgba(255,255,255,.15);border:none;padding:0;width:44px;height:44px;border-radius:50%;line-height:44px;}
+.lb-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.35);color:#fff;width:48px;height:48px;border-radius:50%;font-size:1.7rem;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0 0 4px;}
+.lb-arrow.prev{left:10px;}.lb-arrow.next{right:10px;}
+.lb-arrow[hidden]{display:none;}
+.lb-hint{text-align:center;color:rgba(255,255,255,.55);font-size:.75rem;padding:0 16px 10px;flex-shrink:0;}
 .lightbox-track{display:flex;flex:1;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;}
 .lightbox-track::-webkit-scrollbar{display:none;}
 .lightbox-slide{min-width:100vw;display:flex;align-items:center;justify-content:center;scroll-snap-align:start;padding:10px;}
@@ -1171,16 +1175,21 @@ html.app-guestview body{padding-top:48px;}
     <div class="lightbox-counter" id="lb-counter"></div>
     <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   </div>
-  <div class="lightbox-track" id="lb-track"></div>
+  <div style="position:relative;flex:1;display:flex;min-height:0;">
+    <button class="lb-arrow prev" id="lb-prev" onclick="lbGo(-1)" aria-label="Vorheriges Foto">‹</button>
+    <div class="lightbox-track" id="lb-track"></div>
+    <button class="lb-arrow next" id="lb-next" onclick="lbGo(1)" aria-label="Nächstes Foto">›</button>
+  </div>
   <div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 16px;min-height:40px;">
     <div class="lightbox-caption" id="lb-caption" style="flex:1;text-align:center;padding:0;"></div>
     <button id="lb-edit-btn" onclick="openLBCaption()" style="display:none;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:5px 10px;font-size:.75rem;cursor:pointer;">✏️</button>
   </div>
   <div class="lightbox-nav" id="lb-nav"></div>
+  <div class="lb-hint">Wischen oder Pfeile zum Blättern · nach unten wischen schließt</div>
 </div>
 
 
-<div id="caption-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:500;align-items:flex-end;justify-content:center;padding:0;" onclick="if(event.target===this)closeCaptionModal()">
+<div id="caption-modal" style="display:none;position:fixed;inset:0;background:rgba(28,26,22,.7);z-index:10100;align-items:flex-end;justify-content:center;padding:0;" onclick="if(event.target===this)closeCaptionModal()">
   <div style="background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;box-shadow:0 -8px 32px rgba(0,0,0,.2);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div style="font-family:'Playfair Display',serif;font-size:1rem;">Foto-Kommentar</div>
@@ -2083,7 +2092,12 @@ function openGalleryLB(iso,all,startIdx){
   setTimeout(()=>{track.scrollLeft=startIdx*track.offsetWidth;updateLBCaption(iso,startIdx,all.length);},50);
   track.onscroll=function(){const idx=Math.round(track.scrollLeft/Math.max(track.offsetWidth,1));if(idx!==_lbIdx){_lbIdx=idx;updateLBCaption(iso,idx,all.length);}};
 }
-function updateLBCaption(iso,idx,total){document.getElementById('lb-counter').textContent=(idx+1)+' / '+total;document.getElementById('lb-caption').textContent=photoComments[iso+'_'+idx]||'';document.querySelectorAll('.lightbox-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));}
+function lbGo(dir){const track=document.getElementById('lb-track');const n=track.children.length;if(!n)return;const i=Math.max(0,Math.min(n-1,_lbIdx+dir));track.scrollTo({left:i*track.offsetWidth,behavior:'smooth'});_lbIdx=i;updateLBCaption(_lbIso,i,n);}
+(function(){var lb=document.getElementById('lightbox');if(!lb)return;var x0=null,y0=null;
+  lb.addEventListener('touchstart',function(e){var t=e.touches[0];x0=t.clientX;y0=t.clientY;},{passive:true});
+  lb.addEventListener('touchend',function(e){if(x0===null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=y0=null;if(dy>90&&Math.abs(dy)>Math.abs(dx)*1.5)closeLightbox();},{passive:true});})(); // nach unten wischen schließt
+document.addEventListener('keydown',function(e){if(!document.getElementById('lightbox').classList.contains('open'))return;if(e.key==='ArrowRight')lbGo(1);else if(e.key==='ArrowLeft')lbGo(-1);else if(e.key==='Escape')closeLightbox();});
+function updateLBCaption(iso,idx,total){document.getElementById('lb-counter').textContent='Foto '+(idx+1)+' von '+total;var pv=document.getElementById('lb-prev'),nx=document.getElementById('lb-next');if(pv)pv.hidden=idx<=0;if(nx)nx.hidden=idx>=total-1;document.getElementById('lb-caption').textContent=photoComments[iso+'_'+idx]||'';document.querySelectorAll('.lightbox-dot').forEach((d,i)=>d.classList.toggle('active',i===idx));}
 function closeLightbox(){document.getElementById('lightbox').classList.remove('open');document.getElementById('lb-track').innerHTML='';}
 function openLBCaption(){if(!editMode||!_lbIso)return;_captionKey=_lbIso+'_'+_lbIdx;document.getElementById('caption-input').value=photoComments[_captionKey]||'';document.getElementById('caption-modal').style.display='flex';setTimeout(()=>document.getElementById('caption-input').focus(),200);}
 
