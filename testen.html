@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <script src="/fehler.js"></script>
+<script src="/diktat.js"></script>
 <script defer src="/_vercel/insights/script.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ohne Anmeldung testen · Travona</title>
@@ -317,7 +318,7 @@ function ortAm(t){
 $('go2').addEventListener('click',async function(){
   var notes=$('notes').value.trim();$('msg2').textContent='';
   if(notes.length<3){$('msg2').textContent='Bitte ein paar Stichworte eingeben oder diktieren.';return;}
-  stopDict();
+  stopDictation();
   var btn=this,t=$('tag').value;btn.disabled=true;$('busy2').classList.add('on');
   try{
     var d=await ki({modus:'tagebuch',stichpunkte:notes,ort:ortAm(t),datum:t});
@@ -335,21 +336,8 @@ $('anderer').addEventListener('click',function(){
   $('s2').scrollIntoView({behavior:'smooth',block:'start'});$('notes').focus();
 });
 
-// Diktieren wie in der Reisevorlage (Spracherkennung des Browsers)
-var _rec=null;
-function stopDict(){if(_rec){try{_rec.stop();}catch(e){}_rec=null;$('dict').textContent='🎤 Diktieren';}}
-$('dict').addEventListener('click',function(){
-  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SR){$('msg2').textContent='Diktieren geht in diesem Browser nicht. Nutze das Mikrofon auf der Tastatur.';return;}
-  if(_rec){stopDict();return;}
-  var ta=$('notes'),base=ta.value?ta.value.trim()+' ':'';
-  _rec=new SR();_rec.lang='de-DE';_rec.continuous=true;_rec.interimResults=true;
-  _rec.onstart=function(){$('dict').textContent='⏹ Stopp';};
-  _rec.onresult=function(e){var f='',i2='';for(var i=0;i<e.results.length;i++){var tx=e.results[i][0].transcript;if(e.results[i].isFinal)f+=tx+' ';else i2+=tx;}ta.value=(base+f+i2).trim();};
-  _rec.onerror=function(e){if(e.error==='not-allowed'||e.error==='service-not-allowed')$('msg2').textContent='Mikrofonzugriff verweigert.';};
-  _rec.onend=function(){_rec=null;$('dict').textContent='🎤 Diktieren';};
-  try{_rec.start();setTimeout(stopDict,60000);}catch(e){_rec=null;}
-});
+// Diktieren wie in der Reisevorlage (gemeinsam in /diktat.js)
+$('dict').addEventListener('click',function(){startDictationFor('notes','dict');});
 </script>
 </body>
 </html>
