@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         if (sp.length > MAX_STICHPUNKTE) return json({ error: 'Bitte höchstens ' + MAX_STICHPUNKTE + ' Zeichen.' }, 400);
         const ort = typeof body.ort === 'string' ? body.ort.trim().slice(0, 80) : '';
         const datum = typeof body.datum === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.datum) ? body.datum : '';
-        inhalt.push({ type: 'text', text: 'Das sind ' + inhalt.length + ' Fotos von unserem Reisetag.\n'
+        inhalt.push({ type: 'text', text: (inhalt.length === 1 ? 'Das ist ein Foto' : 'Das sind ' + inhalt.length + ' Fotos') + ' von unserem Reisetag.\n'
           + (ort ? 'Ort: ' + ort + '\n' : '') + (datum ? 'Datum: ' + datum + '\n' : '')
           + (sp ? '<stichpunkte>\n' + sp.replace(/<\/?stichpunkte>/gi, '') + '\n</stichpunkte>' : '') });
         anfrage = { model: MODELL, max_tokens: 700, system: AUFTRAG_FOTOS, messages: [{ role: 'user', content: inhalt }] };
