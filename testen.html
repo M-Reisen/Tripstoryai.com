@@ -149,6 +149,8 @@ textarea{min-height:110px;resize:vertical;line-height:1.5;}
     <label class="f" for="notes">Stichworte <span class="opt" id="notes-opt">(optional, wenn du Fotos wählst)</span></label>
     <textarea id="notes" maxlength="1200" placeholder="z. B. Morgens Schnorcheln am Riff, Wasser kälter als gedacht, mittags Fish &amp; Chips am Hafen, abends müde"></textarea>
     <button class="btn btn-ghost dict" id="dict" type="button">🎤 Diktieren</button>
+    <label class="f" for="stil">Stil der KI</label>
+    <select id="stil"></select>
     <div class="actions">
       <button class="btn btn-solid" id="go2">Tagebuch schreiben</button>
     </div>
@@ -167,6 +169,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5;}
     <p>Mit einem Konto wird daraus deine ganze Reise: Tagesplan, Karte mit Route, Fotos, Kosten, Gästebuch und Fotobuch.</p>
     <div class="actions">
       <a class="btn btn-solid" href="meine-reisen.html?neu=1">Konto anlegen und Reise starten</a>
+      <button class="btn btn-ghost" id="neustil" type="button">In anderem Stil schreiben</button>
       <button class="btn btn-ghost" id="anderer" type="button">Anderen Tag beschreiben</button>
     </div>
   </div>
@@ -195,6 +198,8 @@ var BEISPIEL=[
 ];
 var BEISPIEL_NOTES={'2026-05-16':'Morgens Markt auf dem Campo, viel zu voll. Mittags Pici in der Trattoria Sole, Wein günstiger als gedacht. Nachmittags hoch zum Dom, Füße platt. Abends nur noch Pizza auf dem Zimmer.'};
 var _bilder=[],_fotos=[],_pos=[],_istBeispiel=false;
+// Stil der KI wie in der Reisevorlage (gleicher Speicher-Schlüssel, die Wahl gilt später auch im Konto); die Texte liegen in der ai-demo-Funktion
+var STILE=[['sachlich','Sachlich & nüchtern'],['tagebuch','Persönlich, ruhig'],['trocken','Trocken mit Humor'],['kurz','Kurz & knapp'],['beschreibend','Beschreibend (Landschaft, Details)'],['korrektur','Nur korrigieren, Stil belassen']];
 
 function $(id){return document.getElementById(id);}
 function show(id,on){$(id).classList.toggle('hide',!on);}
@@ -359,8 +364,8 @@ $('go2').addEventListener('click',async function(){
   $('busy2-text').textContent=mitFotos?'Die KI schaut sich deine Fotos an …':'Die KI schreibt deinen Eintrag …';
   try{
     var d=mitFotos
-      ?await ki({modus:'fotos',bilder:_fotos.map(function(b){return {daten:b.daten,typ:b.typ};}),stichpunkte:notes,ort:ortAm(t),datum:t})
-      :await ki({modus:'tagebuch',stichpunkte:notes,ort:ortAm(t),datum:t});
+      ?await ki({modus:'fotos',bilder:_fotos.map(function(b){return {daten:b.daten,typ:b.typ};}),stichpunkte:notes,ort:ortAm(t),datum:t,stil:$('stil').value})
+      :await ki({modus:'tagebuch',stichpunkte:notes,ort:ortAm(t),datum:t,stil:$('stil').value});
     if(!d.text)throw new Error('Das hat nicht geklappt. Bitte erneut versuchen.');
     var sel=$('tag').options[$('tag').selectedIndex];
     $('day-meta').textContent=sel&&t?sel.textContent:'Dein Reisetag';
@@ -371,12 +376,22 @@ $('go2').addEventListener('click',async function(){
   }catch(e){$('msg2').textContent=e.message;}
   finally{$('busy2').classList.remove('on');btn.disabled=false;}
 });
+$('neustil').addEventListener('click',function(){
+  $('stil').scrollIntoView({behavior:'smooth',block:'center'});$('stil').focus();
+});
 $('anderer').addEventListener('click',function(){
   $('notes').value='';_fotos=[];$('fotos').value='';$('thumbs2').innerHTML='';
   $('drop2-big').textContent='📷 Urlaubsfotos wählen';$('drop2-small').textContent='z. B. Strand, Essen, Ausblick: die KI beschreibt, was sie sieht';
   show('day',false);show('next',false);
   $('s2').scrollIntoView({behavior:'smooth',block:'start'});$('notes').focus();
 });
+
+(function(){
+  var cur='tagebuch';try{cur=localStorage.getItem('tv_ai_style')||cur;}catch(e){}
+  $('stil').innerHTML=STILE.map(function(x){return '<option value="'+x[0]+'">'+x[1]+'</option>';}).join('');
+  $('stil').value=STILE.some(function(x){return x[0]===cur;})?cur:'tagebuch';
+  $('stil').addEventListener('change',function(){try{localStorage.setItem('tv_ai_style',this.value);}catch(e){}});
+})();
 
 // Diktieren wie in der Reisevorlage (gemeinsam in /diktat.js)
 $('dict').addEventListener('click',function(){startDictationFor('notes','dict');});
