@@ -1625,7 +1625,13 @@ async function sbLoadCosts(){
 
 // ── SUPABASE: FOTOS (Storage-Bucket 'Reisefotos', Pfad <reise>/<datum>/) ──────
 function photoFolder(iso){return REISE+'/'+iso;}
-async function sbLoadPhotos(iso){
+// Gleiche Fotoliste wird nur einmal gleichzeitig abgefragt (Karte, Tagebuch, Tagesansicht laden sonst parallel doppelt)
+var _plRun={};
+function sbLoadPhotos(iso){
+  if(!_plRun[iso])_plRun[iso]=_sbLoadPhotos(iso).finally(function(){delete _plRun[iso];});
+  return _plRun[iso].then(function(a){return a.slice();});
+}
+async function _sbLoadPhotos(iso){
   const {data,error}=await sb.storage.from('Reisefotos').list(photoFolder(iso),{limit:100});
   if(error||!data)return[];
   return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{

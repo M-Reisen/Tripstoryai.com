@@ -1507,7 +1507,13 @@ async function sbLoadHotelPhotos(bid){
   });
 }
 async function sbDeleteHotelPhoto(url){return tvRemoveFile(url);}
-async function sbLoadPhotos(iso){
+// Gleiche Fotoliste wird nur einmal gleichzeitig abgefragt (Karte, Tagebuch, Tagesansicht laden sonst parallel doppelt)
+var _plRun={};
+function sbLoadPhotos(iso){
+  if(!_plRun[iso])_plRun[iso]=_sbLoadPhotos(iso).finally(function(){delete _plRun[iso];});
+  return _plRun[iso].then(function(a){return a.slice();});
+}
+async function _sbLoadPhotos(iso){
   const {data,error}=await sb.storage.from('Reisefotos').list(iso,{limit:100});
   if(error||!data)return[];
   return data.filter(f=>f.name!=='.emptyFolderPlaceholder').map(f=>{
@@ -1722,8 +1728,10 @@ function buildDaySlides(){
 async function loadPhotosForDay(iso){
   // Tagesfotos
   if(!photos[iso]){
-    try{photos[iso]=loadPhotoOrder(iso,await sbLoadPhotos(iso));refreshPhotoGrid(iso);}catch(e){photos[iso]=[];}
+    try{photos[iso]=loadPhotoOrder(iso,await sbLoadPhotos(iso));}catch(e){photos[iso]=[];}
   }
+  // Immer neu zeichnen: Karte/Tagebuch können die Liste schon geladen haben, während die Kachel noch „Fotos werden geladen…“ zeigt
+  refreshPhotoGrid(iso);
   // Hotelfotos (für die Unterkunft dieses Tages)
   const day=DAYS.find(d=>d.iso===iso);
   if(day&&day.stay&&!hotelPhotos[day.stay.id]){
