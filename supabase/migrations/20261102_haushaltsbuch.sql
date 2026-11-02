@@ -1,4 +1,4 @@
--- Stand 2026-11-02: noch NICHT live, wird nach Ramonas OK eingespielt.
+-- Live eingespielt am 2026-11-02 (nach Ramonas OK).
 -- Haushaltsbuch (privat, nur für die Betreiberin, siehe public.ist_admin()).
 -- Monatliche Ausgaben und Einnahmen nach Haushalts-Kategorien, dazu ein Monatsbudget.
 -- Neue Tabellen bekommen seit 30.10.2026 keine Data-API-Rechte mehr automatisch:
