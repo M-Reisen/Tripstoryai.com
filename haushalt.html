@@ -104,6 +104,12 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 .row .act button{background:none;border:none;font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;color:var(--fog);}
 .row .act button:hover{background:var(--well);}
 .fixtag{display:inline-block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;background:var(--well);color:var(--fog);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px;}
+.fixlist{width:100%;}
+.fixlist .fx{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--rule);}
+.fixlist .fx span{flex:1;min-width:0;}
+.fixlist .fx small{display:block;color:var(--fog);font-size:.72rem;}
+.fixlist .fx input[type=text]{width:110px;font:500 .9rem 'DM Sans',sans-serif;padding:7px 9px;border:1px solid var(--rule);border-radius:9px;background:#fff;text-align:right;}
+.fixlist .fx input.chg{border-color:var(--terra);background:#FFF6EE;}
 .hint{background:var(--well);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;margin-bottom:12px;}
 .empty{text-align:center;padding:34px 16px;color:var(--fog);}
 .empty .big{font-size:2.4rem;margin-bottom:8px;}
@@ -159,6 +165,7 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
           <div class="full"><label>Kategorie</label><div class="chips" id="f-cats"></div></div>
           <div class="full"><label for="f-text">Beschreibung (optional)</label><input id="f-text" type="text" maxlength="200" placeholder="z. B. Wocheneinkauf Edeka"></div>
           <div class="full"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--ink)"><input id="f-fix" type="checkbox"> Fixkosten (jeden Monat gleich, z. B. Miete, Versicherung, Abo)</label></div>
+          <div class="full" id="f-later-wrap" style="display:none"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--ink)"><input id="f-later" type="checkbox" checked> Neuen Betrag auch in späteren Monaten übernehmen (wo dieser Fixposten schon eingetragen ist)</label></div>
           <div class="full form-act"><button type="button" class="btn" id="f-cancel" style="display:none">Abbrechen</button><button type="button" class="btn btn-primary" id="f-save">Speichern</button></div>
         </div>
       </div>
@@ -301,6 +308,8 @@ function resetForm(){
   document.getElementById('f-betrag').value='';
   document.getElementById('f-text').value='';
   document.getElementById('f-fix').checked=false;
+  document.getElementById('f-later-wrap').style.display='none';
+  form.orig=null;
   setDefaultDate();
 }
 function startEdit(id){
@@ -312,6 +321,9 @@ function startEdit(id){
   document.getElementById('f-datum').value=r.datum;
   document.getElementById('f-text').value=r.beschreibung||'';
   document.getElementById('f-fix').checked=!!r.fix;
+  form.orig={betrag:r.betrag,kategorie:r.kategorie,beschreibung:r.beschreibung||'',datum:r.datum,fix:!!r.fix};
+  document.getElementById('f-later').checked=true;
+  document.getElementById('f-later-wrap').style.display=r.fix?'':'none';
   document.getElementById('form-card').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function save(){
@@ -326,7 +338,19 @@ async function save(){
     :await sb.from('haushalt_buchungen').insert(Object.assign({owner:user.id},rec)).select();
   btn.disabled=false;
   if(res.error||!res.data||!res.data.length){toast('Speichern hat nicht geklappt.');return;}
-  toast(form.edit?'Buchung geändert.':'Buchung gespeichert.');
+  var msgT=form.edit?'Buchung geändert.':'Buchung gespeichert.';
+  // Fixposten geändert (z. B. Beitragserhöhung): denselben Posten in späteren Monaten mitziehen
+  var o=form.orig;
+  if(form.edit&&o&&o.fix&&rec.fix&&document.getElementById('f-later').checked
+     &&(o.betrag!==v||o.beschreibung!==rec.beschreibung||o.kategorie!==rec.kategorie)){
+    var nm=d.slice(0,7)>o.datum.slice(0,7)?d:o.datum;
+    var after=monthEnd({y:+nm.slice(0,4),m:+nm.slice(5,7)});
+    var up=await sb.from('haushalt_buchungen').update({betrag:v,kategorie:rec.kategorie,beschreibung:rec.beschreibung})
+      .eq('owner',user.id).eq('fix',true).eq('kategorie',o.kategorie).eq('beschreibung',o.beschreibung).gt('datum',after).select('id');
+    if(up.error)msgT='Buchung geändert, spätere Monate nicht.';
+    else if(up.data&&up.data.length)msgT='Geändert, auch in '+up.data.length+' späteren Monat'+(up.data.length>1?'en':'')+'.';
+  }
+  toast(msgT);
   var moved=d.slice(0,7)!==ym.y+'-'+pad(ym.m);
   resetForm();
   if(moved){ym={y:+d.slice(0,4),m:+d.slice(5,7)};}
@@ -474,16 +498,33 @@ async function checkFixHint(){
   var list=res.data,sum=list.reduce(function(s,r){return s+Number(r.betrag);},0);
   document.getElementById('fix-hint-t').textContent=list.length+' Fixposten aus '+new Date(pm.y,pm.m-1,1).toLocaleDateString('de-DE',{month:'long'})+' ('+eur(sum)+') übernehmen?';
   el.style.display='';
-  document.getElementById('fix-copy').onclick=async function(){
-    this.disabled=true;
-    var last=+monthEnd(ym).slice(8,10);
-    var ins=list.map(function(r){
-      var day=Math.min(+r.datum.slice(8,10),last);
-      return {owner:user.id,datum:ym.y+'-'+pad(ym.m)+'-'+pad(day),betrag:r.betrag,art:r.art,kategorie:r.kategorie,beschreibung:r.beschreibung,fix:true};
-    });
-    var x=await sb.from('haushalt_buchungen').insert(ins).select();
-    if(x.error){this.disabled=false;toast('Übernehmen hat nicht geklappt.');return;}
-    toast(ins.length+' Fixposten übernommen.');load();
+  var btn=document.getElementById('fix-copy');btn.textContent='Prüfen & übernehmen';
+  btn.onclick=function(){
+    var fmt=function(n){return Number(n).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});};
+    el.innerHTML='<div class="fixlist"><b style="font-weight:500">Fixposten für '+esc(monthName(ym))+'</b>'
+      +'<p class="note" style="padding:0;margin:4px 0 8px">Hat sich ein Betrag geändert (z. B. Beitragserhöhung), trag hier den neuen ein. Er gilt dann auch für die nächsten Monate. Haken weg = nicht übernehmen.</p>'
+      +list.map(function(r,i){var c=catOf(r.kategorie);
+        return '<div class="fx"><input type="checkbox" data-i="'+i+'" checked style="width:18px;height:18px"><span>'+c.e+' '+esc(r.beschreibung||c.l)+'<small>'+esc(c.l)+(r.art==='einnahme'?' · Einnahme':'')+'</small></span><input type="text" inputmode="decimal" data-b="'+i+'" value="'+fmt(r.betrag)+'"> €</div>';
+      }).join('')
+      +'<div class="form-act" style="margin-top:10px"><button type="button" class="btn" id="fix-cancel">Abbrechen</button><button type="button" class="btn btn-primary" id="fix-go">Übernehmen</button></div></div>';
+    el.querySelectorAll('[data-b]').forEach(function(inp){inp.oninput=function(){var r=list[+inp.dataset.b];inp.classList.toggle('chg',parseBetrag(inp.value)!==Number(r.betrag));};});
+    document.getElementById('fix-cancel').onclick=function(){renderMonth();};
+    document.getElementById('fix-go').onclick=async function(){
+      var last=+monthEnd(ym).slice(8,10),ins=[],bad=false;
+      list.forEach(function(r,i){
+        if(!el.querySelector('[data-i="'+i+'"]').checked)return;
+        var v=parseBetrag(el.querySelector('[data-b="'+i+'"]').value);
+        if(!(v>0)||v>=10000000){bad=true;return;}
+        var day=Math.min(+r.datum.slice(8,10),last);
+        ins.push({owner:user.id,datum:ym.y+'-'+pad(ym.m)+'-'+pad(day),betrag:v,art:r.art,kategorie:r.kategorie,beschreibung:r.beschreibung,fix:true});
+      });
+      if(bad){toast('Bitte bei jedem Posten einen Betrag eintragen.');return;}
+      if(!ins.length){renderMonth();return;}
+      this.disabled=true;
+      var x=await sb.from('haushalt_buchungen').insert(ins).select();
+      if(x.error){this.disabled=false;toast('Übernehmen hat nicht geklappt.');return;}
+      toast(ins.length+' Fixposten übernommen.');load();
+    };
   };
 }
 
