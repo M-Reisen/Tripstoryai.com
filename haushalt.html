@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<script src="/fehler.js"></script>
+<script defer src="/_vercel/insights/script.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travona · Haushaltsbuch</title>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4EFE8">
+<link href="/fonts/fonts.css" rel="stylesheet">
+<script src="/vendor/supabase-js-2.117.2.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--paper:#F4EFE8;--card:#FBF8F3;--well:#EFE7DC;--ink:#1A1714;--fog:#6B6560;--rule:#D8D0C4;--terra:#B5714A;--teal:#2C5F6A;--green:#3F7D58;--red:#b3261e;--white:#fff;}
+body{background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100vh;}
+header{background:var(--white);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:50;box-shadow:0 1px 4px rgba(26,23,20,.06);}
+.hd{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;}
+.hd img{height:40px;width:auto;max-width:46vw;object-fit:contain;background:#fff;padding:5px 10px;border-radius:10px;box-shadow:0 0 14px rgba(108,92,231,.35);}
+.hd nav{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 13px;border-radius:9px;font:500 .78rem 'DM Sans',sans-serif;cursor:pointer;background:transparent;color:var(--fog);border:1px solid var(--rule);text-decoration:none;}
+.btn:hover{color:var(--ink);border-color:var(--ink);}
+.btn-primary{background:var(--terra);color:#fff;border-color:var(--terra);}
+.btn-primary:hover{background:#9c5f3c;color:#fff;border-color:#9c5f3c;}
+main{max-width:960px;margin:0 auto;padding:28px 16px 80px;}
+.eyebrow{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--terra);margin-bottom:10px;}
+h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw,44px);line-height:1.1;margin-bottom:8px;}
+.sub{color:var(--fog);font-size:.92rem;line-height:1.55;margin-bottom:18px;}
+.nav-m{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+.nav-m .arrow{width:40px;height:40px;border-radius:50%;border:1px solid var(--rule);background:var(--white);font-size:1.1rem;cursor:pointer;color:var(--ink);}
+.nav-m .cur{font-family:'Playfair Display',serif;font-size:1.35rem;min-width:170px;text-align:center;}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-left:auto;}
+.seg button{background:var(--white);border:none;padding:8px 14px;font:500 .8rem 'DM Sans',sans-serif;color:var(--fog);cursor:pointer;}
+.seg button.on{background:var(--ink);color:var(--paper);}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:22px;padding:16px;margin-bottom:18px;}
+.card h2{font-family:'Playfair Display',serif;font-weight:400;font-size:1.45rem;margin:4px 4px 12px;}
+/* Eingabe */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 4px;}
+.form .full{grid-column:1/-1;}
+.form label{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);margin-bottom:5px;}
+.form input,.form select{width:100%;font:500 .95rem 'DM Sans',sans-serif;padding:10px 12px;border:1px solid var(--rule);border-radius:10px;background:#fff;color:var(--ink);}
+.form input.big{font-size:1.25rem;}
+.art{display:flex;gap:8px;}
+.art button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--rule);background:#fff;font:500 .88rem 'DM Sans',sans-serif;cursor:pointer;color:var(--fog);}
+.art button.on.aus{background:var(--terra);border-color:var(--terra);color:#fff;}
+.art button.on.ein{background:var(--green);border-color:var(--green);color:#fff;}
+.chips{display:flex;flex-wrap:wrap;gap:7px;}
+.chip{padding:7px 11px;border-radius:20px;border:1px solid var(--rule);background:#fff;font:500 .82rem 'DM Sans',sans-serif;cursor:pointer;color:var(--ink);}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--paper);}
+.chk{display:flex;align-items:center;gap:8px;font-size:.86rem;color:var(--ink);}
+.chk input{width:18px;height:18px;}
+.form-act{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+.form-act .btn{padding:10px 18px;font-size:.9rem;}
+/* Übersicht */
+.well{background:var(--well);border-radius:16px;padding:24px 18px;display:flex;align-items:center;justify-content:center;gap:28px;flex-wrap:wrap;}
+.donut{position:relative;width:200px;height:200px;flex:0 0 auto;}
+.donut svg{width:100%;height:100%;transform:rotate(-90deg);}
+.donut .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.donut .mid small{font-size:.7rem;letter-spacing:.14em;color:var(--fog);}
+.donut .mid b{font-family:'Playfair Display',serif;font-weight:400;font-size:1.6rem;margin-top:4px;}
+.legend{min-width:230px;flex:1 1 230px;max-width:360px;}
+.lg{display:flex;align-items:center;gap:10px;padding:5px 0;font-size:.92rem;}
+.lg i{width:11px;height:11px;border-radius:50%;flex:0 0 auto;}
+.lg span{flex:1;}
+.lg em{font-style:normal;color:var(--fog);font-size:.78rem;margin-left:4px;}
+.lg b{font-weight:500;white-space:nowrap;}
+.budget{margin-top:16px;}
+.budget-line{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--fog);margin-bottom:7px;}
+.budget-line button{background:none;border:none;color:var(--terra);font:500 .8rem 'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;padding:0;}
+.bar{height:9px;border-radius:9px;background:#DDD3C6;overflow:hidden;}
+.bar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--teal),var(--terra));}
+.bar.over i{background:var(--red);}
+.budget-edit{display:none;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;}
+.budget-edit.open{display:flex;}
+.budget-edit input{width:130px;font:500 .9rem 'DM Sans',sans-serif;padding:7px 10px;border:1px solid var(--rule);border-radius:9px;background:#fff;}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.tile{background:var(--well);border-radius:14px;padding:14px;}
+.tile small{display:block;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);margin-bottom:6px;}
+.tile b{font-family:'Playfair Display',serif;font-weight:400;font-size:1.45rem;}
+.tile b.pos{color:var(--green);}
+.tile b.neg{color:var(--red);}
+.tile span{display:block;font-size:.76rem;color:var(--fog);margin-top:3px;}
+.days{display:flex;flex-direction:column;gap:7px;padding:0 4px;}
+.day{display:grid;grid-template-columns:92px 1fr 84px;align-items:center;gap:10px;font-size:.82rem;}
+.day .t{height:10px;border-radius:6px;background:#E5DCD0;overflow:hidden;position:relative;}
+.day .t i{display:block;height:100%;background:var(--teal);border-radius:6px;}
+.day .t i.ein{background:var(--green);opacity:.55;position:absolute;left:0;top:0;}
+.day b{text-align:right;font-weight:500;}
+/* Buchungsliste */
+.grp{padding:0 4px;}
+.grp h3{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--fog);font-weight:500;margin:14px 0 4px;}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--rule);font-size:.9rem;}
+.row .ico{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:1rem;}
+.row .txt{flex:1;min-width:0;}
+.row .txt small{display:block;color:var(--fog);font-size:.74rem;margin-top:2px;}
+.row .amt{font-weight:500;white-space:nowrap;}
+.row .amt.ein{color:var(--green);}
+.row .act{display:flex;gap:2px;}
+.row .act button{background:none;border:none;font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;color:var(--fog);}
+.row .act button:hover{background:var(--well);}
+.fixtag{display:inline-block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;background:var(--well);color:var(--fog);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px;}
+.hint{background:var(--well);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;margin-bottom:12px;}
+.empty{text-align:center;padding:34px 16px;color:var(--fog);}
+.empty .big{font-size:2.4rem;margin-bottom:8px;}
+.note{font-size:.74rem;color:var(--fog);margin-top:10px;padding:0 4px;line-height:1.5;}
+.tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;}
+/* Jahr */
+.yr{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;align-items:end;height:170px;padding:0 4px;}
+.yr .m{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;cursor:pointer;}
+.yr .bars{display:flex;gap:2px;align-items:flex-end;height:140px;width:100%;justify-content:center;}
+.yr .bars i{display:block;width:42%;border-radius:4px 4px 0 0;min-height:1px;}
+.yr .bars i.a{background:var(--terra);}
+.yr .bars i.e{background:var(--green);opacity:.7;}
+.yr .m small{font-size:.68rem;color:var(--fog);}
+.yr-leg{display:flex;gap:14px;font-size:.76rem;color:var(--fog);padding:8px 4px 0;}
+.yr-leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;}
+#undo{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 12px 10px 18px;border-radius:12px;font-size:.86rem;display:none;align-items:center;gap:14px;z-index:610;box-shadow:0 6px 20px rgba(0,0,0,.2);}
+#undo.show{display:flex;}
+#undo button{background:var(--paper);color:var(--ink);border:none;border-radius:8px;padding:7px 12px;font:600 .82rem 'DM Sans',sans-serif;cursor:pointer;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:11px 22px;border-radius:9px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media(max-width:560px){.donut{width:180px;height:180px;}.day{grid-template-columns:78px 1fr 74px;font-size:.78rem;}.form{grid-template-columns:1fr;}.seg{margin-left:0;}.nav-m .cur{min-width:0;flex:1;}.yr{gap:3px;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <a href="/index.html"><img src="https://celihvrblqqivtlvzbjp.supabase.co/storage/v1/object/public/Reisefotos/Logo/travona-full.png.PNG" alt="Travona"></a>
+    <nav>
+      <a class="btn" href="/meine-reisen.html">Meine Reisen</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <p class="eyebrow">Privat · nur für dich</p>
+  <h1>Haushaltsbuch</h1>
+  <p class="sub">Ausgaben und Einnahmen pro Monat, nach Kategorien sortiert, mit Monatsbudget.</p>
+  <div id="app" style="display:none">
+    <div class="nav-m">
+      <button class="arrow" id="prev" type="button" aria-label="Zurück">‹</button>
+      <div class="cur" id="cur-label"></div>
+      <button class="arrow" id="next" type="button" aria-label="Weiter">›</button>
+      <div class="seg"><button type="button" id="v-monat" class="on">Monat</button><button type="button" id="v-jahr">Jahr</button></div>
+    </div>
+
+    <div id="monat">
+      <div class="card" id="form-card">
+        <h2 id="form-title">Neue Buchung</h2>
+        <div class="form">
+          <div class="full art"><button type="button" id="art-aus" class="aus on">Ausgabe</button><button type="button" id="art-ein" class="ein">Einnahme</button></div>
+          <div><label for="f-betrag">Betrag (€)</label><input id="f-betrag" class="big" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+          <div><label for="f-datum">Datum</label><input id="f-datum" type="date"></div>
+          <div class="full"><label>Kategorie</label><div class="chips" id="f-cats"></div></div>
+          <div class="full"><label for="f-text">Beschreibung (optional)</label><input id="f-text" type="text" maxlength="200" placeholder="z. B. Wocheneinkauf Edeka"></div>
+          <div class="full"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--ink)"><input id="f-fix" type="checkbox"> Fixkosten (jeden Monat gleich, z. B. Miete, Versicherung, Abo)</label></div>
+          <div class="full form-act"><button type="button" class="btn" id="f-cancel" style="display:none">Abbrechen</button><button type="button" class="btn btn-primary" id="f-save">Speichern</button></div>
+        </div>
+      </div>
+      <div id="m-out"></div>
+    </div>
+    <div id="jahr" style="display:none"></div>
+  </div>
+  <div id="msg"><div class="empty"><div class="big">⏳</div>Wird geladen …</div></div>
+</main>
+<div id="undo"><span id="undo-t">Buchung gelöscht</span><button type="button" id="undo-b">Rückgängig</button></div>
+<div id="toast"></div>
+
+<script>
+var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
+var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
+var sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// Haushalts-Kategorien (Farben in der Travona-Palette)
+var CATS=[
+  {k:'lebensmittel',l:'Lebensmittel',e:'🛒',c:'#2C5F6A'},
+  {k:'wohnen',l:'Wohnen & Energie',e:'🏠',c:'#B5714A'},
+  {k:'mobilitaet',l:'Mobilität',e:'🚗',c:'#6E8A99'},
+  {k:'versicherung',l:'Versicherungen',e:'🛡️',c:'#7A8A6A'},
+  {k:'vertraege',l:'Verträge & Abos',e:'📱',c:'#5B6C8F'},
+  {k:'restaurant',l:'Restaurant & Café',e:'🍽️',c:'#C98B5E'},
+  {k:'freizeit',l:'Freizeit & Hobby',e:'🎭',c:'#D4B48C'},
+  {k:'gesundheit',l:'Gesundheit',e:'💊',c:'#8FB3A6'},
+  {k:'kleidung',l:'Kleidung',e:'👕',c:'#9A6B7D'},
+  {k:'drogerie',l:'Haushalt & Drogerie',e:'🧴',c:'#A3A07A'},
+  {k:'geschenke',l:'Geschenke',e:'🎁',c:'#C77D8A'},
+  {k:'urlaub',l:'Urlaub',e:'✈️',c:'#4F8A9A'},
+  {k:'sparen',l:'Sparen & Anlage',e:'🏦',c:'#3F5E4A'},
+  {k:'sonst',l:'Sonstiges',e:'📦',c:'#B8AFA4'}
+];
+var INCATS=[
+  {k:'gehalt',l:'Gehalt',e:'💼',c:'#3F7D58'},
+  {k:'erstattung',l:'Erstattung',e:'↩️',c:'#6FA383'},
+  {k:'einnahme_sonst',l:'Sonstige Einnahme',e:'💶',c:'#9BC2A8'}
+];
+function catOf(k){return CATS.concat(INCATS).find(function(c){return c.k===k;})||{k:k,l:k,e:'📦',c:'#B8AFA4'};}
+
+var user=null,view='monat',ym=thisMonth(),rows=[],budget=0,form={art:'ausgabe',cat:'lebensmittel',edit:null},pendingDel=null;
+
+function thisMonth(){var d=new Date();return {y:d.getFullYear(),m:d.getMonth()+1};}
+function pad(n){return (n<10?'0':'')+n;}
+function monthStart(o){return o.y+'-'+pad(o.m)+'-01';}
+function monthEnd(o){var d=new Date(o.y,o.m,0);return o.y+'-'+pad(o.m)+'-'+pad(d.getDate());}
+function addMonth(o,n){var d=new Date(o.y,o.m-1+n,1);return {y:d.getFullYear(),m:d.getMonth()+1};}
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function monthName(o){return new Date(o.y,o.m-1,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];});}
+function eur(n){return Math.round(n).toLocaleString('de-DE')+' €';}
+function eur2(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show');},2600);}
+function msg(h){var m=document.getElementById('msg');m.innerHTML=h;m.style.display=h?'':'none';}
+function parseBetrag(s){
+  s=String(s||'').trim().replace(/\s|€/g,'');
+  if(s.indexOf(',')>=0)s=s.replace(/\./g,'').replace(',','.');   // 1.234,56 → 1234.56
+  var v=parseFloat(s);return isFinite(v)?Math.round(v*100)/100:NaN;
+}
+
+async function init(){
+  var s=await sb.auth.getSession();
+  user=s.data&&s.data.session?s.data.session.user:null;
+  if(!user){location.replace('/meine-reisen.html?weiter='+encodeURIComponent(location.pathname));return;}
+  var a=await sb.rpc('ist_admin');
+  if(!a||a.data!==true){msg('<div class="card"><div class="empty"><div class="big">🔒</div>Das Haushaltsbuch ist ein privater Bereich.<br><br><a class="btn btn-primary" href="/meine-reisen.html">Zu Meine Reisen</a></div></div>');return;}
+  var b=await sb.from('haushalt_einstellungen').select('budget').eq('owner',user.id).maybeSingle();
+  if(b.error){msg('<div class="empty"><div class="big">⚠️</div>Das Haushaltsbuch ist noch nicht eingerichtet (Datenbank).</div>');return;}
+  budget=b.data?Number(b.data.budget)||0:0;
+  var q=new URLSearchParams(location.search).get('monat');
+  if(/^\d{4}-\d{2}$/.test(q||''))ym={y:+q.slice(0,4),m:+q.slice(5,7)};
+  msg('');document.getElementById('app').style.display='';
+  wireForm();
+  document.getElementById('prev').onclick=function(){ym=view==='jahr'?{y:ym.y-1,m:ym.m}:addMonth(ym,-1);load();};
+  document.getElementById('next').onclick=function(){ym=view==='jahr'?{y:ym.y+1,m:ym.m}:addMonth(ym,1);load();};
+  document.getElementById('v-monat').onclick=function(){setView('monat');};
+  document.getElementById('v-jahr').onclick=function(){setView('jahr');};
+  load();
+}
+function setView(v){
+  view=v;
+  document.getElementById('v-monat').classList.toggle('on',v==='monat');
+  document.getElementById('v-jahr').classList.toggle('on',v==='jahr');
+  document.getElementById('monat').style.display=v==='monat'?'':'none';
+  document.getElementById('jahr').style.display=v==='jahr'?'':'none';
+  load();
+}
+
+async function load(){
+  var from,to,lbl;
+  if(view==='jahr'){from=ym.y+'-01-01';to=ym.y+'-12-31';lbl=String(ym.y);}
+  else{from=monthStart(ym);to=monthEnd(ym);lbl=monthName(ym);
+    try{history.replaceState(null,'','/haushalt.html?monat='+ym.y+'-'+pad(ym.m));}catch(e){}}
+  document.getElementById('cur-label').textContent=lbl;
+  if(view==='monat'&&!form.edit)setDefaultDate();
+  var key=view+lbl;load._k=key;
+  var res=await sb.from('haushalt_buchungen').select('*').eq('owner',user.id).gte('datum',from).lte('datum',to)
+    .order('datum',{ascending:false}).order('created_at',{ascending:false});
+  if(load._k!==key)return;
+  var target=document.getElementById(view==='jahr'?'jahr':'m-out');
+  if(res.error){target.innerHTML='<div class="empty"><div class="big">⚠️</div>Buchungen konnten nicht geladen werden.</div>';return;}
+  rows=(res.data||[]).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
+  if(view==='jahr')renderYear();else renderMonth();
+}
+
+/* ---------- Eingabe ---------- */
+function setDefaultDate(){
+  var t=todayISO(),d=document.getElementById('f-datum');
+  d.value=(t>=monthStart(ym)&&t<=monthEnd(ym))?t:monthStart(ym);
+}
+function renderChips(){
+  var list=form.art==='einnahme'?INCATS:CATS;
+  if(!list.some(function(c){return c.k===form.cat;}))form.cat=list[0].k;
+  document.getElementById('f-cats').innerHTML=list.map(function(c){
+    return '<button type="button" class="chip'+(c.k===form.cat?' on':'')+'" data-k="'+c.k+'">'+c.e+' '+esc(c.l)+'</button>';
+  }).join('');
+}
+function setArt(a){
+  form.art=a;
+  document.getElementById('art-aus').classList.toggle('on',a==='ausgabe');
+  document.getElementById('art-ein').classList.toggle('on',a==='einnahme');
+  document.getElementById('f-text').placeholder=a==='einnahme'?'z. B. Gehalt November':'z. B. Wocheneinkauf Edeka';
+  renderChips();
+}
+function wireForm(){
+  document.getElementById('art-aus').onclick=function(){setArt('ausgabe');};
+  document.getElementById('art-ein').onclick=function(){setArt('einnahme');};
+  document.getElementById('f-cats').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;form.cat=b.dataset.k;renderChips();};
+  document.getElementById('f-save').onclick=save;
+  document.getElementById('f-cancel').onclick=resetForm;
+  ['f-betrag','f-text'].forEach(function(id){document.getElementById(id).onkeydown=function(e){if(e.key==='Enter')save();};});
+  setArt('ausgabe');
+}
+function resetForm(){
+  form.edit=null;
+  document.getElementById('form-title').textContent='Neue Buchung';
+  document.getElementById('f-cancel').style.display='none';
+  document.getElementById('f-betrag').value='';
+  document.getElementById('f-text').value='';
+  document.getElementById('f-fix').checked=false;
+  setDefaultDate();
+}
+function startEdit(id){
+  var r=rows.find(function(x){return x.id===id;});if(!r)return;
+  form.edit=id;form.cat=r.kategorie;setArt(r.art);
+  document.getElementById('form-title').textContent='Buchung ändern';
+  document.getElementById('f-cancel').style.display='';
+  document.getElementById('f-betrag').value=r.betrag.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});
+  document.getElementById('f-datum').value=r.datum;
+  document.getElementById('f-text').value=r.beschreibung||'';
+  document.getElementById('f-fix').checked=!!r.fix;
+  document.getElementById('form-card').scrollIntoView({behavior:'smooth',block:'start'});
+}
+async function save(){
+  var v=parseBetrag(document.getElementById('f-betrag').value);
+  var d=document.getElementById('f-datum').value;
+  if(!(v>0)||v>=10000000){toast('Bitte einen Betrag eingeben.');document.getElementById('f-betrag').focus();return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){toast('Bitte ein Datum wählen.');return;}
+  var rec={datum:d,betrag:v,art:form.art,kategorie:form.cat,beschreibung:document.getElementById('f-text').value.trim().slice(0,200),fix:document.getElementById('f-fix').checked};
+  var btn=document.getElementById('f-save');btn.disabled=true;
+  var res=form.edit
+    ?await sb.from('haushalt_buchungen').update(rec).eq('id',form.edit).select()
+    :await sb.from('haushalt_buchungen').insert(Object.assign({owner:user.id},rec)).select();
+  btn.disabled=false;
+  if(res.error||!res.data||!res.data.length){toast('Speichern hat nicht geklappt.');return;}
+  toast(form.edit?'Buchung geändert.':'Buchung gespeichert.');
+  var moved=d.slice(0,7)!==ym.y+'-'+pad(ym.m);
+  resetForm();
+  if(moved){ym={y:+d.slice(0,4),m:+d.slice(5,7)};}
+  load();
+  document.getElementById('f-betrag').focus();
+}
+
+/* ---------- Löschen mit „Rückgängig“ (ohne Rückfrage-Dialog) ---------- */
+function askDelete(id){
+  flushDelete();
+  var r=rows.find(function(x){return x.id===id;});if(!r)return;
+  if(form.edit===id)resetForm();
+  rows=rows.filter(function(x){return x.id!==id;});
+  renderMonth();
+  pendingDel={row:r,timer:setTimeout(flushDelete,4000)};
+  document.getElementById('undo-t').textContent='„'+(r.beschreibung||catOf(r.kategorie).l)+'“ gelöscht';
+  document.getElementById('undo').classList.add('show');
+}
+async function flushDelete(){
+  if(!pendingDel)return;
+  var p=pendingDel;pendingDel=null;clearTimeout(p.timer);
+  document.getElementById('undo').classList.remove('show');
+  var res=await sb.from('haushalt_buchungen').delete().eq('id',p.row.id);
+  if(res.error){toast('Löschen hat nicht geklappt.');load();}
+}
+document.getElementById('undo-b').onclick=function(){
+  if(!pendingDel)return;
+  clearTimeout(pendingDel.timer);pendingDel=null;
+  document.getElementById('undo').classList.remove('show');
+  load();
+};
+window.addEventListener('pagehide',flushDelete);
+
+/* ---------- Monatsansicht ---------- */
+function donut(parts,total){
+  var r=70,C=2*Math.PI*r,off=0,svg='';
+  parts.forEach(function(p){
+    var len=p.sum/total*C;
+    svg+='<circle cx="100" cy="100" r="'+r+'" fill="none" stroke="'+p.c+'" stroke-width="30" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';
+    off+=len;
+  });
+  return '<div class="donut"><svg viewBox="0 0 200 200" aria-hidden="true">'+svg+'</svg><div class="mid"><small>AUSGABEN</small><b>'+eur(total)+'</b></div></div>';
+}
+function catParts(list){
+  var sums={};list.forEach(function(r){sums[r.kategorie]=(sums[r.kategorie]||0)+r.betrag;});
+  return Object.keys(sums).map(function(k){var c=catOf(k);return {k:k,l:c.l,e:c.e,c:c.c,sum:sums[k]};}).sort(function(a,b){return b.sum-a.sum;});
+}
+function legendHtml(parts,total){
+  return parts.map(function(p){
+    var pct=p.sum/total*100;
+    return '<div class="lg"><i style="background:'+p.c+'"></i><span>'+esc(p.l)+'<em>'+(pct<1?'<1':Math.round(pct))+' %</em></span><b>'+eur(p.sum)+'</b></div>';
+  }).join('');
+}
+function budgetHtml(spent){
+  var line,bar='';
+  if(budget>0){
+    var pct=spent/budget*100;
+    line='Budget '+eur(budget)+' · '+Math.round(pct)+' % genutzt'+(pct>100?' (überschritten)':' · noch '+eur(budget-spent));
+    bar='<div class="bar'+(pct>100?' over':'')+'"><i style="width:'+Math.min(pct,100).toFixed(1)+'%"></i></div>';
+  }else line='Noch kein Monatsbudget festgelegt';
+  return '<div class="budget"><div class="budget-line"><span>'+line+'</span><button type="button" id="b-open">'+(budget>0?'Ändern':'Budget festlegen')+'</button></div>'+bar
+    +'<div class="budget-edit" id="b-edit"><input id="b-in" type="text" inputmode="decimal" placeholder="z. B. 2500" value="'+(budget>0?budget:'')+'"> €<button type="button" class="btn btn-primary" id="b-save">Speichern</button></div></div>';
+}
+function wireBudget(){
+  var o=document.getElementById('b-open');if(!o)return;
+  o.onclick=function(){document.getElementById('b-edit').classList.toggle('open');document.getElementById('b-in').focus();};
+  document.getElementById('b-save').onclick=saveBudget;
+  document.getElementById('b-in').onkeydown=function(e){if(e.key==='Enter')saveBudget();};
+}
+async function saveBudget(){
+  var raw=document.getElementById('b-in').value,v=raw.trim()===''?0:parseBetrag(raw);
+  if(!(v>=0)||v>=10000000){toast('Bitte einen Betrag eingeben.');return;}
+  var res=await sb.from('haushalt_einstellungen').upsert({owner:user.id,budget:v,updated_at:new Date().toISOString()}).select();
+  if(res.error||!res.data||!res.data.length){toast('Budget konnte nicht gespeichert werden.');return;}
+  budget=v;toast('Budget gespeichert.');renderMonth();
+}
+
+function renderMonth(){
+  var aus=rows.filter(function(r){return r.art==='ausgabe';}),ein=rows.filter(function(r){return r.art==='einnahme';});
+  var sA=aus.reduce(function(s,r){return s+r.betrag;},0),sE=ein.reduce(function(s,r){return s+r.betrag;},0);
+  var fixSum=aus.filter(function(r){return r.fix;}).reduce(function(s,r){return s+r.betrag;},0);
+  var h='';
+
+  // Hinweis: Fixkosten aus dem Vormonat übernehmen
+  if(!rows.some(function(r){return r.fix;}))h+='<div class="hint" id="fix-hint" style="display:none"><span id="fix-hint-t"></span><button type="button" class="btn btn-primary" id="fix-copy">Übernehmen</button></div>';
+
+  if(!rows.length){
+    h+='<div class="card"><div class="empty"><div class="big">🧾</div>Für '+esc(monthName(ym))+' gibt es noch keine Buchungen.<br>Trag oben deine erste Ausgabe ein.</div></div>';
+    document.getElementById('m-out').innerHTML=h;checkFixHint();return;
+  }
+  // Übersicht
+  var parts=catParts(aus);
+  h+='<div class="card"><h2>Übersicht</h2>'
+    +(sA>0?'<div class="well">'+donut(parts,sA)+'<div class="legend">'+legendHtml(parts,sA)+budgetHtml(sA)+'</div></div>'
+          :'<div class="well"><div class="legend">Noch keine Ausgaben in diesem Monat.'+budgetHtml(0)+'</div></div>')
+    +'</div>';
+  // Kennzahlen
+  var bal=sE-sA,now=todayISO(),nDays;
+  if(now>=monthStart(ym)&&now<=monthEnd(ym))nDays=+now.slice(8,10);
+  else nDays=+monthEnd(ym).slice(8,10);
+  h+='<div class="card"><h2>Kennzahlen</h2><div class="tiles">'
+    +'<div class="tile"><small>Ausgaben</small><b>'+eur(sA)+'</b><span>'+aus.length+' Buchungen</span></div>'
+    +'<div class="tile"><small>Einnahmen</small><b>'+eur(sE)+'</b><span>'+ein.length+' Buchungen</span></div>'
+    +(sE>0?'<div class="tile"><small>'+(bal>=0?'Übrig':'Minus')+'</small><b class="'+(bal>=0?'pos':'neg')+'">'+eur(bal)+'</b><span>'+(sE>0?Math.round(bal/sE*100)+' % der Einnahmen':'')+'</span></div>':'')
+    +'<div class="tile"><small>Fixkosten</small><b>'+eur(fixSum)+'</b><span>'+(sA>0?Math.round(fixSum/sA*100)+' % der Ausgaben':'')+'</span></div>'
+    +'<div class="tile"><small>Variabel pro Tag</small><b>'+eur((sA-fixSum)/nDays)+'</b><span>bei '+nDays+' Tagen</span></div>'
+    +'</div></div>';
+  // Ausgaben pro Tag (ohne Fixkosten)
+  var perDay={};aus.filter(function(r){return !r.fix;}).forEach(function(r){perDay[r.datum]=(perDay[r.datum]||0)+r.betrag;});
+  var dk=Object.keys(perDay).sort(),dmax=Math.max.apply(null,dk.map(function(k){return perDay[k];}).concat([1]));
+  if(dk.length){
+    h+='<div class="card"><h2>Variable Ausgaben pro Tag</h2><div class="days">'+dk.map(function(k){
+      var d=new Date(k+'T12:00:00').toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'short'});
+      return '<div class="day"><span>'+esc(d)+'</span><div class="t"><i style="width:'+(perDay[k]/dmax*100).toFixed(1)+'%"></i></div><b>'+eur(perDay[k])+'</b></div>';
+    }).join('')+'</div></div>';
+  }
+  // Buchungen nach Datum
+  var byDay={};rows.forEach(function(r){(byDay[r.datum]=byDay[r.datum]||[]).push(r);});
+  h+='<div class="card"><h2>Buchungen</h2><div class="grp">'+Object.keys(byDay).sort().reverse().map(function(d){
+    var lbl=new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+    return '<h3>'+esc(lbl)+'</h3>'+byDay[d].map(rowHtml).join('');
+  }).join('')+'</div>'
+    +'<div class="tools"><button type="button" class="btn" id="csv">⬇ Als CSV (Excel)</button></div></div>';
+  document.getElementById('m-out').innerHTML=h;
+  wireBudget();
+  document.getElementById('csv').onclick=exportCsv;
+  document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.edit);};});
+  document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){askDelete(b.dataset.del);};});
+  checkFixHint();
+}
+function rowHtml(r){
+  var c=catOf(r.kategorie),ein=r.art==='einnahme';
+  return '<div class="row"><div class="ico" style="background:'+c.c+'22">'+c.e+'</div>'
+    +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+'<small>'+esc(c.l)+'</small></div>'
+    +'<div class="amt'+(ein?' ein':'')+'">'+(ein?'+ ':'')+eur2(r.betrag)+'</div>'
+    +'<div class="act"><button type="button" data-edit="'+r.id+'" aria-label="Ändern">✎</button><button type="button" data-del="'+r.id+'" aria-label="Löschen">🗑</button></div></div>';
+}
+
+// Fixkosten: im Vormonat als „fix“ markierte Buchungen in diesen Monat kopieren
+async function checkFixHint(){
+  var el=document.getElementById('fix-hint');if(!el)return;
+  var pm=addMonth(ym,-1),key=ym.y+'-'+ym.m;checkFixHint._k=key;
+  var res=await sb.from('haushalt_buchungen').select('*').eq('owner',user.id).eq('fix',true).gte('datum',monthStart(pm)).lte('datum',monthEnd(pm));
+  if(checkFixHint._k!==key||res.error||!res.data||!res.data.length)return;
+  var list=res.data,sum=list.reduce(function(s,r){return s+Number(r.betrag);},0);
+  document.getElementById('fix-hint-t').textContent=list.length+' Fixposten aus '+new Date(pm.y,pm.m-1,1).toLocaleDateString('de-DE',{month:'long'})+' ('+eur(sum)+') übernehmen?';
+  el.style.display='';
+  document.getElementById('fix-copy').onclick=async function(){
+    this.disabled=true;
+    var last=+monthEnd(ym).slice(8,10);
+    var ins=list.map(function(r){
+      var day=Math.min(+r.datum.slice(8,10),last);
+      return {owner:user.id,datum:ym.y+'-'+pad(ym.m)+'-'+pad(day),betrag:r.betrag,art:r.art,kategorie:r.kategorie,beschreibung:r.beschreibung,fix:true};
+    });
+    var x=await sb.from('haushalt_buchungen').insert(ins).select();
+    if(x.error){this.disabled=false;toast('Übernehmen hat nicht geklappt.');return;}
+    toast(ins.length+' Fixposten übernommen.');load();
+  };
+}
+
+function exportCsv(){
+  var lines=[['Datum','Art','Kategorie','Beschreibung','Betrag','Fix']];
+  rows.slice().sort(function(a,b){return a.datum.localeCompare(b.datum);}).forEach(function(r){
+    lines.push([r.datum.split('-').reverse().join('.'),r.art==='einnahme'?'Einnahme':'Ausgabe',catOf(r.kategorie).l,r.beschreibung||'',
+      (r.art==='einnahme'?'':'-')+r.betrag.toFixed(2).replace('.',','),r.fix?'ja':'']);
+  });
+  var csv='﻿'+lines.map(function(l){return l.map(function(v){v=String(v);if(/^[=+\-@]/.test(v)&&isNaN(parseFloat(v.replace(',','.'))))v="'"+v;return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(';');}).join('\r\n');
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download='haushaltsbuch-'+ym.y+'-'+pad(ym.m)+'.csv';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+}
+
+/* ---------- Jahresansicht ---------- */
+function renderYear(){
+  var el=document.getElementById('jahr');
+  if(!rows.length){el.innerHTML='<div class="card"><div class="empty"><div class="big">📅</div>Für '+ym.y+' gibt es noch keine Buchungen.</div></div>';return;}
+  var A=new Array(12).fill(0),E=new Array(12).fill(0);
+  rows.forEach(function(r){var m=+r.datum.slice(5,7)-1;if(r.art==='einnahme')E[m]+=r.betrag;else A[m]+=r.betrag;});
+  var max=Math.max.apply(null,A.concat(E).concat([1]));
+  var sA=A.reduce(function(s,v){return s+v;},0),sE=E.reduce(function(s,v){return s+v;},0);
+  var used=A.filter(function(v){return v>0;}).length||1;
+  var bars='<div class="yr">'+A.map(function(v,i){
+    var n=new Date(ym.y,i,1).toLocaleDateString('de-DE',{month:'short'}).replace('.','');
+    return '<div class="m" data-m="'+(i+1)+'" title="'+esc(n+': Ausgaben '+eur(v)+', Einnahmen '+eur(E[i]))+'"><div class="bars"><i class="a" style="height:'+(v/max*100).toFixed(1)+'%"></i><i class="e" style="height:'+(E[i]/max*100).toFixed(1)+'%"></i></div><small>'+esc(n)+'</small></div>';
+  }).join('')+'</div><div class="yr-leg"><span><i style="background:var(--terra)"></i>Ausgaben</span><span><i style="background:var(--green);opacity:.7"></i>Einnahmen</span><span>Tipp: Monat antippen</span></div>';
+  var bal=sE-sA,aus=rows.filter(function(r){return r.art==='ausgabe';}),parts=catParts(aus);
+  el.innerHTML='<div class="card"><h2>'+ym.y+' im Überblick</h2>'+bars+'</div>'
+    +'<div class="card"><h2>Kennzahlen</h2><div class="tiles">'
+      +'<div class="tile"><small>Ausgaben</small><b>'+eur(sA)+'</b><span>Ø '+eur(sA/used)+' pro Monat</span></div>'
+      +'<div class="tile"><small>Einnahmen</small><b>'+eur(sE)+'</b></div>'
+      +(sE>0?'<div class="tile"><small>'+(bal>=0?'Übrig':'Minus')+'</small><b class="'+(bal>=0?'pos':'neg')+'">'+eur(bal)+'</b></div>':'')
+    +'</div></div>'
+    +(sA>0?'<div class="card"><h2>Ausgaben nach Kategorie</h2><div class="well">'+donut(parts,sA)+'<div class="legend">'+legendHtml(parts,sA)+'</div></div></div>':'');
+  el.querySelectorAll('[data-m]').forEach(function(m){m.onclick=function(){ym={y:ym.y,m:+m.dataset.m};setView('monat');};});
+}
+
+init();
+</script>
+</body>
+</html>
