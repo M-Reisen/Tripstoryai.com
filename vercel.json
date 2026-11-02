@@ -10,7 +10,8 @@
     { "source": "/reisetagebuch", "destination": "/api/reisetagebuch" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/testen", "destination": "/testen.html" },
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin", "destination": "/admin.html" },
+    { "source": "/haushalt", "destination": "/haushalt.html" }
   ],
   "headers": [
     {
