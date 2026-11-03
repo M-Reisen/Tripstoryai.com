@@ -440,7 +440,8 @@ function renderMonth(){
 
   if(!rows.length){
     h+='<div class="card"><div class="empty"><div class="big">🧾</div>Für '+esc(monthName(ym))+' gibt es noch keine Buchungen.<br>Trag oben deine erste Ausgabe ein.</div></div>';
-    document.getElementById('m-out').innerHTML=h;checkFixHint();return;
+    h+=appCard();
+    document.getElementById('m-out').innerHTML=h;document.getElementById('app-export').onclick=exportForApp;checkFixHint();return;
   }
   // Übersicht
   var parts=catParts(aus);
@@ -475,9 +476,11 @@ function renderMonth(){
     return '<h3>'+esc(lbl)+'</h3>'+byDay[d].map(rowHtml).join('');
   }).join('')+'</div>'
     +'<div class="tools"><button type="button" class="btn" id="csv">⬇ Als CSV (Excel)</button></div></div>';
+  h+=appCard();
   document.getElementById('m-out').innerHTML=h;
   wireBudget();
   document.getElementById('csv').onclick=exportCsv;
+  document.getElementById('app-export').onclick=exportForApp;
   document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.edit);};});
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){askDelete(b.dataset.del);};});
   checkFixHint();
@@ -527,6 +530,27 @@ async function checkFixHint(){
       toast(ins.length+' Fixposten übernommen.');load();
     };
   };
+}
+
+// Umzug in die Haushaltsbuch-App (läuft ohne Internet, Daten nur auf dem iPhone)
+function appCard(){
+  return '<div class="card"><h2>📱 Haushaltsbuch-App</h2><p class="note" style="margin:0 4px 12px;font-size:.84rem">Die App läuft ohne Internet, die Daten bleiben nur auf dem iPhone. Umzug: 1. Hier „Alle Buchungen für die App sichern“ tippen und die Datei in „Dateien“ ablegen. 2. <a href="/haushalt-app/" style="color:var(--terra)">travona.de/haushalt-app</a> in Safari öffnen, Teilen ↑ › „Zum Home-Bildschirm“. 3. In der App unten „Sicherung einlesen“ und die Datei wählen.</p>'
+    +'<div class="tools" style="justify-content:flex-start;padding:0 4px"><button type="button" class="btn btn-primary" id="app-export">💾 Alle Buchungen für die App sichern</button></div></div>';
+}
+async function exportForApp(){
+  var res=await sb.from('haushalt_buchungen').select('*').eq('owner',user.id).order('datum',{ascending:true});
+  if(res.error){toast('Buchungen konnten nicht geladen werden.');return;}
+  var list=(res.data||[]).filter(function(r){return r.kategorie!=='startguthaben';}).map(function(r){
+    return {id:r.id,datum:r.datum,betrag:Number(r.betrag),art:r.art,kategorie:r.kategorie,beschreibung:r.beschreibung||'',fix:!!r.fix,created_at:r.created_at};
+  });
+  var data=JSON.stringify({app:'travona-haushaltsbuch',version:1,exportiert:new Date().toISOString(),buchungen:list,einstellungen:{budget:budget}},null,1);
+  var name='haushaltsbuch-sicherung-'+todayISO()+'.json',file=null;
+  try{file=new File([data],name,{type:'application/json'});}catch(e){}
+  try{if(file&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Haushaltsbuch-Sicherung'});toast(list.length+' Buchungen gesichert.');return;}}
+  catch(e){if(e&&e.name==='AbortError')return;}
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type:'application/json'}));a.download=name;
+  document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+  toast(list.length+' Buchungen gesichert.');
 }
 
 function exportCsv(){
