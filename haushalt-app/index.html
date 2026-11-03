@@ -120,6 +120,27 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 .sortseg button{padding:6px 10px;font-size:.76rem;flex:0 0 auto;}
 h3.cath{display:flex;justify-content:space-between;gap:8px;color:var(--ink);font-size:.78rem;}
 h3.cath b{font-weight:600;}
+/* Simulation */
+.sim summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.sim summary::-webkit-details-marker{display:none;}
+.sim summary h2{margin:0;}
+.sim summary .btn{pointer-events:none;}
+.sim[open] summary .btn .zu{display:none;}
+.sim:not([open]) summary .btn .auf{display:none;}
+.sim .simbody{margin-top:14px;}
+.sim h3{margin-top:16px;}
+.sim .fx .cur0{color:var(--fog);font-size:.72rem;}
+.sim .fx button.x{background:none;border:1px solid var(--rule);border-radius:8px;padding:6px 8px;cursor:pointer;color:var(--fog);font-size:.8rem;}
+.sim .fx button.x.on{background:var(--terra);color:#fff;border-color:var(--terra);}
+.sim .quick{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px;}
+.simtab{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:6px;}
+.simtab th,.simtab td{padding:7px 4px;border-top:1px solid var(--rule);text-align:right;white-space:nowrap;}
+.simtab th:first-child,.simtab td:first-child{text-align:left;white-space:normal;}
+.simtab thead th{border-top:none;color:var(--fog);font-weight:500;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;}
+.simtab tr.tot td{font-weight:600;border-top:2px solid var(--ink);}
+.simtab .pos{color:var(--green);}.simtab .neg{color:var(--red);}
+.simres{background:var(--well);border-radius:14px;padding:12px 14px;margin-top:12px;font-size:.9rem;line-height:1.5;}
+.simres b.pos{color:var(--green);}.simres b.neg{color:var(--red);}
 .hint{background:var(--well);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;margin-bottom:12px;}
 .empty{text-align:center;padding:34px 16px;color:var(--fog);}
 .empty .big{font-size:2.4rem;margin-bottom:8px;}
@@ -228,6 +249,9 @@ var INCATS=[
 ];
 function catOf(k){return CATS.concat(INCATS).find(function(c){return c.k===k;})||{k:k,l:k,e:'📦',c:'#B8AFA4'};}
 
+var SIMKEY='hb_simulation_v1';
+function simLoad(){try{return JSON.parse(localStorage.getItem(SIMKEY))||{};}catch(e){return {};}}
+function simSave(o){try{localStorage.setItem(SIMKEY,JSON.stringify(o));}catch(e){}}
 var sortBy=(function(){try{return localStorage.getItem('hb_sort')||'datum';}catch(e){return 'datum';}})();
 var user=null,view='monat',ym=thisMonth(),rows=[],budget=0,form={art:'ausgabe',cat:'lebensmittel',edit:null},pendingDel=null;
 
@@ -490,6 +514,8 @@ function renderMonth(){
     h+='<div class="card"><h2>Fixkosten</h2><div class="grp">'+fixRows.map(function(r){return rowHtml(r);}).join('')
       +'<div class="row sumrow"><div class="txt">Summe Fixkosten'+(sE>0?'<small>'+Math.round(fixSum/sE*100)+' % der Einnahmen</small>':'')+'</div><div class="amt">'+eur2(fixSum)+'</div></div></div></div>';
   }
+  // Simulation: fiktive Fixkosten und Einkommen
+  if(fixRows.length||sE>0)h+=simHtml(fixRows,sE,sA-fixSum);
   // Übrige Buchungen: nach Datum, Kategorie oder Betrag
   var rest=rows.filter(function(r){return !(r.fix&&r.art==='ausgabe');});
   var seg='<div class="seg sortseg">'+[['datum','Datum'],['kategorie','Kategorie'],['betrag','Betrag']].map(function(o){
@@ -521,6 +547,7 @@ function renderMonth(){
   document.querySelectorAll('[data-sort]').forEach(function(b){b.onclick=function(){sortBy=b.dataset.sort;try{localStorage.setItem('hb_sort',sortBy);}catch(e){}renderMonth();};});
   document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.edit);};});
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){askDelete(b.dataset.del);};});
+  wireSim(fixRows,sE,sA-fixSum);
   checkFixHint();
 }
 function rowHtml(r,withDate){
@@ -529,6 +556,62 @@ function rowHtml(r,withDate){
     +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+'<small>'+esc(withDate?new Date(r.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})+' · '+c.l:c.l)+'</small></div>'
     +'<div class="amt'+(ein?' ein':'')+'">'+(ein?'+ ':'')+eur2(r.betrag)+'</div>'
     +'<div class="act"><button type="button" data-edit="'+r.id+'" aria-label="Ändern">✎</button><button type="button" data-del="'+r.id+'" aria-label="Löschen">🗑</button></div></div>';
+}
+
+// ===== Simulation (nur Rechnung, ändert keine Buchungen) =====
+function simKey(r){return r.kategorie+'|'+(r.beschreibung||'').trim().toLowerCase();}
+function numIn(v){return String(Math.round(v*100)/100).replace('.',',');}
+function simHtml(fixRows,sE,varSum){
+  var st=simLoad(),fx=st.fix||{},open=!!st.open;
+  var ink=st.ein!=null?st.ein:sE,vk=st.variabel!=null?st.variabel:varSum;
+  var h='<details class="card sim" id="sim"'+(open?' open':'')+'><summary><h2>Simulation: Was wäre wenn?</h2><span class="btn"><span class="zu">Öffnen</span><span class="auf">Schließen</span></span></summary><div class="simbody">'
+    +'<p class="note" style="margin-top:0">Nur zum Durchrechnen. Deine Buchungen bleiben unverändert. Die Werte merkt sich die App für den nächsten Besuch.</p>'
+    +'<h3>Einkommen pro Monat</h3><div class="fixlist"><div class="fx"><span>Fiktives Einkommen<small class="cur0">aktuell '+eur2(sE)+'</small></span><input type="text" inputmode="decimal" id="sim-ein" value="'+numIn(ink)+'"></div></div>'
+    +'<div class="quick">'+[0,10,20,30,50].map(function(p){return '<button type="button" class="btn" data-simp="'+p+'">'+(p?'− '+p+' %':'wie jetzt')+'</button>';}).join('')+'</div>';
+  if(fixRows.length){
+    h+='<h3>Fixkosten</h3><div class="fixlist">'+fixRows.map(function(r){
+      var c=catOf(r.kategorie),k=simKey(r),v=fx[k]!=null?fx[k]:r.betrag;
+      return '<div class="fx"><span>'+c.e+' '+esc(r.beschreibung||c.l)+'<small class="cur0">aktuell '+eur2(r.betrag)+'</small></span>'
+        +'<input type="text" inputmode="decimal" data-simfix="'+esc(k)+'" data-cur="'+r.betrag+'" value="'+numIn(v)+'"'+(v!==r.betrag?' class="chg"':'')+'>'
+        +'<button type="button" class="x'+(v===0?' on':'')+'" data-simx="'+esc(k)+'" aria-label="Streichen">✕</button></div>';
+    }).join('')+'</div>';
+  }
+  h+='<h3>Variable Ausgaben pro Monat</h3><div class="fixlist"><div class="fx"><span>Lebensmittel, Freizeit usw.<small class="cur0">diesen Monat '+eur2(varSum)+'</small></span><input type="text" inputmode="decimal" id="sim-var" value="'+numIn(vk)+'"></div></div>'
+    +'<div id="sim-out"></div><div class="tools"><button type="button" class="btn" id="sim-reset">↺ Zurücksetzen</button></div></div></details>';
+  return h;
+}
+function simRead(v,fb){var n=parseBetrag(v);return (n>=0&&n<10000000)?n:(String(v).trim()===''?0:fb);}
+function wireSim(fixRows,sE,varSum){
+  var box=document.getElementById('sim');if(!box)return;
+  var curFix=fixRows.reduce(function(s,r){return s+r.betrag;},0);
+  function calc(save){
+    var ein=simRead(document.getElementById('sim-ein').value,sE),vr=simRead(document.getElementById('sim-var').value,varSum),fx={},sf=0;
+    box.querySelectorAll('[data-simfix]').forEach(function(i){var cur=+i.dataset.cur,v=simRead(i.value,cur);sf+=v;if(Math.abs(v-cur)>0.004)fx[i.dataset.simfix]=v;i.classList.toggle('chg',Math.abs(v-cur)>0.004);
+      var x=box.querySelector('[data-simx="'+i.dataset.simfix+'"]');if(x)x.classList.toggle('on',v===0);});
+    if(save){var st=simLoad();st.fix=Object.assign(st.fix||{},fx);
+      box.querySelectorAll('[data-simfix]').forEach(function(i){if(!(i.dataset.simfix in fx))delete st.fix[i.dataset.simfix];});
+      st.ein=Math.abs(ein-sE)>0.004?ein:null;st.variabel=Math.abs(vr-varSum)>0.004?vr:null;simSave(st);}
+    var restA=sE-curFix-varSum,restS=ein-sf-vr,spar=curFix-sf,sparV=varSum-vr;
+    function cell(n,sign){return '<td class="'+(sign?(n>=0?'pos':'neg'):'')+'">'+eur2(n)+'</td>';}
+    var t='<table class="simtab"><thead><tr><th></th><th>Aktuell</th><th>Simulation</th><th>Wirkung</th></tr></thead><tbody>'
+      +'<tr><td>Einkommen</td>'+cell(sE)+cell(ein)+cell(ein-sE,1)+'</tr>'
+      +'<tr><td>Fixkosten</td>'+cell(curFix)+cell(sf)+cell(curFix-sf,1)+'</tr>'
+      +'<tr><td>Variabel</td>'+cell(varSum)+cell(vr)+cell(varSum-vr,1)+'</tr>'
+      +'<tr class="tot"><td>Übrig</td>'+cell(restA,1)+cell(restS,1)+cell(restS-restA,1)+'</tr></tbody></table>';
+    var msg='Einsparung Fixkosten: <b class="'+(spar>=0?'pos':'neg')+'">'+eur2(spar)+'</b> im Monat, '+eur(spar*12)+' im Jahr.';
+    if(Math.abs(sparV)>0.004)msg+='<br>Einsparung variabel: <b class="'+(sparV>=0?'pos':'neg')+'">'+eur2(sparV)+'</b> im Monat.';
+    if(ein<sE-0.004)msg+='<br>Weniger Einkommen: '+eur2(sE-ein)+' im Monat ('+(sE>0?Math.round((sE-ein)/sE*100):0)+' %).';
+    msg+=restS>=0?'<br>Mit der Simulation bleiben dir <b class="pos">'+eur2(restS)+'</b> im Monat.':'<br>Mit der Simulation fehlen dir <b class="neg">'+eur2(-restS)+'</b> im Monat. So viel müsstest du noch einsparen.';
+    if(ein>0)msg+='<br>Fixkosten-Anteil am Einkommen: '+Math.round(sf/ein*100)+' % (aktuell '+(sE>0?Math.round(curFix/sE*100):0)+' %).';
+    document.getElementById('sim-out').innerHTML=t+'<div class="simres">'+msg+'</div>';
+  }
+  box.addEventListener('toggle',function(){var st=simLoad();st.open=box.open;simSave(st);});
+  box.querySelectorAll('input').forEach(function(i){i.addEventListener('input',function(){calc(true);});});
+  box.querySelectorAll('[data-simx]').forEach(function(b){b.onclick=function(){var i=box.querySelector('[data-simfix="'+b.dataset.simx+'"]');
+    i.value=b.classList.contains('on')?numIn(+i.dataset.cur):'0';calc(true);};});
+  box.querySelectorAll('[data-simp]').forEach(function(b){b.onclick=function(){document.getElementById('sim-ein').value=numIn(sE*(1-b.dataset.simp/100));calc(true);};});
+  document.getElementById('sim-reset').onclick=function(){simSave({open:true});renderMonth();};
+  calc(false);
 }
 
 // Fixkosten: im Vormonat als „fix“ markierte Buchungen in diesen Monat kopieren
