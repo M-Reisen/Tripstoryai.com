@@ -5,16 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Haushaltsbuch</title>
 <meta name="robots" content="noindex">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
-<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="/haushalt-app/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/haushalt-app/icon-180.png">
+<link rel="icon" href="/haushalt-app/icon-192.png">
 <meta name="apple-mobile-web-app-title" content="Haushalt">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#F4EFE8">
 <link href="/fonts/fonts.css" rel="stylesheet">
-<script src="speicher.js"></script>
+<script src="/haushalt-app/speicher.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{--paper:#F4EFE8;--card:#FBF8F3;--well:#EFE7DC;--ink:#1A1714;--fog:#6B6560;--rule:#D8D0C4;--terra:#B5714A;--teal:#2C5F6A;--green:#3F7D58;--red:#b3261e;--white:#fff;}
@@ -267,7 +267,7 @@ async function load(){
   var from,to,lbl;
   if(view==='jahr'){from=ym.y+'-01-01';to=ym.y+'-12-31';lbl=String(ym.y);}
   else{from=monthStart(ym);to=monthEnd(ym);lbl=monthName(ym);
-    try{history.replaceState(null,'','./?monat='+ym.y+'-'+pad(ym.m));}catch(e){}}
+    try{history.replaceState(null,'','/haushalt-app/?monat='+ym.y+'-'+pad(ym.m));}catch(e){}}
   document.getElementById('cur-label').textContent=lbl;
   if(view==='monat'&&!form.edit)setDefaultDate();
   var key=view+lbl;load._k=key;
@@ -631,7 +631,7 @@ var _load=load;load=async function(){await _load();backupStatus();};
 wireBackup();
 
 if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/haushalt-app/sw.js',{scope:'/haushalt-app/'}).catch(function(){});});
 }
 
 init();
