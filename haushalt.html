@@ -269,7 +269,8 @@ async function load(){
   if(load._k!==key)return;
   var target=document.getElementById(view==='jahr'?'jahr':'m-out');
   if(res.error){target.innerHTML='<div class="empty"><div class="big">⚠️</div>Buchungen konnten nicht geladen werden.</div>';return;}
-  rows=(res.data||[]).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
+  // „startguthaben“ stammt aus einer zurückgenommenen Übersicht und zählt hier nicht mit
+  rows=(res.data||[]).filter(function(r){return r.kategorie!=='startguthaben';}).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
   if(view==='jahr')renderYear();else renderMonth();
 }
 
