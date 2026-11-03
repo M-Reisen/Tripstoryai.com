@@ -116,31 +116,6 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 .note{font-size:.74rem;color:var(--fog);margin-top:10px;padding:0 4px;line-height:1.5;}
 .tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:6px;}
 /* Jahr */
-.flow{padding:0 4px;}
-.flow .fl{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--rule);font-size:.92rem;}
-.flow .fl:first-child{border-top:none;}
-.flow .fl b{font-weight:500;white-space:nowrap;}
-.flow .fl.sum{font-weight:600;border-top:2px solid var(--ink);}
-.flow .fl.sum b{font-weight:600;}
-.flow .fl .pos,.tbl .pos{color:var(--green);}
-.flow .fl .neg,.tbl .neg{color:var(--red);}
-.flow .fl small{color:var(--fog);font-size:.74rem;margin-left:6px;}
-.tblw{overflow-x:auto;margin:0 4px;}
-.tbl{width:100%;border-collapse:collapse;font-size:.82rem;}
-.tbl th{font-weight:500;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;color:var(--fog);text-align:right;padding:6px 6px;border-bottom:1px solid var(--rule);}
-.tbl th:first-child,.tbl td:first-child{text-align:left;}
-.tbl td{text-align:right;padding:8px 6px;border-bottom:1px solid var(--rule);white-space:nowrap;}
-.tbl tr.m{cursor:pointer;}
-.tbl tr.m:hover td{background:var(--well);}
-.tbl tr.leer td{color:#B8AFA4;}
-.tbl tfoot td{font-weight:600;border-top:2px solid var(--ink);border-bottom:none;}
-.tbl td.g{font-weight:600;}
-.start{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:.86rem;padding:0 4px 12px;}
-.start button{background:none;border:none;color:var(--terra);font:500 .84rem 'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;padding:0;}
-.start-edit{display:none;gap:8px;align-items:center;flex-wrap:wrap;padding:0 4px 14px;}
-.start-edit.open{display:flex;}
-.start-edit input{font:500 .9rem 'DM Sans',sans-serif;padding:7px 10px;border:1px solid var(--rule);border-radius:9px;background:#fff;}
-.start-edit input[type=text]{width:130px;}
 .yr{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;align-items:end;height:170px;padding:0 4px;}
 .yr .m{display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;cursor:pointer;}
 .yr .bars{display:flex;gap:2px;align-items:flex-end;height:140px;width:100%;justify-content:center;}
@@ -155,7 +130,7 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 #undo button{background:var(--paper);color:var(--ink);border:none;border-radius:8px;padding:7px 12px;font:600 .82rem 'DM Sans',sans-serif;cursor:pointer;}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:11px 22px;border-radius:9px;font-size:.84rem;opacity:0;transition:all .3s;pointer-events:none;z-index:600;}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-@media(max-width:560px){.seg{width:100%;}.seg button{flex:1;}.tbl{font-size:.72rem;}.tbl th{font-size:.6rem;letter-spacing:.02em;padding:6px 3px;}.tbl td{padding:8px 3px;}.donut{width:180px;height:180px;}.day{grid-template-columns:78px 1fr 74px;font-size:.78rem;}.form{grid-template-columns:1fr;}.seg{margin-left:0;}.nav-m .cur{min-width:0;flex:1;}.yr{gap:3px;}}
+@media(max-width:560px){.donut{width:180px;height:180px;}.day{grid-template-columns:78px 1fr 74px;font-size:.78rem;}.form{grid-template-columns:1fr;}.seg{margin-left:0;}.nav-m .cur{min-width:0;flex:1;}.yr{gap:3px;}}
 </style>
 </head>
 <body>
@@ -177,7 +152,7 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
       <button class="arrow" id="prev" type="button" aria-label="Zurück">‹</button>
       <div class="cur" id="cur-label"></div>
       <button class="arrow" id="next" type="button" aria-label="Weiter">›</button>
-      <div class="seg"><button type="button" id="v-monat" class="on">Monat</button><button type="button" id="v-jahr">Jahresübersicht</button></div>
+      <div class="seg"><button type="button" id="v-monat" class="on">Monat</button><button type="button" id="v-jahr">Jahr</button></div>
     </div>
 
     <div id="monat">
@@ -231,10 +206,9 @@ var INCATS=[
   {k:'erstattung',l:'Erstattung',e:'↩️',c:'#6FA383'},
   {k:'einnahme_sonst',l:'Sonstige Einnahme',e:'💶',c:'#9BC2A8'}
 ];
-var STARTCAT={k:'startguthaben',l:'Startguthaben',e:'🏦',c:'#3F7D58'};
-function catOf(k){return CATS.concat(INCATS,[STARTCAT]).find(function(c){return c.k===k;})||{k:k,l:k,e:'📦',c:'#B8AFA4'};}
+function catOf(k){return CATS.concat(INCATS).find(function(c){return c.k===k;})||{k:k,l:k,e:'📦',c:'#B8AFA4'};}
 
-var user=null,view='monat',ym=thisMonth(),rows=[],startRows=[],carry=0,startRow=null,budget=0,form={art:'ausgabe',cat:'lebensmittel',edit:null},pendingDel=null;
+var user=null,view='monat',ym=thisMonth(),rows=[],budget=0,form={art:'ausgabe',cat:'lebensmittel',edit:null},pendingDel=null;
 
 function thisMonth(){var d=new Date();return {y:d.getFullYear(),m:d.getMonth()+1};}
 function pad(n){return (n<10?'0':'')+n;}
@@ -292,17 +266,10 @@ async function load(){
   var key=view+lbl;load._k=key;
   var res=await sb.from('haushalt_buchungen').select('*').eq('owner',user.id).gte('datum',from).lte('datum',to)
     .order('datum',{ascending:false}).order('created_at',{ascending:false});
-  // Guthaben: alles vor dem Zeitraum aufsummieren, dazu das (erste) Startguthaben
-  var pre=await sb.from('haushalt_buchungen').select('betrag,art').eq('owner',user.id).lt('datum',from);
-  var st=await sb.from('haushalt_buchungen').select('*').eq('owner',user.id).eq('kategorie','startguthaben').order('datum',{ascending:true});
   if(load._k!==key)return;
   var target=document.getElementById(view==='jahr'?'jahr':'m-out');
-  if(res.error||pre.error||st.error){target.innerHTML='<div class="empty"><div class="big">⚠️</div>Buchungen konnten nicht geladen werden.</div>';return;}
-  carry=(pre.data||[]).reduce(function(s,r){return s+(r.art==='einnahme'?1:-1)*(Number(r.betrag)||0);},0);
-  startRow=st.data&&st.data.length?st.data[0]:null;
-  var all=(res.data||[]).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
-  startRows=all.filter(function(r){return r.kategorie==='startguthaben';});
-  rows=all.filter(function(r){return r.kategorie!=='startguthaben';});
+  if(res.error){target.innerHTML='<div class="empty"><div class="big">⚠️</div>Buchungen konnten nicht geladen werden.</div>';return;}
+  rows=(res.data||[]).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
   if(view==='jahr')renderYear();else renderMonth();
 }
 
@@ -470,25 +437,13 @@ function renderMonth(){
   // Hinweis: Fixkosten aus dem Vormonat übernehmen
   if(!rows.some(function(r){return r.fix;}))h+='<div class="hint" id="fix-hint" style="display:none"><span id="fix-hint-t"></span><button type="button" class="btn btn-primary" id="fix-copy">Übernehmen</button></div>';
 
-  if(!rows.length&&!startRows.length&&!carry){
+  if(!rows.length){
     h+='<div class="card"><div class="empty"><div class="big">🧾</div>Für '+esc(monthName(ym))+' gibt es noch keine Buchungen.<br>Trag oben deine erste Ausgabe ein.</div></div>';
     document.getElementById('m-out').innerHTML=h;checkFixHint();return;
   }
-  // Monatsübersicht mit fortgeschriebenem Guthaben
-  var fixRows=rows.filter(function(r){return r.fix&&r.art==='ausgabe';});
-  var stSum=startRows.reduce(function(s,r){return s+r.betrag;},0);
-  var anfang=carry+stSum,ende=anfang+sE-sA;
-  h+='<div class="card"><h2>Monatsübersicht</h2><div class="flow">'
-    +'<div class="fl"><span>Guthaben Monatsanfang'+(stSum?'<small>inkl. Startguthaben</small>':'')+'</span><b>'+eur2(anfang)+'</b></div>'
-    +'<div class="fl"><span>+ Einnahmen</span><b class="pos">'+eur2(sE)+'</b></div>'
-    +'<div class="fl"><span>− Fixkosten</span><b>'+eur2(fixSum)+'</b></div>'
-    +'<div class="fl"><span>− Variable Ausgaben</span><b>'+eur2(sA-fixSum)+'</b></div>'
-    +'<div class="fl"><span>= Saldo des Monats</span><b class="'+(sE-sA>=0?'pos':'neg')+'">'+(sE-sA>=0?'+ ':'')+eur2(sE-sA)+'</b></div>'
-    +'<div class="fl sum"><span>Guthaben Monatsende</span><b class="'+(ende>=0?'':'neg')+'">'+eur2(ende)+'</b></div>'
-    +'</div>'+(startRow?'':'<p class="note">Tipp: Trag in der Jahresübersicht dein Startguthaben (Kontostand) ein, dann stimmt das Guthaben.</p>')+'</div>';
   // Übersicht
   var parts=catParts(aus);
-  h+='<div class="card"><h2>Ausgaben nach Kategorie</h2>'
+  h+='<div class="card"><h2>Übersicht</h2>'
     +(sA>0?'<div class="well">'+donut(parts,sA)+'<div class="legend">'+legendHtml(parts,sA)+budgetHtml(sA)+'</div></div>'
           :'<div class="well"><div class="legend">Noch keine Ausgaben in diesem Monat.'+budgetHtml(0)+'</div></div>')
     +'</div>';
@@ -512,15 +467,9 @@ function renderMonth(){
       return '<div class="day"><span>'+esc(d)+'</span><div class="t"><i style="width:'+(perDay[k]/dmax*100).toFixed(1)+'%"></i></div><b>'+eur(perDay[k])+'</b></div>';
     }).join('')+'</div></div>';
   }
-  // Fixkosten extra
-  if(fixRows.length){
-    h+='<div class="card"><h2>Fixkosten</h2><div class="grp">'+fixRows.slice().sort(function(a,b){return b.betrag-a.betrag;}).map(rowHtml).join('')
-      +'<div class="row" style="font-weight:600"><div class="txt">Summe Fixkosten</div><div class="amt">'+eur2(fixSum)+'</div><div class="act" style="width:76px"></div></div></div></div>';
-  }
-  // Buchungen nach Datum (ohne Fixkosten)
-  var rest=rows.filter(function(r){return !(r.fix&&r.art==='ausgabe');});
-  var byDay={};rest.forEach(function(r){(byDay[r.datum]=byDay[r.datum]||[]).push(r);});
-  h+='<div class="card"><h2>'+(fixRows.length?'Weitere Buchungen':'Buchungen')+'</h2><div class="grp">'+(rest.length?'':'<p class="note">Noch keine weiteren Buchungen.</p>')+Object.keys(byDay).sort().reverse().map(function(d){
+  // Buchungen nach Datum
+  var byDay={};rows.forEach(function(r){(byDay[r.datum]=byDay[r.datum]||[]).push(r);});
+  h+='<div class="card"><h2>Buchungen</h2><div class="grp">'+Object.keys(byDay).sort().reverse().map(function(d){
     var lbl=new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
     return '<h3>'+esc(lbl)+'</h3>'+byDay[d].map(rowHtml).join('');
   }).join('')+'</div>'
@@ -594,64 +543,25 @@ function exportCsv(){
 /* ---------- Jahresansicht ---------- */
 function renderYear(){
   var el=document.getElementById('jahr');
-  var A=new Array(12).fill(0),E=new Array(12).fill(0),F=new Array(12).fill(0),S=new Array(12).fill(0),N=new Array(12).fill(0);
-  rows.forEach(function(r){var m=+r.datum.slice(5,7)-1;N[m]++;if(r.art==='einnahme')E[m]+=r.betrag;else{A[m]+=r.betrag;if(r.fix)F[m]+=r.betrag;}});
-  startRows.forEach(function(r){S[+r.datum.slice(5,7)-1]+=r.betrag;});
-  var sA=A.reduce(function(s,v){return s+v;},0),sE=E.reduce(function(s,v){return s+v;},0),sF=F.reduce(function(s,v){return s+v;},0);
-  var used=A.filter(function(v){return v>0;}).length||1;
-  // Startguthaben
-  var stTxt=startRow?'Startguthaben <b>'+eur2(Number(startRow.betrag))+'</b> am '+startRow.datum.split('-').reverse().join('.'):'Noch kein Startguthaben (Kontostand) eingetragen';
-  var start='<div class="start"><span>'+stTxt+'</span><button type="button" id="st-open">'+(startRow?'Ändern':'Startguthaben eintragen')+'</button></div>'
-    +'<div class="start-edit" id="st-edit"><input id="st-b" type="text" inputmode="decimal" placeholder="Kontostand" value="'+(startRow?Number(startRow.betrag).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false}):'')+'"> € am <input id="st-d" type="date" value="'+(startRow?startRow.datum:ym.y+'-01-01')+'"><button type="button" class="btn btn-primary" id="st-save">Speichern</button></div>';
-  // Tabelle mit Fortschreibung (Beträge in €, ohne Zeichen, damit sie aufs Handy passen)
-  var num=function(n){return Math.round(n).toLocaleString('de-DE');};
-  var run=carry,tr='';
-  for(var i=0;i<12;i++){
-    run+=S[i];
-    var saldo=E[i]-A[i];run+=saldo;
-    var n=new Date(ym.y,i,1).toLocaleDateString('de-DE',{month:'long'});
-    var leer=!N[i]&&!S[i];
-    tr+='<tr class="m'+(leer?' leer':'')+'" data-m="'+(i+1)+'"><td>'+esc(n)+'</td><td class="pos">'+(E[i]?num(E[i]):'–')+'</td><td>'+(F[i]?num(F[i]):'–')+'</td><td>'+(A[i]-F[i]?num(A[i]-F[i]):'–')+'</td><td class="'+(saldo>=0?'pos':'neg')+'">'+(N[i]?(saldo>0?'+':'')+num(saldo):'–')+'</td><td class="g'+(run<0?' neg':'')+'">'+num(run)+'</td></tr>';
-  }
-  var tbl='<div class="tblw"><table class="tbl"><thead><tr><th>Monat</th><th>Einnahmen</th><th>Fix</th><th>Variabel</th><th>Saldo</th><th>Guthaben</th></tr></thead><tbody>'+tr+'</tbody>'
-    +'<tfoot><tr><td>'+ym.y+'</td><td class="pos">'+num(sE)+'</td><td>'+num(sF)+'</td><td>'+num(sA-sF)+'</td><td class="'+(sE-sA>=0?'pos':'neg')+'">'+(sE-sA>0?'+':'')+num(sE-sA)+'</td><td'+(run<0?' class="neg"':'')+'>'+num(run)+'</td></tr></tfoot></table></div>'
-    +'<p class="note">Beträge in €. Guthaben = Startguthaben plus alle Einnahmen minus alle Ausgaben bis zum Monatsende'+(carry?' (inkl. Vorjahre: '+eur(carry)+' zum 1. Januar)':'')+'. Monat antippen öffnet ihn.</p>';
+  if(!rows.length){el.innerHTML='<div class="card"><div class="empty"><div class="big">📅</div>Für '+ym.y+' gibt es noch keine Buchungen.</div></div>';return;}
+  var A=new Array(12).fill(0),E=new Array(12).fill(0);
+  rows.forEach(function(r){var m=+r.datum.slice(5,7)-1;if(r.art==='einnahme')E[m]+=r.betrag;else A[m]+=r.betrag;});
   var max=Math.max.apply(null,A.concat(E).concat([1]));
+  var sA=A.reduce(function(s,v){return s+v;},0),sE=E.reduce(function(s,v){return s+v;},0);
+  var used=A.filter(function(v){return v>0;}).length||1;
   var bars='<div class="yr">'+A.map(function(v,i){
     var n=new Date(ym.y,i,1).toLocaleDateString('de-DE',{month:'short'}).replace('.','');
     return '<div class="m" data-m="'+(i+1)+'" title="'+esc(n+': Ausgaben '+eur(v)+', Einnahmen '+eur(E[i]))+'"><div class="bars"><i class="a" style="height:'+(v/max*100).toFixed(1)+'%"></i><i class="e" style="height:'+(E[i]/max*100).toFixed(1)+'%"></i></div><small>'+esc(n)+'</small></div>';
-  }).join('')+'</div><div class="yr-leg"><span><i style="background:var(--terra)"></i>Ausgaben</span><span><i style="background:var(--green);opacity:.7"></i>Einnahmen</span></div>';
+  }).join('')+'</div><div class="yr-leg"><span><i style="background:var(--terra)"></i>Ausgaben</span><span><i style="background:var(--green);opacity:.7"></i>Einnahmen</span><span>Tipp: Monat antippen</span></div>';
   var bal=sE-sA,aus=rows.filter(function(r){return r.art==='ausgabe';}),parts=catParts(aus);
-  el.innerHTML='<div class="card"><h2>Übersicht '+ym.y+'</h2>'+start+tbl+'</div>'
+  el.innerHTML='<div class="card"><h2>'+ym.y+' im Überblick</h2>'+bars+'</div>'
     +'<div class="card"><h2>Kennzahlen</h2><div class="tiles">'
+      +'<div class="tile"><small>Ausgaben</small><b>'+eur(sA)+'</b><span>Ø '+eur(sA/used)+' pro Monat</span></div>'
       +'<div class="tile"><small>Einnahmen</small><b>'+eur(sE)+'</b></div>'
-      +'<div class="tile"><small>Fixkosten</small><b>'+eur(sF)+'</b><span>Ø '+eur(sF/used)+' pro Monat</span></div>'
-      +'<div class="tile"><small>Variable Ausgaben</small><b>'+eur(sA-sF)+'</b><span>Ø '+eur((sA-sF)/used)+' pro Monat</span></div>'
       +(sE>0?'<div class="tile"><small>'+(bal>=0?'Übrig':'Minus')+'</small><b class="'+(bal>=0?'pos':'neg')+'">'+eur(bal)+'</b></div>':'')
-      +'<div class="tile"><small>Guthaben Jahresende</small><b class="'+(run<0?'neg':'')+'">'+eur(run)+'</b></div>'
     +'</div></div>'
-    +(rows.length?'<div class="card"><h2>Monate im Vergleich</h2>'+bars+'</div>':'')
     +(sA>0?'<div class="card"><h2>Ausgaben nach Kategorie</h2><div class="well">'+donut(parts,sA)+'<div class="legend">'+legendHtml(parts,sA)+'</div></div></div>':'');
   el.querySelectorAll('[data-m]').forEach(function(m){m.onclick=function(){ym={y:ym.y,m:+m.dataset.m};setView('monat');};});
-  document.getElementById('st-open').onclick=function(){document.getElementById('st-edit').classList.toggle('open');document.getElementById('st-b').focus();};
-  document.getElementById('st-save').onclick=saveStart;
-}
-async function saveStart(){
-  var raw=document.getElementById('st-b').value.trim(),d=document.getElementById('st-d').value;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){toast('Bitte ein Datum wählen.');return;}
-  var res;
-  if(raw===''){ // leer = Startguthaben entfernen
-    if(!startRow){toast('Bitte einen Betrag eingeben.');return;}
-    res=await sb.from('haushalt_buchungen').delete().eq('id',startRow.id);
-  }else{
-    var v=parseBetrag(raw);
-    if(!(v>0)||v>=10000000){toast('Bitte einen Betrag über 0 eingeben (leer = entfernen).');return;}
-    var rec={datum:d,betrag:v,art:'einnahme',kategorie:'startguthaben',beschreibung:'Startguthaben',fix:false};
-    res=startRow?await sb.from('haushalt_buchungen').update(rec).eq('id',startRow.id).select()
-                :await sb.from('haushalt_buchungen').insert(Object.assign({owner:user.id},rec)).select();
-  }
-  if(res.error){toast('Speichern hat nicht geklappt.');return;}
-  toast('Startguthaben gespeichert.');load();
 }
 
 init();
