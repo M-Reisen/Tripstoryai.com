@@ -112,6 +112,14 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 .fixlist .fx small{display:block;color:var(--fog);font-size:.72rem;}
 .fixlist .fx input[type=text]{width:110px;font:500 .9rem 'DM Sans',sans-serif;padding:7px 9px;border:1px solid var(--rule);border-radius:9px;background:#fff;text-align:right;}
 .fixlist .fx input.chg{border-color:var(--terra);background:#FFF6EE;}
+.sumrow{font-weight:600;border-top:2px solid var(--ink);}
+.sumrow .txt small{font-weight:400;}
+.listhd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.listhd h2{margin-bottom:4px;}
+.seg.sortseg{margin-left:0;width:auto;}
+.sortseg button{padding:6px 10px;font-size:.76rem;flex:0 0 auto;}
+h3.cath{display:flex;justify-content:space-between;gap:8px;color:var(--ink);font-size:.78rem;}
+h3.cath b{font-weight:600;}
 .hint{background:var(--well);border-radius:14px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.86rem;margin-bottom:12px;}
 .empty{text-align:center;padding:34px 16px;color:var(--fog);}
 .empty .big{font-size:2.4rem;margin-bottom:8px;}
@@ -220,6 +228,7 @@ var INCATS=[
 ];
 function catOf(k){return CATS.concat(INCATS).find(function(c){return c.k===k;})||{k:k,l:k,e:'📦',c:'#B8AFA4'};}
 
+var sortBy=(function(){try{return localStorage.getItem('hb_sort')||'datum';}catch(e){return 'datum';}})();
 var user=null,view='monat',ym=thisMonth(),rows=[],budget=0,form={art:'ausgabe',cat:'lebensmittel',edit:null},pendingDel=null;
 
 function thisMonth(){var d=new Date();return {y:d.getFullYear(),m:d.getMonth()+1};}
@@ -475,24 +484,49 @@ function renderMonth(){
       return '<div class="day"><span>'+esc(d)+'</span><div class="t"><i style="width:'+(perDay[k]/dmax*100).toFixed(1)+'%"></i></div><b>'+eur(perDay[k])+'</b></div>';
     }).join('')+'</div></div>';
   }
-  // Buchungen nach Datum
-  var byDay={};rows.forEach(function(r){(byDay[r.datum]=byDay[r.datum]||[]).push(r);});
-  h+='<div class="card"><h2>Buchungen</h2><div class="grp">'+Object.keys(byDay).sort().reverse().map(function(d){
-    var lbl=new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
-    return '<h3>'+esc(lbl)+'</h3>'+byDay[d].map(rowHtml).join('');
-  }).join('')+'</div>'
+  // Fixkosten als eigener Block
+  var fixRows=aus.filter(function(r){return r.fix;}).sort(function(a,b){return b.betrag-a.betrag;});
+  if(fixRows.length){
+    h+='<div class="card"><h2>Fixkosten</h2><div class="grp">'+fixRows.map(function(r){return rowHtml(r);}).join('')
+      +'<div class="row sumrow"><div class="txt">Summe Fixkosten'+(sE>0?'<small>'+Math.round(fixSum/sE*100)+' % der Einnahmen</small>':'')+'</div><div class="amt">'+eur2(fixSum)+'</div></div></div></div>';
+  }
+  // Übrige Buchungen: nach Datum, Kategorie oder Betrag
+  var rest=rows.filter(function(r){return !(r.fix&&r.art==='ausgabe');});
+  var seg='<div class="seg sortseg">'+[['datum','Datum'],['kategorie','Kategorie'],['betrag','Betrag']].map(function(o){
+    return '<button type="button" data-sort="'+o[0]+'" class="'+(sortBy===o[0]?'on':'')+'">'+o[1]+'</button>';}).join('')+'</div>';
+  var list='';
+  if(!rest.length)list='<p class="note">Keine weiteren Buchungen.</p>';
+  else if(sortBy==='kategorie'){
+    var byCat={};rest.forEach(function(r){var k=r.art+'|'+r.kategorie;(byCat[k]=byCat[k]||[]).push(r);});
+    list=Object.keys(byCat).map(function(k){var l=byCat[k];return {l:l,sum:l.reduce(function(s,r){return s+r.betrag;},0),ein:l[0].art==='einnahme'};})
+      .sort(function(a,b){return (a.ein-b.ein)||(b.sum-a.sum);})
+      .map(function(g){var c=catOf(g.l[0].kategorie);
+        return '<h3 class="cath"><span>'+c.e+' '+esc(c.l)+' · '+g.l.length+'</span><b>'+(g.ein?'+ ':'')+eur2(g.sum)+'</b></h3>'
+          +g.l.sort(function(a,b){return b.datum.localeCompare(a.datum)||b.betrag-a.betrag;}).map(function(r){return rowHtml(r,true);}).join('');
+      }).join('');
+  }else if(sortBy==='betrag'){
+    list=rest.slice().sort(function(a,b){return (a.art==='einnahme')-(b.art==='einnahme')||b.betrag-a.betrag;}).map(function(r){return rowHtml(r,true);}).join('');
+  }else{
+    var byDay={};rest.forEach(function(r){(byDay[r.datum]=byDay[r.datum]||[]).push(r);});
+    list=Object.keys(byDay).sort().reverse().map(function(d){
+      var lbl=new Date(d+'T12:00:00').toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+      return '<h3>'+esc(lbl)+'</h3>'+byDay[d].map(function(r){return rowHtml(r);}).join('');
+    }).join('');
+  }
+  h+='<div class="card"><div class="listhd"><h2>'+(fixRows.length?'Weitere Buchungen':'Buchungen')+'</h2>'+seg+'</div><div class="grp">'+list+'</div>'
     +'<div class="tools"><button type="button" class="btn" id="csv">⬇ Als CSV (Excel)</button></div></div>';
   document.getElementById('m-out').innerHTML=h;
   wireBudget();
   document.getElementById('csv').onclick=exportCsv;
+  document.querySelectorAll('[data-sort]').forEach(function(b){b.onclick=function(){sortBy=b.dataset.sort;try{localStorage.setItem('hb_sort',sortBy);}catch(e){}renderMonth();};});
   document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.edit);};});
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){askDelete(b.dataset.del);};});
   checkFixHint();
 }
-function rowHtml(r){
+function rowHtml(r,withDate){
   var c=catOf(r.kategorie),ein=r.art==='einnahme';
   return '<div class="row"><div class="ico" style="background:'+c.c+'22">'+c.e+'</div>'
-    +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+'<small>'+esc(c.l)+'</small></div>'
+    +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+'<small>'+esc(withDate?new Date(r.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})+' · '+c.l:c.l)+'</small></div>'
     +'<div class="amt'+(ein?' ein':'')+'">'+(ein?'+ ':'')+eur2(r.betrag)+'</div>'
     +'<div class="act"><button type="button" data-edit="'+r.id+'" aria-label="Ändern">✎</button><button type="button" data-del="'+r.id+'" aria-label="Löschen">🗑</button></div></div>';
 }
