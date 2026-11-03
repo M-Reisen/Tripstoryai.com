@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/haushalt-app", "destination": "/haushalt-app/", "permanent": true }
+  ],
   "rewrites": [
     {
       "source": "/reisevorlage.html",
