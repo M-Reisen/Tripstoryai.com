@@ -120,6 +120,8 @@ h1{font-family:'Playfair Display',serif;font-weight:400;font-size:clamp(30px,6vw
 .sortseg button{padding:6px 10px;font-size:.76rem;flex:0 0 auto;}
 h3.cath{display:flex;justify-content:space-between;gap:8px;color:var(--ink);font-size:.78rem;}
 h3.cath b{font-weight:600;}
+.fieldhint{display:block;color:var(--fog);font-size:.74rem;margin-top:4px;min-height:1em;}
+.ersttag{display:inline-block;font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;background:#E4EFE7;color:var(--green);border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px;}
 /* Simulation */
 .sim summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;}
 .sim summary::-webkit-details-marker{display:none;}
@@ -194,6 +196,7 @@ h3.cath b{font-weight:600;}
           <div class="full art"><button type="button" id="art-aus" class="aus on">Ausgabe</button><button type="button" id="art-ein" class="ein">Einnahme</button></div>
           <div><label for="f-betrag">Betrag (€)</label><input id="f-betrag" class="big" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
           <div><label for="f-datum">Datum</label><input id="f-datum" type="date"></div>
+          <div class="full" id="f-erst-wrap"><label for="f-erst">Davon erstattet (€, optional)</label><input id="f-erst" type="text" inputmode="decimal" placeholder="0,00 – wenn du etwas auslegst" autocomplete="off"><small class="fieldhint" id="f-erst-hint"></small></div>
           <div class="full"><label>Kategorie</label><div class="chips" id="f-cats"></div></div>
           <div class="full"><label for="f-text">Beschreibung (optional)</label><input id="f-text" type="text" maxlength="200" placeholder="z. B. Wocheneinkauf Edeka"></div>
           <div class="full"><label class="chk" style="text-transform:none;letter-spacing:0;font-size:.86rem;color:var(--ink)"><input id="f-fix" type="checkbox"> Fixkosten (jeden Monat gleich, z. B. Miete, Versicherung, Abo)</label></div>
@@ -310,7 +313,10 @@ async function load(){
   var target=document.getElementById(view==='jahr'?'jahr':'m-out');
   if(res.error){target.innerHTML='<div class="empty"><div class="big">⚠️</div>Buchungen konnten nicht geladen werden.</div>';return;}
   // „startguthaben“ stammt aus einer zurückgenommenen Übersicht und zählt hier nicht mit
-  rows=(res.data||[]).filter(function(r){return r.kategorie!=='startguthaben';}).map(function(r){r.betrag=Number(r.betrag)||0;return r;});
+  rows=(res.data||[]).filter(function(r){return r.kategorie!=='startguthaben';}).map(function(r){
+    // Erstattung: in alle Auswertungen geht nur der Betrag, der nach der Erstattung bleibt
+    r.voll=Number(r.betrag)||0;r.erstattet=r.art==='ausgabe'?Math.min(Number(r.erstattet)||0,r.voll):0;
+    r.betrag=Math.round((r.voll-r.erstattet)*100)/100;return r;});
   if(view==='jahr')renderYear();else renderMonth();
 }
 
@@ -320,7 +326,7 @@ function setDefaultDate(){
   d.value=(t>=monthStart(ym)&&t<=monthEnd(ym))?t:monthStart(ym);
 }
 function renderChips(){
-  var list=form.art==='einnahme'?INCATS:CATS;
+  var list=form.art==='einnahme'?INCATS.filter(function(c){return c.k!=='erstattung'||c.k===form.cat;}):CATS;
   if(!list.some(function(c){return c.k===form.cat;}))form.cat=list[0].k;
   document.getElementById('f-cats').innerHTML=list.map(function(c){
     return '<button type="button" class="chip'+(c.k===form.cat?' on':'')+'" data-k="'+c.k+'">'+c.e+' '+esc(c.l)+'</button>';
@@ -330,6 +336,7 @@ function setArt(a){
   form.art=a;
   document.getElementById('art-aus').classList.toggle('on',a==='ausgabe');
   document.getElementById('art-ein').classList.toggle('on',a==='einnahme');
+  document.getElementById('f-erst-wrap').style.display=a==='einnahme'?'none':'';
   document.getElementById('f-text').placeholder=a==='einnahme'?'z. B. Gehalt November':'z. B. Wocheneinkauf Edeka';
   renderChips();
 }
@@ -339,11 +346,17 @@ function wireForm(){
   document.getElementById('f-cats').onclick=function(e){var b=e.target.closest('.chip');if(!b)return;form.cat=b.dataset.k;renderChips();};
   document.getElementById('f-save').onclick=save;
   document.getElementById('f-cancel').onclick=resetForm;
-  ['f-betrag','f-text'].forEach(function(id){document.getElementById(id).onkeydown=function(e){if(e.key==='Enter')save();};});
+  document.getElementById('f-erst').oninput=document.getElementById('f-betrag').oninput=erstHint;
+  ['f-betrag','f-erst','f-text'].forEach(function(id){document.getElementById(id).onkeydown=function(e){if(e.key==='Enter')save();};});
   setArt('ausgabe');
+}
+function erstHint(){
+  var v=parseBetrag(document.getElementById('f-betrag').value),e=parseBetrag(document.getElementById('f-erst').value),h=document.getElementById('f-erst-hint');
+  h.textContent=(e>0&&v>0)?(e>v?'Die Erstattung ist höher als der Betrag.':'In die Statistik kommen '+eur2(v-e)+'.'):'';
 }
 function resetForm(){
   form.edit=null;
+  document.getElementById('f-erst').value='';document.getElementById('f-erst-hint').textContent='';
   document.getElementById('form-title').textContent='Neue Buchung';
   document.getElementById('f-cancel').style.display='none';
   document.getElementById('f-betrag').value='';
@@ -358,11 +371,13 @@ function startEdit(id){
   form.edit=id;form.cat=r.kategorie;setArt(r.art);
   document.getElementById('form-title').textContent='Buchung ändern';
   document.getElementById('f-cancel').style.display='';
-  document.getElementById('f-betrag').value=r.betrag.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});
+  function num2(n){return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2,useGrouping:false});}
+  document.getElementById('f-betrag').value=num2(r.voll);
+  document.getElementById('f-erst').value=r.erstattet>0?num2(r.erstattet):'';erstHint();
   document.getElementById('f-datum').value=r.datum;
   document.getElementById('f-text').value=r.beschreibung||'';
   document.getElementById('f-fix').checked=!!r.fix;
-  form.orig={betrag:r.betrag,kategorie:r.kategorie,beschreibung:r.beschreibung||'',datum:r.datum,fix:!!r.fix};
+  form.orig={betrag:r.voll,kategorie:r.kategorie,beschreibung:r.beschreibung||'',datum:r.datum,fix:!!r.fix};
   document.getElementById('f-later').checked=true;
   document.getElementById('f-later-wrap').style.display=r.fix?'':'none';
   document.getElementById('form-card').scrollIntoView({behavior:'smooth',block:'start'});
@@ -372,7 +387,9 @@ async function save(){
   var d=document.getElementById('f-datum').value;
   if(!(v>0)||v>=10000000){toast('Bitte einen Betrag eingeben.');document.getElementById('f-betrag').focus();return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){toast('Bitte ein Datum wählen.');return;}
-  var rec={datum:d,betrag:v,art:form.art,kategorie:form.cat,beschreibung:document.getElementById('f-text').value.trim().slice(0,200),fix:document.getElementById('f-fix').checked};
+  var eRaw=document.getElementById('f-erst').value.trim(),er=(form.art==='ausgabe'&&eRaw)?parseBetrag(eRaw):0;
+  if(!(er>=0)||er>v){toast('Die Erstattung muss zwischen 0 und dem Betrag liegen.');document.getElementById('f-erst').focus();return;}
+  var rec={datum:d,betrag:v,erstattet:er,art:form.art,kategorie:form.cat,beschreibung:document.getElementById('f-text').value.trim().slice(0,200),fix:document.getElementById('f-fix').checked};
   var btn=document.getElementById('f-save');btn.disabled=true;
   var res=form.edit
     ?await sb.from('haushalt_buchungen').update(rec).eq('id',form.edit).select()
@@ -546,6 +563,7 @@ function renderMonth(){
   document.getElementById('csv').onclick=exportCsv;
   document.querySelectorAll('[data-sort]').forEach(function(b){b.onclick=function(){sortBy=b.dataset.sort;try{localStorage.setItem('hb_sort',sortBy);}catch(e){}renderMonth();};});
   document.querySelectorAll('[data-edit]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.edit);};});
+  document.querySelectorAll('[data-erst]').forEach(function(b){b.onclick=function(){startEdit(b.dataset.erst);setTimeout(function(){document.getElementById('f-erst').focus();},350);};});
   document.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){askDelete(b.dataset.del);};});
   wireSim(fixRows,sE,sA-fixSum);
   checkFixHint();
@@ -553,9 +571,10 @@ function renderMonth(){
 function rowHtml(r,withDate){
   var c=catOf(r.kategorie),ein=r.art==='einnahme';
   return '<div class="row"><div class="ico" style="background:'+c.c+'22">'+c.e+'</div>'
-    +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+'<small>'+esc(withDate?new Date(r.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})+' · '+c.l:c.l)+'</small></div>'
+    +'<div class="txt">'+esc(r.beschreibung||c.l)+(r.fix?'<span class="fixtag">fix</span>':'')+(r.erstattet>0?'<span class="ersttag">erstattet</span>':'')+'<small>'+esc(withDate?new Date(r.datum+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'short'})+' · '+c.l:c.l)+'</small>'
+    +(r.erstattet>0?'<small>'+eur2(r.voll)+' bezahlt, '+eur2(r.erstattet)+' zurück</small>':'')+'</div>'
     +'<div class="amt'+(ein?' ein':'')+'">'+(ein?'+ ':'')+eur2(r.betrag)+'</div>'
-    +'<div class="act"><button type="button" data-edit="'+r.id+'" aria-label="Ändern">✎</button><button type="button" data-del="'+r.id+'" aria-label="Löschen">🗑</button></div></div>';
+    +'<div class="act">'+(!ein&&!(r.erstattet>0)?'<button type="button" data-erst="'+r.id+'" aria-label="Erstattung eintragen" title="Erstattung eintragen">↩</button>':'')+'<button type="button" data-edit="'+r.id+'" aria-label="Ändern">✎</button><button type="button" data-del="'+r.id+'" aria-label="Löschen">🗑</button></div></div>';
 }
 
 // ===== Simulation (nur Rechnung, ändert keine Buchungen) =====
@@ -654,10 +673,11 @@ async function checkFixHint(){
 }
 
 function exportCsv(){
-  var lines=[['Datum','Art','Kategorie','Beschreibung','Betrag','Fix']];
+  var lines=[['Datum','Art','Kategorie','Beschreibung','Betrag','Fix','Bezahlt','Erstattet']];
   rows.slice().sort(function(a,b){return a.datum.localeCompare(b.datum);}).forEach(function(r){
     lines.push([r.datum.split('-').reverse().join('.'),r.art==='einnahme'?'Einnahme':'Ausgabe',catOf(r.kategorie).l,r.beschreibung||'',
-      (r.art==='einnahme'?'':'-')+r.betrag.toFixed(2).replace('.',','),r.fix?'ja':'']);
+      (r.art==='einnahme'?'':'-')+r.betrag.toFixed(2).replace('.',','),r.fix?'ja':'',
+      r.erstattet>0?r.voll.toFixed(2).replace('.',','):'',r.erstattet>0?r.erstattet.toFixed(2).replace('.',','):'']);
   });
   var csv='﻿'+lines.map(function(l){return l.map(function(v){v=String(v);if(/^[=+\-@]/.test(v)&&isNaN(parseFloat(v.replace(',','.'))))v="'"+v;return /[;"\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}).join(';');}).join('\r\n');
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
