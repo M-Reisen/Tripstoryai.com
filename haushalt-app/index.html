@@ -326,7 +326,7 @@ function setDefaultDate(){
   d.value=(t>=monthStart(ym)&&t<=monthEnd(ym))?t:monthStart(ym);
 }
 function renderChips(){
-  var list=form.art==='einnahme'?INCATS:CATS;
+  var list=form.art==='einnahme'?INCATS.filter(function(c){return c.k!=='erstattung'||c.k===form.cat;}):CATS;
   if(!list.some(function(c){return c.k===form.cat;}))form.cat=list[0].k;
   document.getElementById('f-cats').innerHTML=list.map(function(c){
     return '<button type="button" class="chip'+(c.k===form.cat?' on':'')+'" data-k="'+c.k+'">'+c.e+' '+esc(c.l)+'</button>';
