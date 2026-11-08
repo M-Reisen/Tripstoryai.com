@@ -1,6 +1,6 @@
 // Haushaltsbuch-App: alle Dateien beim ersten Öffnen merken, danach läuft sie ohne Internet.
 // Bei neuer Version CACHE hochzählen.
-const CACHE = 'haushaltsbuch-app-v4';
+const CACHE = 'haushaltsbuch-app-v5';
 const FILES = [
   '/haushalt-app/', '/haushalt-app/index.html', '/haushalt-app/speicher.js', '/haushalt-app/manifest.webmanifest',
   '/haushalt-app/icon-180.png', '/haushalt-app/icon-192.png', '/haushalt-app/icon-512.png',
