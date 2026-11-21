@@ -249,7 +249,16 @@ header{position:sticky;top:0;z-index:100;background:rgba(244,239,232,.9);backdro
 <script>
 var SUPA_URL='https://celihvrblqqivtlvzbjp.supabase.co';
 var SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNlbGlodnJibHFxaXZ0bHZ6YmpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NDg4NzcsImV4cCI6MjA5ODIyNDg3N30.HkoN6h7tRtqOWdhidh4Gk7hrHmpNtW9rRteuVo3eFT4';
-var sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+var sb=null;
+// Supabase-Baustein fehlt manchmal (z. B. beim Google-Roboter): einmal nachladen, Seite bricht nicht ab
+function mitSupabase(fertig){
+  if(window.supabase&&window.supabase.createClient){fertig(true);return;}
+  var s=document.createElement('script');
+  s.src='/vendor/supabase-js-2.117.2.js?neu=1';
+  s.onload=function(){fertig(!!(window.supabase&&window.supabase.createClient));};
+  s.onerror=function(){fertig(false);};
+  document.head.appendChild(s);
+}
 
 function esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
 function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
@@ -333,8 +342,12 @@ async function initNav(){
   }catch(e){}
 }
 
-initNav();
-loadCommunity();
+mitSupabase(function(ok){
+  if(!ok){var l=document.getElementById('loading');if(l)l.innerHTML='Konnte Reisen nicht laden. Bitte Seite neu laden.';return;}
+  sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+  initNav();
+  loadCommunity();
+});
 if(/[?&]konto=geloescht/.test(location.search)){
   try{toast('Dein Konto und alle Daten wurden gelöscht.');history.replaceState(null,'','/index.html');}catch(e){}
 }
